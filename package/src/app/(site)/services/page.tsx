@@ -1,6 +1,8 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import ServicesList from "./ServicesList";
+import { AnimatedHero } from "@/app/components/ui/animated-hero";
+import { AnimatedSection } from "@/app/components/ui/animated-section";
 
 export const metadata: Metadata = {
   title: "Services | Curvvtech",
@@ -19,20 +21,21 @@ export default function ServicesPage() {
       <section>
         <div className={heroGradient}>
           <div className="container relative z-10">
-            <div className="flex flex-col gap-8">
+            <AnimatedHero className="flex flex-col gap-8">
               <div className="flex flex-col text-center items-center gap-4">
                 <h1>Our Services</h1>
                 <p className="max-w-38 text-dark_black/60 dark:text-white/60">
                   {serviceBlurb}
                 </p>
               </div>
-            </div>
+            </AnimatedHero>
           </div>
         </div>
       </section>
       <section>
         <div className="2xl:py-20 py-11">
           <div className="container">
+            <AnimatedSection className="flex flex-col gap-12">
             <ServicesList />
             <div className="flex flex-col items-center justify-center mt-16 w-full">
               <Link
@@ -49,6 +52,7 @@ export default function ServicesPage() {
                 </svg>
               </Link>
             </div>
+            </AnimatedSection>
           </div>
         </div>
       </section>

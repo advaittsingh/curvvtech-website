@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
+import { AnimatedGridItem } from "@/app/components/ui/animated-grid-item";
 
 type ServiceItem = {
   slug?: string;
@@ -54,14 +55,19 @@ export default function ServicesList() {
           </>
         );
         const className = `${item.bg_color} flex flex-col p-8 rounded-2xl gap-6 hover:opacity-95 transition-opacity min-h-[200px]`;
-        return item.slug ? (
-          <Link key={index} href={`/services/${item.slug}`} className={className}>
+        const cell = item.slug ? (
+          <Link href={`/services/${item.slug}`} className={className}>
             {content}
           </Link>
         ) : (
-          <div key={index} className={className}>
+          <div className={className}>
             {content}
           </div>
+        );
+        return (
+          <AnimatedGridItem key={index} index={index}>
+            {cell}
+          </AnimatedGridItem>
         );
       })}
     </div>

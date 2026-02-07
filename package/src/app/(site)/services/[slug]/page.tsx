@@ -7,6 +7,8 @@ import {
   getAllServiceSlugs,
   getProjectsForService,
 } from "@/lib/services-data";
+import { AnimatedHero } from "@/app/components/ui/animated-hero";
+import { AnimatedSection } from "@/app/components/ui/animated-section";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -37,12 +39,12 @@ export default async function ServiceDetailPage({ params }: Props) {
       <section>
         <div className="relative w-full pt-44 2xl:pb-20 pb-10 before:absolute before:w-full before:h-full before:bg-linear-to-r before:from-blue_gradient before:via-white before:to-yellow_gradient before:rounded-full before:top-24 before:blur-3xl before:-z-10 dark:before:from-dark_blue_gradient dark:before:via-black dark:before:to-dark_yellow_gradient dark:before:rounded-full dark:before:blur-3xl dark:before:-z-10">
           <div className="container relative z-10">
-            <div className="flex flex-col gap-6 items-center text-center">
+            <AnimatedHero className="flex flex-col gap-6 items-center text-center">
               <h1>{service.title}</h1>
               <p className="max-w-2xl text-dark_black/60 dark:text-white/60 text-lg">
                 {service.description}
               </p>
-            </div>
+            </AnimatedHero>
           </div>
         </div>
       </section>
@@ -51,7 +53,7 @@ export default async function ServiceDetailPage({ params }: Props) {
       <section>
         <div className="2xl:py-20 py-11">
           <div className="container">
-            <div className="flex flex-col gap-12">
+            <AnimatedSection className="flex flex-col gap-12">
               <div className="flex flex-col justify-center items-center gap-3">
                 <h2 className="text-center max-w-2xl mx-auto">About this service</h2>
               </div>
@@ -60,7 +62,7 @@ export default async function ServiceDetailPage({ params }: Props) {
                   {service.longDescription}
                 </p>
               </div>
-            </div>
+            </AnimatedSection>
           </div>
         </div>
       </section>
@@ -70,7 +72,7 @@ export default async function ServiceDetailPage({ params }: Props) {
         <section>
           <div className="2xl:py-20 py-11">
             <div className="container">
-              <div className="flex flex-col gap-12">
+              <AnimatedSection className="flex flex-col gap-12">
                 <div className="flex flex-col justify-center items-center gap-3">
                   <h2 className="text-center max-w-2xl mx-auto">Why choose us</h2>
                 </div>
@@ -85,7 +87,7 @@ export default async function ServiceDetailPage({ params }: Props) {
                     );
                   })}
                 </div>
-              </div>
+              </AnimatedSection>
             </div>
           </div>
         </section>
@@ -96,7 +98,7 @@ export default async function ServiceDetailPage({ params }: Props) {
         <section>
           <div className="2xl:py-20 py-11">
             <div className="container">
-              <div className="flex flex-col gap-12">
+              <AnimatedSection className="flex flex-col gap-12">
                 <div className="flex flex-col justify-center items-center gap-3">
                   <h2 className="text-center max-w-2xl mx-auto">What we build</h2>
                 </div>
@@ -113,7 +115,7 @@ export default async function ServiceDetailPage({ params }: Props) {
                     </div>
                   ))}
                 </div>
-              </div>
+              </AnimatedSection>
             </div>
           </div>
         </section>
@@ -124,7 +126,7 @@ export default async function ServiceDetailPage({ params }: Props) {
         <section>
           <div className="2xl:py-20 py-11">
             <div className="container">
-              <div className="flex flex-col gap-12">
+              <AnimatedSection className="flex flex-col gap-12">
                 <div className="flex flex-col justify-center items-center gap-3">
                   <h2 className="text-center max-w-2xl mx-auto">How it works</h2>
                 </div>
@@ -143,7 +145,7 @@ export default async function ServiceDetailPage({ params }: Props) {
                     </div>
                   ))}
                 </div>
-              </div>
+              </AnimatedSection>
             </div>
           </div>
         </section>
@@ -154,7 +156,7 @@ export default async function ServiceDetailPage({ params }: Props) {
         <section>
           <div className="2xl:py-20 py-11">
             <div className="container">
-              <div className="flex flex-col gap-12">
+              <AnimatedSection className="flex flex-col gap-12">
                 <div className="flex flex-col justify-center items-center gap-3">
                   <h2 className="text-center max-w-2xl mx-auto">Technologies we use</h2>
                 </div>
@@ -171,7 +173,7 @@ export default async function ServiceDetailPage({ params }: Props) {
                     </div>
                   ))}
                 </div>
-              </div>
+              </AnimatedSection>
             </div>
           </div>
         </section>
@@ -181,7 +183,7 @@ export default async function ServiceDetailPage({ params }: Props) {
       <section>
         <div className="2xl:py-20 py-11">
           <div className="container">
-            <div className="flex flex-col gap-12">
+            <AnimatedSection className="flex flex-col gap-12">
               <div className="flex flex-col justify-center items-center gap-3">
                 <h2 className="text-center max-w-2xl mx-auto">In action</h2>
               </div>
@@ -201,7 +203,7 @@ export default async function ServiceDetailPage({ params }: Props) {
                   </div>
                 ))}
               </div>
-            </div>
+            </AnimatedSection>
           </div>
         </div>
       </section>
@@ -210,7 +212,7 @@ export default async function ServiceDetailPage({ params }: Props) {
       <section>
         <div className="2xl:py-20 py-11">
           <div className="container">
-            <div className="flex flex-col gap-12">
+            <AnimatedSection className="flex flex-col gap-12">
               <div className="flex flex-col justify-center items-center gap-3">
                 <h2 className="text-center max-w-2xl mx-auto">Projects we&apos;ve delivered</h2>
                 <p className="text-dark_black/60 dark:text-white/60 text-center max-w-xl">
@@ -254,7 +256,7 @@ export default async function ServiceDetailPage({ params }: Props) {
                 Case studies for this service are coming soon.
               </p>
             )}
-            </div>
+            </AnimatedSection>
           </div>
         </div>
       </section>
@@ -263,7 +265,7 @@ export default async function ServiceDetailPage({ params }: Props) {
       <section>
         <div className="2xl:py-20 py-11">
           <div className="container">
-            <div className="rounded-3xl border border-dark_black/10 dark:border-white/10 bg-dark_black/5 dark:bg-white/5 p-8 md:p-12 flex flex-col items-center text-center max-w-2xl mx-auto">
+            <AnimatedSection className="rounded-3xl border border-dark_black/10 dark:border-white/10 bg-dark_black/5 dark:bg-white/5 p-8 md:p-12 flex flex-col items-center text-center max-w-2xl mx-auto">
               <h2 className="mb-3">Ready to get started?</h2>
               <p className="text-dark_black/60 dark:text-white/60 mb-8">
                 Tell us about your project and we&apos;ll tailor our {service.shortTitle} offering to your needs.
@@ -281,7 +283,7 @@ export default async function ServiceDetailPage({ params }: Props) {
                   <path d="M15.832 23.6667L24.1654 15.3334" className="stroke-[#1B1D1E] transition-colors duration-500 ease-in-out group-hover:stroke-white" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </Link>
-            </div>
+            </AnimatedSection>
           </div>
         </div>
       </section>

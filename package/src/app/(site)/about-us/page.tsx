@@ -1,5 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { AnimatedHero } from "@/app/components/ui/animated-hero";
+import { AnimatedSection } from "@/app/components/ui/animated-section";
 
 export const metadata: Metadata = {
   title: "About us | Curvvtech",
@@ -13,14 +15,14 @@ export default function AboutUsPage() {
       <section>
         <div className="relative w-full pt-44 2xl:pb-20 pb-10 before:absolute before:w-full before:h-full before:bg-linear-to-r before:from-blue_gradient before:via-white before:to-yellow_gradient before:rounded-full before:top-24 before:blur-3xl before:-z-10 dark:before:from-dark_blue_gradient dark:before:via-black dark:before:to-dark_yellow_gradient dark:before:rounded-full dark:before:blur-3xl dark:before:-z-10">
           <div className="container relative z-10">
-            <div className="flex flex-col gap-8">
+            <AnimatedHero className="flex flex-col gap-8">
               <div className="relative flex flex-col text-center items-center gap-4">
                 <h1>About Curvvtech</h1>
                 <p className="max-w-38 text-dark_black/60 dark:text-white/60">
                   We&apos;re a technology solutions company that builds custom software and offers innovative SaaS products to help businesses scale and succeed.
                 </p>
               </div>
-            </div>
+            </AnimatedHero>
           </div>
         </div>
       </section>
@@ -29,7 +31,7 @@ export default function AboutUsPage() {
       <section>
         <div className="2xl:py-20 py-11">
           <div className="container">
-            <div className="flex flex-col gap-10">
+            <AnimatedSection className="flex flex-col gap-10">
               <div className="max-w-2xl text-center mx-auto">
                 <h2 className="mb-2">Our Story</h2>
                 <p className="text-dark_black/60 dark:text-white/60 text-lg">
@@ -70,7 +72,7 @@ export default function AboutUsPage() {
                   </p>
                 </div>
               </div>
-            </div>
+            </AnimatedSection>
           </div>
         </div>
       </section>
@@ -79,7 +81,7 @@ export default function AboutUsPage() {
       <section>
         <div className="2xl:py-20 py-11">
           <div className="container">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl mx-auto">
+            <AnimatedSection className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl mx-auto">
               <div className="bg-blue/20 flex flex-col p-8 md:p-10 rounded-2xl gap-6">
                 <h2 className="text-3xl text-blue">Our Vision</h2>
                 <p className="text-dark_black/70 dark:text-white/70 text-base lg:text-lg leading-relaxed">
@@ -92,7 +94,7 @@ export default function AboutUsPage() {
                   To deliver exceptional software solutions that drive business growth, enhance productivity, and create lasting value for our clients. We combine technical expertise with strategic thinking to solve complex challenges.
                 </p>
               </div>
-            </div>
+            </AnimatedSection>
           </div>
         </div>
       </section>
@@ -101,7 +103,7 @@ export default function AboutUsPage() {
       <section>
         <div className="2xl:py-20 py-11">
           <div className="container">
-            <div className="flex flex-col gap-12">
+            <AnimatedSection className="flex flex-col gap-12">
               <div className="flex flex-col justify-center items-center gap-3">
                 <h2 className="text-center max-w-2xl mx-auto">Our Values</h2>
                 <p className="text-dark_black/60 dark:text-white/60 text-center max-w-xl">
@@ -134,7 +136,7 @@ export default function AboutUsPage() {
                   </p>
                 </div>
               </div>
-            </div>
+            </AnimatedSection>
           </div>
         </div>
       </section>
@@ -143,10 +145,10 @@ export default function AboutUsPage() {
       <section>
         <div className="2xl:py-20 py-11">
           <div className="container">
-            <div className="max-w-2xl text-center mx-auto mb-12">
+            <AnimatedSection className="max-w-2xl text-center mx-auto mb-12">
               <h2>Why Curvvtech is Different</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            </AnimatedSection>
+            <AnimatedSection className="grid grid-cols-1 md:grid-cols-2 gap-6" staggerDelay={0.1}>
               <div className="p-8 rounded-2xl bg-dark_black/5 dark:bg-white/5 border border-dark_black/10 dark:border-white/10">
                 <h4 className="mb-2">Not Just an Agency</h4>
                 <p className="text-dark_black/60 dark:text-white/60 text-base">
@@ -171,7 +173,7 @@ export default function AboutUsPage() {
                   We&apos;re not just vendors—we&apos;re partners. We invest in your success and provide ongoing support, maintenance, and enhancements to ensure your software continues to deliver value.
                 </p>
               </div>
-            </div>
+            </AnimatedSection>
           </div>
         </div>
       </section>
@@ -180,7 +182,7 @@ export default function AboutUsPage() {
       <section>
         <div className="2xl:py-20 py-11">
           <div className="container">
-            <div className="flex flex-col gap-6 items-center justify-center text-center max-w-2xl mx-auto">
+            <AnimatedSection className="flex flex-col gap-6 items-center justify-center text-center max-w-2xl mx-auto">
               <h2>Ready to Work Together?</h2>
               <p className="text-dark_black/60 dark:text-white/60">
                 Let&apos;s discuss how Curvvtech can help transform your business with custom software or our SaaS products.
@@ -222,7 +224,7 @@ export default function AboutUsPage() {
                   />
                 </svg>
               </Link>
-            </div>
+            </AnimatedSection>
           </div>
         </div>
       </section>

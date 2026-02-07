@@ -177,7 +177,7 @@ export const servicesDetail: ServiceDetail[] = [
   },
 ];
 
-const accentMap: Record<string, { bg: string; text: string }> = {
+const accentMap: Record<string, string> = {
   purple: 'bg-purple/20 text-purple',
   blue: 'bg-blue/20 text-blue',
   orange: 'bg-orange/20 text-orange',
