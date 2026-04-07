@@ -19,7 +19,7 @@ import { BackgroundGradient } from '#components/gradients/background-gradient'
 import { PageTransition } from '#components/motion/page-transition'
 import { Section } from '#components/section'
 import siteConfig from '#data/config'
-import { getApiOrigin, parseApiError, setTokens } from '#lib/followup-api'
+import { getApiOrigin, parseApiError, setTokens, v1ApiPath } from '#lib/followup-api'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -67,7 +67,7 @@ export default function LoginPage() {
         return
       }
       setTokens(access, refreshTok)
-      const bus = await fetch(`${base}/api/v1/me/business`, {
+      const bus = await fetch(v1ApiPath('me/business'), {
         headers: { Authorization: `Bearer ${access}` },
       })
       let onboardingComplete = false

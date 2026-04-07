@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 
-import { clearTokens, getAccessToken, getApiOrigin } from '#lib/followup-api'
+import { clearTokens, getAccessToken, getApiOrigin, v1ApiPath } from '#lib/followup-api'
 
 export type AuthSessionState = {
   loading: boolean
@@ -22,8 +22,8 @@ const initial: AuthSessionState = {
   onboardingComplete: false,
 }
 
-async function fetchBusinessComplete(base: string, token: string): Promise<boolean> {
-  const res = await fetch(`${base}/api/v1/me/business`, { headers: { Authorization: `Bearer ${token}` } })
+async function fetchBusinessComplete(token: string): Promise<boolean> {
+  const res = await fetch(v1ApiPath('me/business'), { headers: { Authorization: `Bearer ${token}` } })
   if (!res.ok) return false
   const row = (await res.json()) as {
     questionnaire?: unknown
@@ -74,7 +74,7 @@ export function useAuthSession() {
           access_allowed?: boolean
           waitlist_position?: number | null
         }
-        const onboardingComplete = await fetchBusinessComplete(base, token)
+        const onboardingComplete = await fetchBusinessComplete(token)
         setState({
           loading: false,
           authenticated: true,

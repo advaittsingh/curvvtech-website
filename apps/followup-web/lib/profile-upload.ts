@@ -1,4 +1,4 @@
-import { authHeaders, getApiOrigin, parseApiError } from '#lib/followup-api'
+import { authHeaders, getApiOrigin, parseApiError, v1ApiPath } from '#lib/followup-api'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
 
@@ -18,7 +18,7 @@ export async function uploadProfileImage(
     return 'Use JPEG, PNG, or WebP.'
   }
 
-  const presign = await fetch(`${base}/api/v1/me/profile/upload-url`, {
+  const presign = await fetch(v1ApiPath('me/profile/upload-url'), {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({ purpose, content_type: contentType }),
@@ -48,7 +48,7 @@ export async function uploadProfileImage(
       ? { id_document_s3_key: key, id_verification_status: 'pending' }
       : { profile_photo_s3_key: key }
 
-  const patch = await fetch(`${base}/api/v1/me/profile`, {
+  const patch = await fetch(v1ApiPath('me/profile'), {
     method: 'PATCH',
     headers: authHeaders(),
     body: JSON.stringify(extra),

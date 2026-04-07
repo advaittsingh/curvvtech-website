@@ -18,6 +18,16 @@ export function getApiOrigin(): string {
   return s;
 }
 
+/**
+ * Same-origin path for the unified API `/api/v1/*`. The Next app rewrites these to
+ * `NEXT_PUBLIC_API_URL` (see `next.config.mjs`) so the browser does not call the API host
+ * directly (avoids CDN/proxy 404s). Keep using `getApiOrigin()` + `/api/auth/*` for auth.
+ */
+export function v1ApiPath(restPath: string): string {
+  const r = restPath.replace(/^\//, "");
+  return `/api/v1/${r}`;
+}
+
 const ACCESS = "followup_access_token";
 const REFRESH = "followup_refresh_token";
 

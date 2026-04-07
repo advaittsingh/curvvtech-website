@@ -19,7 +19,7 @@ import {
 import { useCallback, useEffect, useState } from 'react'
 
 import { useAuthSession } from '#hooks/use-auth-session'
-import { authHeaders, getApiOrigin, parseApiError } from '#lib/followup-api'
+import { authHeaders, getApiOrigin, parseApiError, v1ApiPath } from '#lib/followup-api'
 
 type ServerProfile = {
   display_name: string
@@ -58,7 +58,7 @@ export default function ProfileUserPage() {
     }
     setLoadError(null)
     try {
-      const res = await fetch(`${base}/api/v1/me/profile`, { headers: authHeaders() })
+      const res = await fetch(v1ApiPath('me/profile'), { headers: authHeaders() })
       if (!res.ok) throw new Error('profile')
       setProfile((await res.json()) as ServerProfile)
     } catch {
@@ -78,7 +78,7 @@ export default function ProfileUserPage() {
     if (!base) return
     setSaving(true)
     try {
-      const res = await fetch(`${base}/api/v1/me/profile`, {
+      const res = await fetch(v1ApiPath('me/profile'), {
         method: 'PATCH',
         headers: authHeaders(),
         body: JSON.stringify({

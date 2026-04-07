@@ -1,4 +1,4 @@
-import { authHeaders, getApiOrigin, parseApiError } from '#lib/followup-api'
+import { authHeaders, getApiOrigin, parseApiError, v1ApiPath } from '#lib/followup-api'
 
 export type BillingSummary = {
   plan_tier: string
@@ -31,25 +31,22 @@ export type BillingPlansResponse = {
 }
 
 export async function fetchBillingSummary(): Promise<BillingSummary | null> {
-  const base = getApiOrigin()
-  if (!base) return null
-  const res = await fetch(`${base}/api/v1/me/billing/summary`, { headers: authHeaders() })
+  if (!getApiOrigin()) return null
+  const res = await fetch(v1ApiPath('me/billing/summary'), { headers: authHeaders() })
   if (!res.ok) return null
   return (await res.json()) as BillingSummary
 }
 
 export async function fetchBillingPlans(): Promise<BillingPlansResponse | null> {
-  const base = getApiOrigin()
-  if (!base) return null
-  const res = await fetch(`${base}/api/v1/me/billing/plans`, { headers: authHeaders() })
+  if (!getApiOrigin()) return null
+  const res = await fetch(v1ApiPath('me/billing/plans'), { headers: authHeaders() })
   if (!res.ok) return null
   return (await res.json()) as BillingPlansResponse
 }
 
 export async function postSubscribe(plan: 'pro' | 'pro_plus', interval: 'monthly' | 'annual') {
-  const base = getApiOrigin()
-  if (!base) throw new Error('No API URL')
-  const res = await fetch(`${base}/api/v1/me/billing/subscribe`, {
+  if (!getApiOrigin()) throw new Error('No API URL')
+  const res = await fetch(v1ApiPath('me/billing/subscribe'), {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({ plan, interval }),
@@ -65,9 +62,8 @@ export async function postSubscribe(plan: 'pro' | 'pro_plus', interval: 'monthly
 }
 
 export async function postDowngrade() {
-  const base = getApiOrigin()
-  if (!base) throw new Error('No API URL')
-  const res = await fetch(`${base}/api/v1/me/billing/downgrade`, {
+  if (!getApiOrigin()) throw new Error('No API URL')
+  const res = await fetch(v1ApiPath('me/billing/downgrade'), {
     method: 'POST',
     headers: authHeaders(),
   })
@@ -76,18 +72,16 @@ export async function postDowngrade() {
 }
 
 export async function fetchInvoices() {
-  const base = getApiOrigin()
-  if (!base) return []
-  const res = await fetch(`${base}/api/v1/me/billing/invoices`, { headers: authHeaders() })
+  if (!getApiOrigin()) return []
+  const res = await fetch(v1ApiPath('me/billing/invoices'), { headers: authHeaders() })
   if (!res.ok) return []
   const j = (await res.json()) as { invoices?: unknown[] }
   return j.invoices ?? []
 }
 
 export async function postCardSetupOrder() {
-  const base = getApiOrigin()
-  if (!base) throw new Error('No API URL')
-  const res = await fetch(`${base}/api/v1/me/billing/orders/card-setup`, {
+  if (!getApiOrigin()) throw new Error('No API URL')
+  const res = await fetch(v1ApiPath('me/billing/orders/card-setup'), {
     method: 'POST',
     headers: authHeaders(),
   })
@@ -109,9 +103,8 @@ export async function postVerifyPayment(payload: {
   razorpay_payment_id: string
   razorpay_signature: string
 }) {
-  const base = getApiOrigin()
-  if (!base) throw new Error('No API URL')
-  const res = await fetch(`${base}/api/v1/me/billing/payments/verify`, {
+  if (!getApiOrigin()) throw new Error('No API URL')
+  const res = await fetch(v1ApiPath('me/billing/payments/verify'), {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -121,9 +114,8 @@ export async function postVerifyPayment(payload: {
 }
 
 export async function patchDefaultPaymentMethod(id: string) {
-  const base = getApiOrigin()
-  if (!base) throw new Error('No API URL')
-  const res = await fetch(`${base}/api/v1/me/billing/payment-methods/${id}/default`, {
+  if (!getApiOrigin()) throw new Error('No API URL')
+  const res = await fetch(v1ApiPath(`me/billing/payment-methods/${id}/default`), {
     method: 'PATCH',
     headers: authHeaders(),
   })
@@ -132,9 +124,8 @@ export async function patchDefaultPaymentMethod(id: string) {
 }
 
 export async function deletePaymentMethod(id: string) {
-  const base = getApiOrigin()
-  if (!base) throw new Error('No API URL')
-  const res = await fetch(`${base}/api/v1/me/billing/payment-methods/${id}`, {
+  if (!getApiOrigin()) throw new Error('No API URL')
+  const res = await fetch(v1ApiPath(`me/billing/payment-methods/${id}`), {
     method: 'DELETE',
     headers: authHeaders(),
   })
@@ -155,9 +146,8 @@ export type UsageResponse = {
 }
 
 export async function fetchUsage(): Promise<UsageResponse | null> {
-  const base = getApiOrigin()
-  if (!base) return null
-  const res = await fetch(`${base}/api/v1/me/usage`, { headers: authHeaders() })
+  if (!getApiOrigin()) return null
+  const res = await fetch(v1ApiPath('me/usage'), { headers: authHeaders() })
   if (!res.ok) return null
   return (await res.json()) as UsageResponse
 }

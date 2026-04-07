@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { QuestionnairePageFields } from '#components/questionnaire-fields'
-import { authHeaders, getApiOrigin, parseApiError } from '#lib/followup-api'
+import { authHeaders, getApiOrigin, parseApiError, v1ApiPath } from '#lib/followup-api'
 import {
   initialQuestionnaire,
   pageValid,
@@ -33,7 +33,7 @@ export function BusinessQuestionnaireForm() {
         setError('App is not configured (NEXT_PUBLIC_API_URL).')
         return
       }
-      const res = await fetch(`${base}/api/v1/me/business`, {
+      const res = await fetch(v1ApiPath('me/business'), {
         method: 'PATCH',
         headers: authHeaders(),
         body: JSON.stringify(serverBusinessPatchFromQuestionnaire(q)),

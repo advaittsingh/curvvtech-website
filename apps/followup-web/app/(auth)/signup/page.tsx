@@ -21,7 +21,7 @@ import { BackgroundGradient } from '#components/gradients/background-gradient'
 import { PageTransition } from '#components/motion/page-transition'
 import { Section } from '#components/section'
 import siteConfig from '#data/config'
-import { getApiOrigin, landingHeaders, parseApiError } from '#lib/followup-api'
+import { getApiOrigin, landingHeaders, parseApiError, v1ApiPath } from '#lib/followup-api'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -89,7 +89,7 @@ export default function SignupPage() {
         setError('App is not configured (NEXT_PUBLIC_API_URL).')
         return
       }
-      const res = await fetch(`${base}/api/v1/public/waitlist`, {
+      const res = await fetch(v1ApiPath('public/waitlist'), {
         method: 'POST',
         headers: landingHeaders(),
         body: JSON.stringify({ contact }),

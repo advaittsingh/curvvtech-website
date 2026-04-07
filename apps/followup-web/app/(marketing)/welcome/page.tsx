@@ -3,7 +3,7 @@
 import { Box, Center, Heading, Stack, Text } from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
 
-import { getApiOrigin, landingHeaders } from '#lib/followup-api'
+import { getApiOrigin, landingHeaders, v1ApiPath } from '#lib/followup-api'
 
 /** March 30, 2026, 10:00 AM in the viewer's local timezone */
 const LAUNCH = new Date(2026, 2, 30, 10, 0, 0)
@@ -27,9 +27,8 @@ export default function WelcomePage() {
 
     const loadCount = async () => {
       try {
-        const base = getApiOrigin()
-        if (!base) return
-        const res = await fetch(`${base}/api/v1/public/waitlist/count`, {
+        if (!getApiOrigin()) return
+        const res = await fetch(v1ApiPath('public/waitlist/count'), {
           cache: 'no-store',
           headers: landingHeaders(),
         })
