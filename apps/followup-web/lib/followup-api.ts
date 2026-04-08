@@ -5,7 +5,8 @@
  */
 export function getApiOrigin(): string {
   const u =
-    (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL) ||
+    (typeof process !== "undefined" && process.env.NEXT_PUBLIC_UNIFIED_API_ORIGIN) ||
+    process.env.NEXT_PUBLIC_API_URL ||
     process.env.NEXT_PUBLIC_BACKEND_URL ||
     "";
   let s = String(u).trim().replace(/\/+$/, "");
@@ -19,9 +20,9 @@ export function getApiOrigin(): string {
 }
 
 /**
- * Same-origin path for the unified API `/api/v1/*`. The Next app rewrites these to
- * `NEXT_PUBLIC_API_URL` (see `next.config.mjs`) so the browser does not call the API host
- * directly (avoids CDN/proxy 404s). Keep using `getApiOrigin()` + `/api/auth/*` for auth.
+ * Same-origin path for the unified API `/api/v1/*`. `next.config.mjs` `beforeFiles` rewrites proxy to
+ * `API_PROXY_TARGET` or `NEXT_PUBLIC_API_URL` so the browser stays on the app origin.
+ * Keep using `getApiOrigin() + '/api/auth/*'` for Express auth (not rewritten here).
  */
 export function v1ApiPath(restPath: string): string {
   const r = restPath.replace(/^\//, "");
@@ -34,6 +35,11 @@ const REFRESH = "followup_refresh_token";
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(ACCESS);
+}
+
+export function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(REFRESH);
 }
 
 export function setTokens(access: string, refresh?: string): void {

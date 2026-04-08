@@ -1,4 +1,7 @@
-import { authHeaders, getApiOrigin, parseApiError, v1ApiPath } from '#lib/followup-api'
+import { fetchWithAuth } from '#lib/fetch-with-auth'
+import { getApiOrigin, parseApiError, v1ApiPath } from '#lib/followup-api'
+
+const jsonHeaders = { 'Content-Type': 'application/json' }
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
 
@@ -18,9 +21,9 @@ export async function uploadProfileImage(
     return 'Use JPEG, PNG, or WebP.'
   }
 
-  const presign = await fetch(v1ApiPath('me/profile/upload-url'), {
+  const presign = await fetchWithAuth(v1ApiPath('me/profile/upload-url'), {
     method: 'POST',
-    headers: authHeaders(),
+    headers: jsonHeaders,
     body: JSON.stringify({ purpose, content_type: contentType }),
   })
   const presignData = (await presign.json()) as Record<string, unknown>
@@ -42,15 +45,14 @@ export async function uploadProfileImage(
   })
   if (!put.ok) return 'Upload failed. Try again.'
 
-  const patchField = purpose === 'profile_photo' ? 'profile_photo_s3_key' : 'id_document_s3_key'
   const extra =
     purpose === 'id_document'
       ? { id_document_s3_key: key, id_verification_status: 'pending' }
       : { profile_photo_s3_key: key }
 
-  const patch = await fetch(v1ApiPath('me/profile'), {
+  const patch = await fetchWithAuth(v1ApiPath('me/profile'), {
     method: 'PATCH',
-    headers: authHeaders(),
+    headers: jsonHeaders,
     body: JSON.stringify(extra),
   })
   const patchData = (await patch.json()) as Record<string, unknown>

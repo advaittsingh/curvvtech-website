@@ -19,7 +19,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { QuestionnairePageFields } from '#components/questionnaire-fields'
 import { useAuthSession } from '#hooks/use-auth-session'
-import { authHeaders, getApiOrigin, parseApiError, v1ApiPath } from '#lib/followup-api'
+import { fetchWithAuth } from '#lib/fetch-with-auth'
+import { getApiOrigin, parseApiError, v1ApiPath } from '#lib/followup-api'
 import {
   initialQuestionnaire,
   pageValid,
@@ -43,7 +44,9 @@ export default function ProfileBusinessPage() {
       return
     }
     try {
-      const res = await fetch(v1ApiPath('me/business'), { headers: authHeaders() })
+      const res = await fetchWithAuth(v1ApiPath('me/business'), {
+        headers: { 'Content-Type': 'application/json' },
+      })
       if (res.ok) {
         const b = (await res.json()) as { questionnaire?: BusinessQuestionnaire | null }
         setQ(questionnaireFromServer(b))
@@ -77,9 +80,9 @@ export default function ProfileBusinessPage() {
     if (!base) return
     setSaving(pageIndex)
     try {
-      const res = await fetch(v1ApiPath('me/business'), {
+      const res = await fetchWithAuth(v1ApiPath('me/business'), {
         method: 'PATCH',
-        headers: authHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(serverBusinessPatchFromQuestionnaire(q)),
       })
       const data = (await res.json()) as Record<string, unknown>

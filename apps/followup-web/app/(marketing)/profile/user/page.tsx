@@ -19,7 +19,8 @@ import {
 import { useCallback, useEffect, useState } from 'react'
 
 import { useAuthSession } from '#hooks/use-auth-session'
-import { authHeaders, getApiOrigin, parseApiError, v1ApiPath } from '#lib/followup-api'
+import { fetchWithAuth } from '#lib/fetch-with-auth'
+import { getApiOrigin, parseApiError, v1ApiPath } from '#lib/followup-api'
 
 type ServerProfile = {
   display_name: string
@@ -58,8 +59,18 @@ export default function ProfileUserPage() {
     }
     setLoadError(null)
     try {
-      const res = await fetch(v1ApiPath('me/profile'), { headers: authHeaders() })
-      if (!res.ok) throw new Error('profile')
+      const res = await fetchWithAuth(v1ApiPath('me/profile'), {
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+        setLoadError(
+          res.status === 401
+            ? 'Session expired. Sign in again.'
+            : parseApiError(data) || 'Could not load your profile.',
+        )
+        return
+      }
       setProfile((await res.json()) as ServerProfile)
     } catch {
       setLoadError('Could not load your profile.')
@@ -78,9 +89,9 @@ export default function ProfileUserPage() {
     if (!base) return
     setSaving(true)
     try {
-      const res = await fetch(v1ApiPath('me/profile'), {
+      const res = await fetchWithAuth(v1ApiPath('me/profile'), {
         method: 'PATCH',
-        headers: authHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           display_name: profile.display_name,
           phone: profile.phone,

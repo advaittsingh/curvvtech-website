@@ -1,6 +1,10 @@
 'use client'
 
 import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
+  AlertTitle,
   Box,
   Button,
   Heading,
@@ -25,15 +29,78 @@ function pct(used: number, cap: number | null): number {
 }
 
 export default function UsagePage() {
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error' | 'unconfigured'>('loading')
+  const [loadError, setLoadError] = useState('')
   const [data, setData] = useState<UsageResponse | null>(null)
 
   const load = useCallback(async () => {
-    setData(await fetchUsage())
+    setLoadState('loading')
+    setLoadError('')
+    const r = await fetchUsage()
+    if (!r.ok && r.status === 0) {
+      setLoadState('unconfigured')
+      setLoadError(r.message)
+      return
+    }
+    if (!r.ok) {
+      setLoadState('error')
+      setLoadError(
+        r.status === 401 ? 'Your session expired. Sign in again to view usage.' : r.message,
+      )
+      return
+    }
+    setData(r.data)
+    setLoadState('ready')
   }, [])
 
   useEffect(() => {
     void load()
   }, [load])
+
+  if (loadState === 'loading') {
+    return <Text color="muted">Loading usage…</Text>
+  }
+
+  if (loadState === 'error' || loadState === 'unconfigured') {
+    return (
+      <Stack spacing={3}>
+        <Alert status="error" borderRadius="md" variant="subtle">
+          <AlertIcon />
+          <Box>
+            <AlertTitle fontSize="sm">
+              {loadState === 'unconfigured' ? 'Not configured' : 'Could not load usage'}
+            </AlertTitle>
+            <AlertDescription fontSize="sm">{loadError}</AlertDescription>
+          </Box>
+        </Alert>
+        {loadState === 'error' ? (
+          <Button as={NextLink as any} href="/login" size="sm" colorScheme="purple" w="fit-content">
+            Sign in
+          </Button>
+        ) : null}
+        <Button size="sm" variant="outline" onClick={() => void load()}>
+          Retry
+        </Button>
+      </Stack>
+    )
+  }
+
+  if (loadState === 'ready' && !data) {
+    return (
+      <Stack spacing={3}>
+        <Alert status="warning" borderRadius="md" variant="subtle">
+          <AlertIcon />
+          <Box>
+            <AlertTitle fontSize="sm">Unexpected empty response</AlertTitle>
+            <AlertDescription fontSize="sm">Try again or sign in.</AlertDescription>
+          </Box>
+        </Alert>
+        <Button size="sm" variant="outline" onClick={() => void load()}>
+          Retry
+        </Button>
+      </Stack>
+    )
+  }
 
   if (!data) {
     return <Text color="muted">Loading usage…</Text>

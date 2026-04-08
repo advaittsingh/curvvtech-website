@@ -1,0 +1,15 @@
+# EC2: API only. Set DATABASE_URL in `~/followup-api/.env` (e.g. Neon).
+# Optional local Postgres for dev: use `docker-compose.yml` on your machine.
+
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3000"
+      NODE_ENV: production
+    env_file:
+      - .env

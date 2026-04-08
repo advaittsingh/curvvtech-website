@@ -1,0 +1,7 @@
+# Place at: /etc/nginx/conf.d/00-map-connection-upgrade.conf
+# Loaded before site configs; required for WebSocket Connection header.
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}

@@ -35,6 +35,7 @@ import {
   postDowngrade,
   postSubscribe,
   postVerifyPayment,
+  type BillingInvoiceRow,
   type BillingPlansResponse,
   type BillingSummary,
 } from '#lib/followup-billing'
@@ -70,28 +71,51 @@ function loadRzpScript(): Promise<void> {
 
 export default function ProfileBillingPage() {
   const toast = useToast()
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error' | 'unconfigured'>('loading')
+  const [loadError, setLoadError] = useState('')
   const [summary, setSummary] = useState<BillingSummary | null>(null)
-  const [invoices, setInvoices] = useState<
-    {
-      id: string
-      razorpay_invoice_id: string
-      amount_cents: number
-      currency: string
-      status: string
-      pdf_url: string | null
-      host_invoice_url: string | null
-      short_url: string | null
-      issued_at: string | null
-    }[]
-  >([])
+  const [invoices, setInvoices] = useState<BillingInvoiceRow[]>([])
   const [busy, setBusy] = useState<string | null>(null)
   const [plansInfo, setPlansInfo] = useState<BillingPlansResponse | null>(null)
 
   const refresh = useCallback(async () => {
+    setLoadState('loading')
+    setLoadError('')
     const [s, inv, plans] = await Promise.all([fetchBillingSummary(), fetchInvoices(), fetchBillingPlans()])
-    setSummary(s)
-    setInvoices(inv as typeof invoices)
-    setPlansInfo(plans)
+    if (!s.ok && s.status === 0) {
+      setSummary(null)
+      setLoadState('unconfigured')
+      setLoadError(s.message)
+      return
+    }
+    if (!s.ok) {
+      setSummary(null)
+      setLoadState('error')
+      setLoadError(
+        s.status === 401 ? 'Your session expired. Sign in again to view billing.' : s.message,
+      )
+      return
+    }
+    if (!inv.ok) {
+      setSummary(null)
+      setLoadState('error')
+      setLoadError(
+        inv.status === 401 ? 'Your session expired. Sign in again to view billing.' : inv.message,
+      )
+      return
+    }
+    if (!plans.ok) {
+      setSummary(null)
+      setLoadState('error')
+      setLoadError(
+        plans.status === 401 ? 'Your session expired. Sign in again to view billing.' : plans.message,
+      )
+      return
+    }
+    setSummary(s.data)
+    setInvoices(inv.data)
+    setPlansInfo(plans.data)
+    setLoadState('ready')
   }, [])
 
   useEffect(() => {
@@ -192,6 +216,41 @@ export default function ProfileBillingPage() {
     } catch (e) {
       toast({ title: e instanceof Error ? e.message : 'Could not remove', status: 'error' })
     }
+  }
+
+  if (loadState === 'loading') {
+    return (
+      <Text color="muted">
+        Loading billing…{' '}
+        <Button size="sm" variant="link" onClick={() => void refresh()}>
+          Retry
+        </Button>
+      </Text>
+    )
+  }
+
+  if (loadState === 'error' || loadState === 'unconfigured') {
+    return (
+      <Stack spacing={3}>
+        <Alert status="error" borderRadius="md" variant="subtle">
+          <AlertIcon />
+          <Box>
+            <AlertTitle fontSize="sm">
+              {loadState === 'unconfigured' ? 'Not configured' : 'Could not load billing'}
+            </AlertTitle>
+            <AlertDescription fontSize="sm">{loadError}</AlertDescription>
+          </Box>
+        </Alert>
+        {loadState === 'error' ? (
+          <Button as={NextLink as any} href="/login" size="sm" colorScheme="purple" w="fit-content">
+            Sign in
+          </Button>
+        ) : null}
+        <Button size="sm" variant="outline" onClick={() => void refresh()}>
+          Retry
+        </Button>
+      </Stack>
+    )
   }
 
   if (!summary) {

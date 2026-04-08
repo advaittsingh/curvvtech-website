@@ -4,7 +4,8 @@ import { Box, Button, Center, Heading, Spinner, Stack, Text, useToast } from '@c
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useAuthSession } from '#hooks/use-auth-session'
-import { authHeaders, getApiOrigin, v1ApiPath } from '#lib/followup-api'
+import { fetchWithAuth } from '#lib/fetch-with-auth'
+import { getApiOrigin, v1ApiPath } from '#lib/followup-api'
 import { uploadProfileImage } from '#lib/profile-upload'
 
 type ServerProfile = {
@@ -28,7 +29,9 @@ export default function ProfileMediaPage() {
       return
     }
     try {
-      const res = await fetch(v1ApiPath('me/profile'), { headers: authHeaders() })
+      const res = await fetchWithAuth(v1ApiPath('me/profile'), {
+        headers: { 'Content-Type': 'application/json' },
+      })
       if (res.ok) setProfile((await res.json()) as ServerProfile)
     } catch {
       /* */

@@ -14,7 +14,7 @@ export function AccountAreaLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (session.loading) return
     if (!session.authenticated) {
-      router.replace('/signup')
+      router.replace('/login')
       return
     }
     if (!session.accessAllowed) {
