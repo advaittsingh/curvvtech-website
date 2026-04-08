@@ -86,7 +86,7 @@ export function ProfileHub() {
           Profile overview
         </Heading>
         <Text color="muted" fontSize="sm">
-          Manage your core profile details from one place.
+          Manage profile, billing, and usage from one place.
         </Text>
       </Stack>
 
