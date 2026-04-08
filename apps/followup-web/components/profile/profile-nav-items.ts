@@ -16,21 +16,6 @@ export const PROFILE_SECTION_ITEMS: ProfileNavItem[] = [
     label: 'Business questionnaire',
     description: 'Tell us about your business so follow-ups stay on-brand.',
   },
-  {
-    href: '/profile/media',
-    label: 'Photo & ID',
-    description: 'Profile photo and identity verification documents.',
-  },
-  {
-    href: '/profile/billing',
-    label: 'Plan & billing',
-    description: 'Razorpay subscription, invoices, and saved payment methods.',
-  },
-  {
-    href: '/usage',
-    label: 'Usage',
-    description: 'Perks used this month versus your plan limits.',
-  },
 ]
 
 export const PROFILE_SIDEBAR_ITEMS: ProfileNavItem[] = [

@@ -39,7 +39,6 @@ export function ProfileSidebar() {
   const normalize = (p: string | null) => {
     if (!p) return '/profile'
     if (p === '/profile') return '/profile'
-    if (p.startsWith('/usage')) return '/usage'
     return p
   }
 

@@ -1,22 +1,84 @@
 'use client'
 
 import {
-  Accordion,
-  AccordionButton,
-  AccordionIcon,
-  AccordionItem,
-  AccordionPanel,
   Box,
   Button,
+  HStack,
   Heading,
+  Icon,
+  LinkBox,
+  LinkOverlay,
   Stack,
   Text,
+  useToast,
 } from '@chakra-ui/react'
+import { HiLocationMarker, HiOutlineOfficeBuilding, HiOutlineUserGroup } from 'react-icons/hi'
 import NextLink from 'next/link'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { PROFILE_SECTION_ITEMS } from '#components/profile/profile-nav-items'
+import { fetchWithAuth } from '#lib/fetch-with-auth'
+import { v1ApiPath } from '#lib/followup-api'
+
+type BusinessRow = {
+  what_you_do?: string
+  description?: string
+  questionnaire?: {
+    businessName?: string
+    businessType?: string
+    whereCustomersLive?: string
+  } | null
+}
+
+type ProfileRow = {
+  display_name?: string
+  business_address?: string
+}
 
 export function ProfileHub() {
+  const toast = useToast()
+  const [business, setBusiness] = useState<BusinessRow | null>(null)
+  const [profile, setProfile] = useState<ProfileRow | null>(null)
+
+  const load = useCallback(async () => {
+    const [bRes, pRes] = await Promise.all([
+      fetchWithAuth(v1ApiPath('me/business')),
+      fetchWithAuth(v1ApiPath('me/profile')),
+    ])
+    if (bRes.ok) {
+      setBusiness((await bRes.json()) as BusinessRow)
+    }
+    if (pRes.ok) {
+      setProfile((await pRes.json()) as ProfileRow)
+    }
+    if (!bRes.ok && !pRes.ok) {
+      toast({
+        title: 'Could not load business overview',
+        status: 'warning',
+      })
+    }
+  }, [toast])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const model = useMemo(() => {
+    const q = business?.questionnaire ?? null
+    const businessName =
+      q?.businessName?.trim() || profile?.display_name?.trim() || 'Your business'
+    const category = q?.businessType?.trim() || business?.what_you_do?.trim() || 'Business'
+    const description =
+      business?.description?.trim() ||
+      'Keep your profile updated so FollowUp can generate better follow-ups for your customers.'
+    const location =
+      q?.whereCustomersLive?.trim() ||
+      profile?.business_address?.trim() ||
+      'Location not added yet'
+
+    return { businessName, category, description, location }
+  }, [business, profile])
+
   return (
     <Stack spacing={8}>
       <Stack spacing={2}>
@@ -24,38 +86,67 @@ export function ProfileHub() {
           Profile overview
         </Heading>
         <Text color="muted" fontSize="sm">
-          Open a section from the sidebar, or expand a row below for a short summary and a direct link.
+          Manage your core profile details from one place.
         </Text>
       </Stack>
 
-      <Accordion allowMultiple defaultIndex={[]}>
-        {PROFILE_SECTION_ITEMS.map((it) => (
-          <AccordionItem
-            key={it.href}
-            borderWidth="1px"
-            borderColor="whiteAlpha.200"
-            borderRadius="lg"
-            mb={3}
-            bg="whiteAlpha.50"
-            overflow="hidden"
-          >
-            <AccordionButton py={4} px={4} _expanded={{ bg: 'whiteAlpha.100' }}>
-              <Box flex="1" textAlign="left">
-                <Text fontWeight="semibold">{it.label}</Text>
-              </Box>
-              <AccordionIcon />
-            </AccordionButton>
-            <AccordionPanel pb={4} pt={0} px={4} borderTopWidth="1px" borderColor="whiteAlpha.100">
-              <Text fontSize="sm" color="muted" mb={4}>
-                {it.description}
+      <Box
+        borderRadius="2xl"
+        p={{ base: 5, md: 7 }}
+        color="white"
+        bgGradient="linear(to-r, purple.900, purple.700, pink.600)"
+        borderWidth="1px"
+        borderColor="whiteAlpha.300"
+      >
+        <Stack spacing={5}>
+          <HStack justify="space-between" align="flex-start" spacing={4}>
+            <Stack spacing={1}>
+              <Text fontSize="xs" textTransform="uppercase" letterSpacing="wider" color="whiteAlpha.800">
+                Business Summary
               </Text>
-              <Button as={NextLink as any} href={it.href} size="sm" colorScheme="purple" w={{ base: 'full', sm: 'auto' }}>
-                Open
-              </Button>
-            </AccordionPanel>
-          </AccordionItem>
-        ))}
-      </Accordion>
+              <Heading size="md">{model.businessName}</Heading>
+              <Text color="whiteAlpha.900">{model.category}</Text>
+            </Stack>
+          </HStack>
+
+          <Text color="whiteAlpha.900">{model.description}</Text>
+
+          <HStack spacing={6} flexWrap="wrap">
+            <HStack spacing={2}>
+              <Icon as={HiLocationMarker} boxSize={4} color="whiteAlpha.900" />
+              <Text fontSize="sm" color="whiteAlpha.900">
+                {model.location}
+              </Text>
+            </HStack>
+            <HStack spacing={2}>
+              <Icon as={HiOutlineOfficeBuilding} boxSize={4} color="whiteAlpha.900" />
+              <Text fontSize="sm" color="whiteAlpha.900">
+                FollowUp profile
+              </Text>
+            </HStack>
+          </HStack>
+
+          <HStack spacing={3} flexWrap="wrap">
+            {PROFILE_SECTION_ITEMS.map((it) => (
+              <LinkBox key={it.href}>
+                <Button as={NextLink as any} href={it.href} size="sm" colorScheme="blackAlpha" variant="solid">
+                  <LinkOverlay as="span">{it.label}</LinkOverlay>
+                </Button>
+              </LinkBox>
+            ))}
+            <Button
+              as={NextLink as any}
+              href="/leads"
+              size="sm"
+              leftIcon={<HiOutlineUserGroup />}
+              colorScheme="blackAlpha"
+              variant="outline"
+            >
+              Leads
+            </Button>
+          </HStack>
+        </Stack>
+      </Box>
     </Stack>
   )
 }

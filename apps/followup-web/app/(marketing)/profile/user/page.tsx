@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  Badge,
   Box,
   Button,
   Center,
@@ -167,9 +166,6 @@ export default function ProfileUserPage() {
               {session.email}
             </Text>
           ) : null}
-          <Badge colorScheme="gray" w="fit-content">
-            ID: {profile.id_verification_status === 'verified' ? 'Verified' : profile.id_verification_status === 'pending' ? 'Pending' : 'Not submitted'}
-          </Badge>
         </Stack>
       </Stack>
 
