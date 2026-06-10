@@ -184,6 +184,111 @@ layer(base);
   }
 }
 
+@layer components {
+  .client-brand-marquee {
+    --brand-item-gap: 4.5rem;
+    background: transparent;
+  }
+
+  .client-brand-marquee-track {
+    gap: var(--brand-item-gap);
+    animation: client-brand-scroll 45s linear infinite;
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+  }
+
+  .client-brand-marquee:hover .client-brand-marquee-track {
+    animation-play-state: paused;
+  }
+
+  @keyframes client-brand-scroll {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .client-brand-marquee-track {
+      animation: none;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100% !important;
+      padding-inline: 1rem;
+    }
+
+    .client-brand-marquee-track > :nth-child(n + 8) {
+      display: none;
+    }
+  }
+
+  .client-brand-item {
+    @apply bg-transparent transition-transform duration-[400ms] ease-out will-change-transform;
+  }
+
+  .client-brand-item:hover {
+    transform: scale(1.08);
+  }
+
+  .client-brand-logo {
+    @apply max-w-none bg-transparent opacity-[0.65];
+    image-rendering: -webkit-optimize-contrast;
+    transition:
+      opacity 0.4s ease,
+      transform 0.4s ease,
+      filter 0.4s ease;
+  }
+
+  .client-brand-item:hover .client-brand-logo {
+    @apply opacity-100;
+    filter: drop-shadow(0 0 10px var(--brand-glow, rgba(255, 255, 255, 0.3)))
+      drop-shadow(0 0 20px var(--brand-glow, rgba(255, 255, 255, 0.15)));
+  }
+
+  .client-brand-logo--dreamz {
+    filter: contrast(1.08) saturate(1.12);
+  }
+
+  .client-brand-item:hover .client-brand-logo--dreamz {
+    filter: contrast(1.1) saturate(1.2)
+      drop-shadow(0 0 10px var(--brand-glow))
+      drop-shadow(0 0 20px var(--brand-glow));
+  }
+
+  .client-brand-logo--masako {
+    filter: brightness(1.15) contrast(1.05);
+  }
+
+  .client-brand-item:hover .client-brand-logo--masako {
+    filter: brightness(1.22) contrast(1.08)
+      drop-shadow(0 0 10px var(--brand-glow))
+      drop-shadow(0 0 20px var(--brand-glow));
+  }
+
+  .client-brand-logo--lifeset {
+    filter: brightness(1.06) saturate(1.08);
+  }
+
+  .client-brand-item:hover .client-brand-logo--lifeset {
+    filter: brightness(1.12) saturate(1.15)
+      drop-shadow(0 0 10px var(--brand-glow))
+      drop-shadow(0 0 20px var(--brand-glow));
+  }
+
+  .client-brand-logo--paata {
+    filter: brightness(1.05);
+  }
+
+  .client-brand-item:hover .client-brand-logo--paata {
+    filter: brightness(1.1)
+      drop-shadow(0 0 10px var(--brand-glow))
+      drop-shadow(0 0 20px var(--brand-glow));
+  }
+}
+
 /* Hide Tawk.to default bubble when using our custom floating chat button */
 #tawk-bubble-container,
 .tawk-min-container {
