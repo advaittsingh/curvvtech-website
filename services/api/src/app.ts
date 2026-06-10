@@ -8,6 +8,7 @@ import { authModuleRouter } from "./modules/auth/auth.routes.js";
 import curvvtechAdminRouter from "./modules/curvvtech/admin/index.js";
 import chatPublicRouter from "./modules/curvvtech/chat.routes.js";
 import { whatsappWebhookModuleRouter } from "./modules/whatsapp/whatsapp.routes.js";
+import { twilioVoiceWebhookRouter } from "./modules/aiCalls/twilioVoice.routes.js";
 import v1Router from "./routes/v1/index.js";
 import demoPublicRouter from "./modules/demo/demo.routes.js";
 
@@ -91,6 +92,9 @@ export function createApp(): express.Application {
 
   app.use("/webhook/whatsapp", whatsappWebhookModuleRouter);
   app.use("/api/webhook/whatsapp", whatsappWebhookModuleRouter);
+
+  app.use("/webhook/twilio/voice", twilioVoiceWebhookRouter);
+  app.use("/api/webhook/twilio/voice", twilioVoiceWebhookRouter);
 
   app.use("/auth", authModuleRouter);
   app.use("/api/auth", authModuleRouter);

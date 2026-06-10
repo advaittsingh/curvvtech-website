@@ -1,0 +1,33 @@
+# Local stack: Postgres + unified API. Run from repo root:
+#   docker compose -f infra/docker-compose.yml up --build
+#
+# For API-only + external DB, use services/api/docker-compose.yml (db volume only).
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: followup
+      POSTGRES_PASSWORD: followup
+      POSTGRES_DB: followup
+    ports:
+      - "5432:5432"
+    volumes:
+      - curvv_pg:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ../services/api
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://followup:followup@db:5432/followup
+      NODE_ENV: development
+      # Local convenience only — never use in production
+      SKIP_AUTH: "true"
+    depends_on:
+      - db
+
+volumes:
+  curvv_pg:

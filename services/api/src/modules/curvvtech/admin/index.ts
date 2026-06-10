@@ -8,6 +8,7 @@ import teamRouter from "./team.js";
 import analyticsRouter from "./analytics.js";
 import chatsRouter from "./chats.js";
 import demoRequestsRouter from "./demo-requests.js";
+import aiCallsRouter from "./ai-calls.js";
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use("/team", teamRouter);
 router.use("/analytics", analyticsRouter);
 router.use("/chats", chatsRouter);
 router.use("/demo-requests", demoRequestsRouter);
+router.use("/ai-calls", aiCallsRouter);
 
 export default router;

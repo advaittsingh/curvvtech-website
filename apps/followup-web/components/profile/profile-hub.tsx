@@ -12,7 +12,7 @@ import {
   Text,
   useToast,
 } from '@chakra-ui/react'
-import { HiLocationMarker, HiOutlineOfficeBuilding, HiOutlineUserGroup } from 'react-icons/hi'
+import { HiLocationMarker, HiOutlineOfficeBuilding } from 'react-icons/hi'
 import NextLink from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -134,16 +134,6 @@ export function ProfileHub() {
                 </Button>
               </LinkBox>
             ))}
-            <Button
-              as={NextLink as any}
-              href="/leads"
-              size="sm"
-              leftIcon={<HiOutlineUserGroup />}
-              colorScheme="blackAlpha"
-              variant="outline"
-            >
-              Leads
-            </Button>
           </HStack>
         </Stack>
       </Box>

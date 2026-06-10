@@ -32,6 +32,26 @@ export const config = {
   /** ioredis connection string for distributed rate limits (optional). */
   redisUrl: process.env.REDIS_URL?.trim() || "",
 
+  /** AI Calling MVP */
+  aiCallWorkerEnabled: envBool("AI_CALL_WORKER_ENABLED", true),
+  aiCallSimulationMode: envBool("AI_CALL_SIMULATION_MODE", true),
+  aiCallMaxAttempts: envInt("AI_CALL_MAX_ATTEMPTS", 3),
+  aiCallConcurrency: envInt("AI_CALL_CONCURRENCY", 2),
+  /** Per-minute dial limit (soft limiter; also keep Twilio limits in mind). */
+  aiCallRatePerMin: envInt("AI_CALL_RATE_PER_MIN", 6),
+  /** Optional: enforce timezone-aware calling windows later; for MVP store as config. */
+  aiCallDefaultTz: process.env.AI_CALL_DEFAULT_TZ?.trim() || "Asia/Kolkata",
+
+  twilioAccountSid: process.env.TWILIO_ACCOUNT_SID?.trim() || "",
+  twilioAuthToken: process.env.TWILIO_AUTH_TOKEN?.trim() || "",
+  twilioCallFromE164: process.env.TWILIO_CALL_FROM_E164?.trim() || "",
+  /** Public base URL for Twilio webhooks and media stream WS (e.g. https://api.curvvtech.in). */
+  twilioVoiceWebhookBaseUrl: process.env.TWILIO_VOICE_WEBHOOK_BASE_URL?.trim() || "",
+
+  deepgramApiKey: process.env.DEEPGRAM_API_KEY?.trim() || "",
+  elevenlabsApiKey: process.env.ELEVENLABS_API_KEY?.trim() || "",
+  elevenlabsVoiceId: process.env.ELEVENLABS_VOICE_ID?.trim() || "",
+
   /** WhatsApp Cloud API token for outbound sends (per-tenant vault recommended later). */
   whatsappGraphAccessToken: process.env.WHATSAPP_GRAPH_ACCESS_TOKEN?.trim() || "",
 

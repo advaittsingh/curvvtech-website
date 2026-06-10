@@ -1,35 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`awake-agency`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Curvvtech monorepo
 
-## Getting Started
+Unified codebase for the Curvvtech website, admin dashboard, and **one** backend API (`services/api`).
 
-First, run the development server:
+## Structure
+
+See **[REPO_MAP.md](./REPO_MAP.md)** for the full directory layout and workspace names.
+
+## Prerequisites
+
+- Node.js 20+ (22 recommended for the API Docker image)
+- npm (workspaces)
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run build   # optional; verifies all workspaces compile
 ```
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Copy env examples:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `apps/website/.env.example` → `apps/website/.env.local`
+- `apps/admin/.env.example` → `apps/admin/.env.local`
+- `services/api` — set `DATABASE_URL` and JWT secrets for production (see `MONOREPO.md`)
 
-## Learn More
+## Development
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run dev              # API + website + admin (concurrently)
+npm run dev:website
+npm run dev:admin
+npm run dev:api
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Further reading
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [MONOREPO.md](./MONOREPO.md) — environment variables, API route map, migrations
+- [REPO_MAP.md](./REPO_MAP.md) — folder map and commands

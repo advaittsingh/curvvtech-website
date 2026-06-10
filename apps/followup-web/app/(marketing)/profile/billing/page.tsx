@@ -10,8 +10,13 @@ import {
   Button,
   Divider,
   Heading,
+  HStack,
   Link,
+  List,
+  ListIcon,
+  ListItem,
   Stack,
+  Switch,
   Table,
   Tbody,
   Td,
@@ -24,6 +29,7 @@ import {
 } from '@chakra-ui/react'
 import NextLink from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
+import { MdCheckCircle } from 'react-icons/md'
 
 import {
   deletePaymentMethod,
@@ -69,6 +75,22 @@ function loadRzpScript(): Promise<void> {
   })
 }
 
+/** Shown on upgrade cards — aligned with marketing pricing and API plan limits. */
+const PLAN_PERKS: Record<'pro' | 'pro_plus', string[]> = {
+  pro: [
+    'Unlimited leads, AI replies, and follow-up automations (on supported plans)',
+    'Full WhatsApp CRM pipeline (New / Pending / Closed)',
+    'Smart reminders, scheduling, and organized inbox',
+    'Business insights & basic analytics',
+  ],
+  pro_plus: [
+    'Everything in Pro',
+    'Multi-number & team-ready workflows',
+    'Advanced analytics & automation depth',
+    'Priority support, custom integrations & scaling',
+  ],
+}
+
 export default function ProfileBillingPage() {
   const toast = useToast()
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error' | 'unconfigured'>('loading')
@@ -77,6 +99,9 @@ export default function ProfileBillingPage() {
   const [invoices, setInvoices] = useState<BillingInvoiceRow[]>([])
   const [busy, setBusy] = useState<string | null>(null)
   const [plansInfo, setPlansInfo] = useState<BillingPlansResponse | null>(null)
+  /** false = monthly, true = annual — one toggle per paid tier */
+  const [annualPro, setAnnualPro] = useState(false)
+  const [annualProPlus, setAnnualProPlus] = useState(false)
 
   const refresh = useCallback(async () => {
     setLoadState('loading')
@@ -276,16 +301,9 @@ export default function ProfileBillingPage() {
           Plan &amp; billing
         </Heading>
         <Text color="muted" fontSize="sm">
-          Powered by Razorpay. Configure <code>RAZORPAY_*</code> plan IDs on the server and set the webhook URL to{' '}
-          <code>/api/v1/billing/webhooks/razorpay</code>.
+          Manage your subscription, payment methods, and invoices.
         </Text>
       </Stack>
-
-      {!summary.has_razorpay ? (
-        <Box p={4} borderRadius="lg" borderWidth="1px" borderColor="orange.400" bg="whiteAlpha.50">
-          <Text fontSize="sm">Billing is not configured on this API yet (missing Razorpay keys).</Text>
-        </Box>
-      ) : null}
 
       {summary.has_razorpay && summary.payment_required ? (
         <Alert status="warning" borderRadius="lg" bg="whiteAlpha.100" borderWidth="1px" borderColor="orange.400">
@@ -388,53 +406,151 @@ export default function ProfileBillingPage() {
       </Box>
 
       <Box borderWidth="1px" borderColor="whiteAlpha.200" borderRadius="xl" p={6} bg="whiteAlpha.50">
-        <Text fontWeight="semibold" mb={4}>
+        <Text fontWeight="semibold" mb={1}>
           Change plan
         </Text>
         {plansInfo?.plans?.length ? (
-          <Text fontSize="xs" color="muted" mb={3}>
-            Server plans: {plansInfo.plans.map((p) => p.name).join(' · ')}. Checkout uses your configured Razorpay plan
-            IDs.
+          <Text fontSize="xs" color="muted" mb={4}>
+            Plans: {plansInfo.plans.map((p) => p.name).join(' · ')}.
           </Text>
-        ) : null}
-        <Stack spacing={3} direction={{ base: 'column', md: 'row' }} flexWrap="wrap">
-          <Button
-            colorScheme="purple"
-            isLoading={busy === 'sub-pro-monthly'}
-            isDisabled={!summary.has_razorpay}
-            onClick={() => void subscribe('pro', 'monthly')}
+        ) : (
+          <Text fontSize="xs" color="muted" mb={4}>
+            Upgrade to Pro or Pro+ for higher limits and team features.
+          </Text>
+        )}
+
+        <Stack spacing={6}>
+          <Box
+            p={4}
+            borderRadius="lg"
+            borderWidth="1px"
+            borderColor="whiteAlpha.200"
+            bg="blackAlpha.400"
           >
-            Pro — Monthly
-          </Button>
-          <Button
-            colorScheme="purple"
-            variant="outline"
-            isLoading={busy === 'sub-pro-annual'}
-            isDisabled={!summary.has_razorpay}
-            onClick={() => void subscribe('pro', 'annual')}
+            <Stack spacing={4}>
+              <Stack direction={{ base: 'column', sm: 'row' }} justify="space-between" align={{ sm: 'center' }} gap={3}>
+                <Box>
+                  <Text fontWeight="semibold">Pro</Text>
+                  <Text fontSize="xs" color="muted" mt={1}>
+                    For teams scaling outreach and inbox.
+                  </Text>
+                </Box>
+                <HStack spacing={3} align="center">
+                  <Text fontSize="sm" color={annualPro ? 'muted' : 'white'} fontWeight={annualPro ? 'normal' : 'medium'}>
+                    Monthly
+                  </Text>
+                  <Switch
+                    size="lg"
+                    isChecked={annualPro}
+                    onChange={(e) => setAnnualPro(e.target.checked)}
+                    aria-label="Toggle annual billing for Pro"
+                    sx={{
+                      '& .chakra-switch__track': {
+                        bg: annualPro ? 'purple.500' : 'gray.700',
+                      },
+                      '& .chakra-switch__thumb': {
+                        bg: 'white',
+                      },
+                    }}
+                  />
+                  <Text
+                    fontSize="sm"
+                    color={annualPro ? 'white' : 'muted'}
+                    fontWeight={annualPro ? 'medium' : 'normal'}
+                  >
+                    Annual
+                  </Text>
+                </HStack>
+              </Stack>
+              <List spacing={2}>
+                {PLAN_PERKS.pro.map((line) => (
+                  <ListItem key={line} fontSize="sm" color="muted">
+                    <ListIcon as={MdCheckCircle} color="purple.400" />
+                    {line}
+                  </ListItem>
+                ))}
+              </List>
+              <Button
+                colorScheme="purple"
+                alignSelf={{ base: 'stretch', sm: 'flex-start' }}
+                isLoading={busy === `sub-pro-${annualPro ? 'annual' : 'monthly'}`}
+                isDisabled={!summary.has_razorpay}
+                onClick={() => void subscribe('pro', annualPro ? 'annual' : 'monthly')}
+              >
+                {annualPro ? 'Upgrade to Pro — Annual' : 'Upgrade to Pro — Monthly'}
+              </Button>
+            </Stack>
+          </Box>
+
+          <Box
+            p={4}
+            borderRadius="lg"
+            borderWidth="1px"
+            borderColor="whiteAlpha.200"
+            bg="blackAlpha.400"
           >
-            Pro — Annual
-          </Button>
-          <Button
-            colorScheme="pink"
-            isLoading={busy === 'sub-pro_plus-monthly'}
-            isDisabled={!summary.has_razorpay}
-            onClick={() => void subscribe('pro_plus', 'monthly')}
-          >
-            Pro+ — Monthly
-          </Button>
-          <Button
-            colorScheme="pink"
-            variant="outline"
-            isLoading={busy === 'sub-pro_plus-annual'}
-            isDisabled={!summary.has_razorpay}
-            onClick={() => void subscribe('pro_plus', 'annual')}
-          >
-            Pro+ — Annual
-          </Button>
+            <Stack spacing={4}>
+              <Stack direction={{ base: 'column', sm: 'row' }} justify="space-between" align={{ sm: 'center' }} gap={3}>
+                <Box>
+                  <Text fontWeight="semibold">Pro+</Text>
+                  <Text fontSize="xs" color="muted" mt={1}>
+                    For teams that need scale, control, and support.
+                  </Text>
+                </Box>
+                <HStack spacing={3} align="center">
+                  <Text
+                    fontSize="sm"
+                    color={annualProPlus ? 'muted' : 'white'}
+                    fontWeight={annualProPlus ? 'normal' : 'medium'}
+                  >
+                    Monthly
+                  </Text>
+                  <Switch
+                    size="lg"
+                    isChecked={annualProPlus}
+                    onChange={(e) => setAnnualProPlus(e.target.checked)}
+                    aria-label="Toggle annual billing for Pro+"
+                    sx={{
+                      '& .chakra-switch__track': {
+                        bg: annualProPlus ? 'pink.500' : 'gray.700',
+                      },
+                      '& .chakra-switch__thumb': {
+                        bg: 'white',
+                      },
+                    }}
+                  />
+                  <Text
+                    fontSize="sm"
+                    color={annualProPlus ? 'white' : 'muted'}
+                    fontWeight={annualProPlus ? 'medium' : 'normal'}
+                  >
+                    Annual
+                  </Text>
+                </HStack>
+              </Stack>
+              <List spacing={2}>
+                {PLAN_PERKS.pro_plus.map((line) => (
+                  <ListItem key={line} fontSize="sm" color="muted">
+                    <ListIcon as={MdCheckCircle} color="pink.400" />
+                    {line}
+                  </ListItem>
+                ))}
+              </List>
+              <Button
+                colorScheme="pink"
+                alignSelf={{ base: 'stretch', sm: 'flex-start' }}
+                isLoading={busy === `sub-pro_plus-${annualProPlus ? 'annual' : 'monthly'}`}
+                isDisabled={!summary.has_razorpay}
+                onClick={() => void subscribe('pro_plus', annualProPlus ? 'annual' : 'monthly')}
+              >
+                {annualProPlus ? 'Upgrade to Pro+ — Annual' : 'Upgrade to Pro+ — Monthly'}
+              </Button>
+            </Stack>
+          </Box>
         </Stack>
-        <Text fontSize="xs" color="muted" mt={3}>
-          Opens Razorpay’s hosted subscription page. After payment, webhooks sync your plan and invoices.
+
+        <Text fontSize="xs" color="muted" mt={4}>
+          Checkout opens in a new tab. After payment, your plan and invoices update automatically.
         </Text>
       </Box>
 

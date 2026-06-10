@@ -10,6 +10,7 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
+import Image from 'next/image'
 import { FiArrowRight } from 'react-icons/fi'
 
 import { ButtonLink } from '#components/button-link/button-link'
@@ -120,74 +121,27 @@ export function HeroSection() {
             </RevealBox>
           </VStack>
 
-          <RevealBox delay={0.2} flex="1" w="full" maxW={{ lg: '520px' }}>
+          <RevealBox delay={0.2} flex="1" w="full" maxW={{ lg: '480px' }} mx={{ base: 'auto', lg: 0 }}>
             <Box
+              position="relative"
               rounded="2xl"
+              overflow="hidden"
               borderWidth="1px"
               borderColor={brand.line}
-              bg="white"
-              _dark={{ bg: 'gray.900', borderColor: 'whiteAlpha.200' }}
+              _dark={{ borderColor: 'whiteAlpha.200' }}
               boxShadow="xl"
-              p={{ base: 6, md: 8 }}
-              position="relative"
-              overflow="hidden"
+              lineHeight={0}
             >
-              <Box
-                position="absolute"
-                top={0}
-                left={0}
-                right={0}
-                h="3px"
-                bg={brand.gold}
+              <Image
+                src="/static/images/hero-followup.png"
+                alt="FollowUp app on mobile — business summary, leads, and insights"
+                width={1724}
+                height={2316}
+                sizes="(max-width: 1024px) min(100vw - 48px, 520px), 480px"
+                quality={95}
+                priority
+                style={{ width: '100%', height: 'auto', display: 'block' }}
               />
-              <VStack align="stretch" spacing={4}>
-                <HStack justify="space-between">
-                  <Text fontSize="sm" fontWeight="semibold" color="gray.500">
-                    Live pipeline
-                  </Text>
-                  <Box
-                    px={2}
-                    py={0.5}
-                    rounded="md"
-                    bg="blackAlpha.50"
-                    _dark={{ bg: 'whiteAlpha.100' }}
-                    fontSize="xs"
-                    fontWeight="medium"
-                    color={brand.gold}
-                  >
-                    Auto follow-up
-                  </Box>
-                </HStack>
-                {['New lead · WhatsApp', 'Reminder sent · Email', 'Reply · Hot']
-                  .slice(0, 3)
-                  .map((label, i) => (
-                    <HStack
-                      key={label}
-                      justify="space-between"
-                      py={3}
-                      px={4}
-                      rounded="lg"
-                      bg={i === 2 ? 'blackAlpha.50' : 'gray.50'}
-                      borderWidth="1px"
-                      borderColor="blackAlpha.50"
-                      _dark={{
-                        bg: i === 2 ? 'whiteAlpha.100' : 'whiteAlpha.50',
-                        borderColor: 'whiteAlpha.100',
-                      }}
-                    >
-                      <Text fontSize="sm" fontWeight="medium">
-                        {label}
-                      </Text>
-                      <Box
-                        w={2}
-                        h={2}
-                        rounded="full"
-                        bg={i === 2 ? brand.gold : 'gray.300'}
-                        _dark={{ bg: i === 2 ? brand.gold : 'gray.600' }}
-                      />
-                    </HStack>
-                  ))}
-              </VStack>
             </Box>
           </RevealBox>
         </Stack>

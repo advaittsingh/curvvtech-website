@@ -9,7 +9,6 @@ import {
   Stack,
   Tag,
   Text,
-  VStack,
 } from '@chakra-ui/react'
 import {
   FiArrowRight,
@@ -20,6 +19,7 @@ import {
 } from 'react-icons/fi'
 
 import * as React from 'react'
+import Image from 'next/image'
 
 import { ButtonLink } from '#components/button-link/button-link'
 import { Faq } from '#components/faq/faq'
@@ -117,17 +117,16 @@ const HeroSection: React.FC = () => {
             </FallInPlace>
           </Hero>
           <Box
-            height="600px"
             position="absolute"
             display={{ base: 'none', lg: 'block' }}
             left={{ lg: '60%', xl: '55%' }}
             width="80vw"
-            maxW="1100px"
+            maxW="480px"
             margin="0 auto"
           >
             <FallInPlace delay={1}>
-              <Box overflow="hidden" height="100%" rounded="xl" boxShadow="2xl">
-                <HeroProductMock />
+              <Box overflow="hidden" rounded="xl" boxShadow="2xl" borderWidth="1px" borderColor="whiteAlpha.200">
+                <HeroProductImage />
               </Box>
             </FallInPlace>
           </Box>
@@ -137,44 +136,20 @@ const HeroSection: React.FC = () => {
   )
 }
 
-/** In-app style preview when no screenshot asset is shipped. */
-function HeroProductMock() {
+/** Hero visual — `public/static/images/hero-followup.png` (same asset as landing variant). */
+function HeroProductImage() {
   return (
-    <Box
-      h="full"
-      minH="480px"
-      bg="gray.900"
-      borderWidth="1px"
-      borderColor="whiteAlpha.200"
-      p={6}
-    >
-      <Text fontSize="sm" fontWeight="bold" color="white" mb={4}>
-        Live pipeline
-      </Text>
-      <VStack align="stretch" spacing={3}>
-        {['New lead · WhatsApp', 'Reminder sent · Email', 'Reply · Hot'].map(
-          (label, i) => (
-            <HStack
-              key={label}
-              justify="space-between"
-              py={3}
-              px={4}
-              rounded="md"
-              bg={i === 2 ? 'primary.600' : 'whiteAlpha.100'}
-            >
-              <Text fontSize="sm" color="white">
-                {label}
-              </Text>
-              <Box
-                w={2}
-                h={2}
-                rounded="full"
-                bg={i === 2 ? 'green.300' : 'whiteAlpha.400'}
-              />
-            </HStack>
-          ),
-        )}
-      </VStack>
+    <Box position="relative" lineHeight={0}>
+      <Image
+        src="/static/images/hero-followup.png"
+        alt="FollowUp app on mobile — business summary, leads, and insights"
+        width={1724}
+        height={2316}
+        sizes="(max-width: 1024px) min(92vw, 520px), 480px"
+        quality={95}
+        priority
+        style={{ width: '100%', height: 'auto', display: 'block' }}
+      />
     </Box>
   )
 }

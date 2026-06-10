@@ -20,9 +20,10 @@ export function getApiOrigin(): string {
 }
 
 /**
- * Same-origin path for the unified API `/api/v1/*`. `next.config.mjs` `beforeFiles` rewrites proxy to
- * `API_PROXY_TARGET` or `NEXT_PUBLIC_API_URL` so the browser stays on the app origin.
- * Keep using `getApiOrigin() + '/api/auth/*'` for Express auth (not rewritten here).
+ * Same-origin paths proxied by `next.config.mjs` `beforeFiles` rewrites to the unified API:
+ * - `/api/v1/*` — data API
+ * - `/api/auth/me`, `/api/auth/refresh` — Bearer session (avoids cross-origin `/me` + refresh)
+ * Login/signup still POST to `getApiOrigin() + '/api/auth/login'` etc. (CORS allowed on API).
  */
 export function v1ApiPath(restPath: string): string {
   const r = restPath.replace(/^\//, "");
@@ -31,6 +32,14 @@ export function v1ApiPath(restPath: string): string {
 
 const ACCESS = "followup_access_token";
 const REFRESH = "followup_refresh_token";
+
+/** Fired on same-tab token changes so `AuthSessionProvider` can re-run `/api/auth/me`. */
+export const FOLLOWUP_AUTH_CHANGED = "followup-auth-changed";
+
+function notifyAuthChanged(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(FOLLOWUP_AUTH_CHANGED));
+}
 
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -46,12 +55,14 @@ export function setTokens(access: string, refresh?: string): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(ACCESS, access);
   if (refresh) localStorage.setItem(REFRESH, refresh);
+  notifyAuthChanged();
 }
 
 export function clearTokens(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(ACCESS);
   localStorage.removeItem(REFRESH);
+  notifyAuthChanged();
 }
 
 export function landingHeaders(): HeadersInit {

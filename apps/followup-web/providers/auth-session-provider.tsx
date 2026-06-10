@@ -3,7 +3,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 import { fetchWithAuth } from '#lib/fetch-with-auth'
-import { getAccessToken, getApiOrigin, v1ApiPath } from '#lib/followup-api'
+import {
+  FOLLOWUP_AUTH_CHANGED,
+  getAccessToken,
+  getApiOrigin,
+  v1ApiPath,
+} from '#lib/followup-api'
 
 export type AuthSessionState = {
   loading: boolean
@@ -16,7 +21,12 @@ export type AuthSessionState = {
   sessionError: 'network' | 'server' | null
 }
 
-type Ctx = AuthSessionState & { refresh: () => Promise<void> }
+export type AuthSessionRefreshOptions = {
+  /** After saving onboarding, bypass the 60s cache so profile layout sees completion immediately */
+  skipOnboardingCache?: boolean
+}
+
+type Ctx = AuthSessionState & { refresh: (opts?: AuthSessionRefreshOptions) => Promise<void> }
 
 const initial: AuthSessionState = {
   loading: true,
@@ -50,10 +60,13 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
   const wasAuthedRef = useRef(false)
   const onboardingCacheRef = useRef<{ token: string; value: boolean; at: number } | null>(null)
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (opts?: AuthSessionRefreshOptions) => {
+    if (opts?.skipOnboardingCache) {
+      onboardingCacheRef.current = null
+    }
     setState((s) => ({ ...s, loading: true, sessionError: null }))
-    const base = getApiOrigin()
     const token = getAccessToken()
+    const base = getApiOrigin()
     if (!base || !token) {
       onboardingCacheRef.current = null
       wasAuthedRef.current = false
@@ -70,7 +83,8 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
     }
 
     try {
-      const r = await fetchWithAuth(`${base}/api/auth/me`, {
+      /** Same-origin rewrite → unified API `/api/auth/me` (see `next.config.mjs`). */
+      const r = await fetchWithAuth('/api/auth/me', {
         headers: { 'Content-Type': 'application/json' },
       })
 
@@ -171,6 +185,13 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     void refresh()
+  }, [refresh])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onAuthChanged = () => void refresh()
+    window.addEventListener(FOLLOWUP_AUTH_CHANGED, onAuthChanged)
+    return () => window.removeEventListener(FOLLOWUP_AUTH_CHANGED, onAuthChanged)
   }, [refresh])
 
   const value = useMemo<Ctx>(() => ({ ...state, refresh }), [state, refresh])

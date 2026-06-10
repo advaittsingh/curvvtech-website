@@ -1,21 +1,15 @@
-import {
-  clearTokens,
-  getAccessToken,
-  getApiOrigin,
-  getRefreshToken,
-  setTokens,
-} from '#lib/followup-api'
+import { clearTokens, getAccessToken, getRefreshToken, setTokens } from '#lib/followup-api'
 
 /**
  * Refresh access token via unified API. Returns new access token or null.
  * On failure does not clear storage (caller decides after a failed API call).
  */
 export async function tryRefreshAccessToken(): Promise<string | null> {
-  const origin = getApiOrigin()
   const rt = getRefreshToken()
-  if (!origin || !rt) return null
+  if (!rt) return null
 
-  const res = await fetch(`${origin}/api/auth/refresh`, {
+  /** Same-origin rewrite → unified API (see `next.config.mjs`). */
+  const res = await fetch('/api/auth/refresh', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refresh_token: rt }),

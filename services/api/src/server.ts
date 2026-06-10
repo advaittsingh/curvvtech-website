@@ -7,6 +7,8 @@ import { pool } from "./db.js";
 import { logger } from "./logger.js";
 import type { Socket } from "socket.io";
 import { setChatSocket } from "./modules/curvvtech/chatSocket.js";
+import { startCallWorker } from "./workers/callWorker.js";
+import { attachTwilioMediaStreamServer } from "./services/twilio/mediaStreamServer.js";
 
 /** UUID v4 (PostgreSQL gen_random_uuid-style) for conversation room names. */
 const CONVERSATION_UUID_RE =
@@ -47,6 +49,7 @@ logger.info(
 
 const app = createApp();
 const server = http.createServer(app);
+attachTwilioMediaStreamServer(server);
 const io = new Server(server, {
   cors: {
     origin: true,
@@ -84,6 +87,17 @@ setChatSocket(io);
 server.listen(config.port, config.host, () => {
   logger.info({ port: config.port, host: config.host }, "listening");
 });
+
+if (config.aiCallWorkerEnabled) {
+  try {
+    startCallWorker();
+  } catch (e) {
+    logger.error(
+      { err: e instanceof Error ? e.message : String(e) },
+      "ai_call_worker_failed_to_start"
+    );
+  }
+}
 
 async function shutdown() {
   server.close();

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { QuestionnairePageFields } from '#components/questionnaire-fields'
+import { useAuthSession } from '#hooks/use-auth-session'
 import { fetchWithAuth } from '#lib/fetch-with-auth'
 import { getApiOrigin, parseApiError, v1ApiPath } from '#lib/followup-api'
 import {
@@ -17,6 +18,7 @@ import {
 
 export function BusinessQuestionnaireForm() {
   const router = useRouter()
+  const { refresh } = useAuthSession()
   const [page, setPage] = useState(0)
   const [q, setQ] = useState<BusinessQuestionnaire>(() => initialQuestionnaire())
   const [error, setError] = useState<string | null>(null)
@@ -44,6 +46,7 @@ export function BusinessQuestionnaireForm() {
         setError(parseApiError(data) || 'Could not save')
         return
       }
+      await refresh({ skipOnboardingCache: true })
       router.push('/profile')
     } catch {
       setError('Network error')

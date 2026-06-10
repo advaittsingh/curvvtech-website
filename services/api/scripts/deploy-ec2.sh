@@ -179,11 +179,9 @@ echo "Using compose: $DC"
 $DC -f docker-compose.stack.yml build --no-cache
 $DC -f docker-compose.stack.yml run --rm api node scripts/migrate.mjs
 # Do not add `up --build` here: it can hit BuildKit cache and skip a fresh COPY src after `build --no-cache`.
-# Docker Compose v1 on EC2 can leave the running container on a stale image even after `build --no-cache`;
-# stop + rm + up guarantees the new `followup-api-api:latest` is what listens on :3000.
-$DC -f docker-compose.stack.yml stop api 2>/dev/null || true
-$DC -f docker-compose.stack.yml rm -f api 2>/dev/null || true
-$DC -f docker-compose.stack.yml up -d --no-deps api
+# After `build --no-cache`, Compose must recreate the container or it may keep an image from days ago
+# (`docker ps` still shows the old image id). `--force-recreate` applies the new `followup-api-api:latest`.
+$DC -f docker-compose.stack.yml up -d --no-deps --force-recreate api
 
 echo ""
 echo "API: http://${PUBLIC_IP}:3000/health"

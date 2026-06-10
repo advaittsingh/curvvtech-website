@@ -17,7 +17,9 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.744.0",
     "@aws-sdk/s3-request-presigner": "^3.744.0",
+    "@deepgram/sdk": "^5.0.0",
     "bcryptjs": "^3.0.2",
+    "bullmq": "^5.73.5",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
@@ -32,6 +34,7 @@
     "razorpay": "^2.9.6",
     "socket.io": "^4.7.2",
     "twilio": "^4.19.0",
+    "ws": "^8.18.3",
     "zod": "^3.24.1"
   },
   "devDependencies": {

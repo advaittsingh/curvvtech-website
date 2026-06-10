@@ -33,10 +33,10 @@ const nextConfig = {
   /** ESLint 9 + eslint-config-next 14 use incompatible CLI options during `next build`. */
   eslint: { ignoreDuringBuilds: true },
   /**
-   * Proxy `/api/v1/*` to the unified API **before** filesystem / App Route matching.
-   * Without this, some deployments only matched `app/api/v1/[[...path]]` inconsistently → 404.
-   * Do not add `/api/auth/*` here: this app has local `app/api/auth/*` (Cognito); clients use
-   * `getApiOrigin() + '/api/auth/*'` for the Express API.
+   * Proxy selected paths to the unified API **before** filesystem matching.
+   * `/api/v1/*` — data API.
+   * `/api/auth/me` + `/api/auth/refresh` — Bearer session from the SPA (same-origin; no CORS).
+   * Local `app/api/auth/login|signup|session|logout` (Cognito) are unchanged — no rewrites for those paths.
    */
   async rewrites() {
     if (!unifiedApiOrigin) return []
@@ -45,6 +45,14 @@ const nextConfig = {
         {
           source: '/api/v1/:path*',
           destination: `${unifiedApiOrigin}/api/v1/:path*`,
+        },
+        {
+          source: '/api/auth/me',
+          destination: `${unifiedApiOrigin}/api/auth/me`,
+        },
+        {
+          source: '/api/auth/refresh',
+          destination: `${unifiedApiOrigin}/api/auth/refresh`,
         },
       ],
     }

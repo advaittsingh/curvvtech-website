@@ -9,7 +9,7 @@ Stateless Node service: **ECS Fargate** (or EC2) behind an **Application Load Ba
 | `DATABASE_URL` | RDS + Secrets Manager | Connection string; prefer **RDS Proxy** when scaling tasks |
 | `OPENAI_API_KEY` | Secrets Manager | Required for lead parsing and Ask AI |
 | `JWT_SECRET` | Secrets Manager | HS256 access token signing secret |
-| `JWT_REFRESH_SECRET` | Secrets Manager | Reserved / rotation (set alongside JWT_SECRET; both required in prod) |
+| *(no separate refresh secret)* | — | Refresh tokens are opaque + hashed in DB; only `JWT_SECRET` is required |
 | `SKIP_AUTH` | — | Must be **`false`** or unset in production |
 | `ACCESS_CAP` | Parameter Store | Max users with `access_allowed` (default `1000`) |
 | `LANDING_API_KEY` | Secrets Manager | Shared secret for `Follow-up Website Landing` → `POST /v1/public/*` |
@@ -67,7 +67,7 @@ Use this when you have one EC2 instance (e.g. Amazon Linux 2023) and want Postgr
 
 2. **SSH key**: PEM file for the instance key pair (e.g. `FOLLOWUP.pem`), `chmod 400`.
 
-3. **AWS env file (source of truth):** In `services/api/`, copy `cp .env.aws.example .env.aws` and fill **`DATABASE_URL`** (RDS or Neon), **`OPENAI_API_KEY`**, **`JWT_SECRET`** + **`JWT_REFRESH_SECRET`** when `SKIP_AUTH=false`, **`LANDING_API_KEY`**, WhatsApp vars, etc. **`deploy-ec2.sh` uploads `services/api/.env.aws` to `~/followup-api/.env` on every deploy** (your local `.env` is never rsynced). Optional: copy **`.deploy.env.example` → `.deploy.env`** with `EC2_INSTANCE_ID` and `EC2_SSH_KEY` so you can run `./scripts/deploy-ec2.sh` without exporting vars each time. Local dev: `cp .env.example .env` for Docker Postgres. Localhost `DATABASE_URL` is rejected on the server — there is no Postgres container in `docker-compose.stack.yml`.
+3. **AWS env file (source of truth):** In `services/api/`, copy `cp .env.aws.example .env.aws` and fill **`DATABASE_URL`** (RDS or Neon), **`OPENAI_API_KEY`**, **`JWT_SECRET`** when `SKIP_AUTH=false`, **`LANDING_API_KEY`**, WhatsApp vars, etc. **`deploy-ec2.sh` uploads `services/api/.env.aws` to `~/followup-api/.env` on every deploy** (your local `.env` is never rsynced). Optional: copy **`.deploy.env.example` → `.deploy.env`** with `EC2_INSTANCE_ID` and `EC2_SSH_KEY` so you can run `./scripts/deploy-ec2.sh` without exporting vars each time. Local dev: `cp .env.example .env` for Docker Postgres. Localhost `DATABASE_URL` is rejected on the server — there is no Postgres container in `docker-compose.stack.yml`.
 
 4. **Security group ports**: the deploy script opens **3000** to `0.0.0.0/0` (direct API). By default it also runs **Nginx** (`DEPLOY_NGINX=1`) and opens **80** and **443**. After HTTPS works, you can remove **3000** from the world if traffic only goes through Nginx.
 

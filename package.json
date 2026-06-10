@@ -1,0 +1,25 @@
+{
+  "name": "curvvtech-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/website",
+    "apps/admin",
+    "apps/followup-web",
+    "services/api",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web,admin -c blue,green,magenta \"npm run dev -w @curvvtech/api\" \"npm run dev -w @curvvtech/website\" \"npm run dev -w @curvvtech/admin\"",
+    "dev:api": "npm run dev -w @curvvtech/api",
+    "dev:website": "npm run dev -w @curvvtech/website",
+    "dev:admin": "npm run dev -w @curvvtech/admin",
+    "dev:followup-web": "npm run dev -w @curvvtech/followup-web",
+    "build": "npm run build -w @curvvtech/api && npm run build -w @curvvtech/website && npm run build -w @curvvtech/admin && npm run build -w @curvvtech/followup-web",
+    "build:api": "npm run build -w @curvvtech/api",
+    "start:api": "npm run start -w @curvvtech/api",
+    "lint": "npm run lint -w @curvvtech/website --if-present && npm run lint -w @curvvtech/api --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

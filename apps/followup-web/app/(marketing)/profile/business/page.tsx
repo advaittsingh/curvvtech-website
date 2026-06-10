@@ -90,7 +90,7 @@ export default function ProfileBusinessPage() {
         toast({ title: parseApiError(data), status: 'error' })
         return
       }
-      void session.refresh()
+      void session.refresh({ skipOnboardingCache: true })
       toast({ title: 'Business profile saved', status: 'success' })
     } catch {
       toast({ title: 'Network error', status: 'error' })
