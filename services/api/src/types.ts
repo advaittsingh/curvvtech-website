@@ -10,4 +10,5 @@ export type InternalUser = {
   email: string | null;
   accessAllowed: boolean;
   waitlistPosition: number | null;
+  curvvtechRole: string | null;
 };

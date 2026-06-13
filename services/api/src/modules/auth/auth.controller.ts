@@ -34,6 +34,7 @@ export const signup = asyncHandler(async (req: Request, res: Response) => {
       email: user.email,
       access_allowed: user.accessAllowed,
       waitlist_position: user.waitlistPosition,
+      curvvtech_role: user.curvvtechRole,
     },
     ...tokens,
   });
@@ -55,6 +56,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
       email: user.email,
       access_allowed: user.accessAllowed,
       waitlist_position: user.waitlistPosition,
+      curvvtech_role: user.curvvtechRole,
     },
     ...tokens,
   });
@@ -85,5 +87,6 @@ export const me = asyncHandler(async (req: Request, res: Response) => {
     access_allowed: u.accessAllowed,
     waitlist_position: u.waitlistPosition,
     email: u.email,
+    curvvtech_role: u.curvvtechRole,
   });
 });

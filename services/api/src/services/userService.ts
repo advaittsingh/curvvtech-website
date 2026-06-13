@@ -9,7 +9,7 @@ export async function ensureUser(
   const email = auth.email?.trim() || null;
 
   const existing = await db.query(
-    `SELECT id, auth_sub, email, access_allowed, waitlist_position
+    `SELECT id, auth_sub, email, access_allowed, waitlist_position, curvvtech_role
      FROM users WHERE auth_sub = $1`,
     [auth.sub]
   );
@@ -21,6 +21,7 @@ export async function ensureUser(
       email: string | null;
       access_allowed: boolean;
       waitlist_position: number | null;
+      curvvtech_role: string | null;
     };
     if (email && email !== row.email) {
       await db.query(`UPDATE users SET email = COALESCE($2, email), updated_at = now() WHERE id = $1`, [
@@ -34,6 +35,7 @@ export async function ensureUser(
       email: email || row.email,
       accessAllowed: row.access_allowed,
       waitlistPosition: row.waitlist_position,
+      curvvtechRole: row.curvvtech_role,
     };
   }
 
@@ -45,7 +47,7 @@ export async function ensureUser(
   const ins = await db.query(
     `INSERT INTO users (auth_sub, email, access_allowed, waitlist_position)
      VALUES ($1, $2, $3, $4)
-     RETURNING id, auth_sub, email, access_allowed, waitlist_position`,
+     RETURNING id, auth_sub, email, access_allowed, waitlist_position, curvvtech_role`,
     [auth.sub, email, accessAllowed, waitlistPosition]
   );
 
@@ -55,6 +57,7 @@ export async function ensureUser(
     email: string | null;
     access_allowed: boolean;
     waitlist_position: number | null;
+    curvvtech_role: string | null;
   };
 
   return {
@@ -63,5 +66,6 @@ export async function ensureUser(
     email: row.email,
     accessAllowed: row.access_allowed,
     waitlistPosition: row.waitlist_position,
+    curvvtechRole: row.curvvtech_role,
   };
 }

@@ -7,6 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
     "vercel-build": "vite build",
     "deploy:vercel": "vercel deploy --prod --yes --scope curvvtech",
     "vercel:link": "vercel link --yes --scope curvvtech --project curvvtech-admin-panel"
@@ -70,6 +74,15 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "@testing-library/react": "^16.1.0",
+    "eslint": "^9.16.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "jsdom": "^25.0.1",
+    "prettier": "^3.4.2",
+    "vitest": "^2.1.8",
     "@replit/vite-plugin-cartographer": "^0.2.8",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",

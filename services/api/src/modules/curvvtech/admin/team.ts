@@ -38,7 +38,17 @@ router.patch("/members/:userId", async (req, res) => {
     }
     const norm =
       curvvtech_role === "" || curvvtech_role === null ? null : String(curvvtech_role).toLowerCase();
-    if (norm !== null && !["admin", "manager", "member"].includes(norm)) {
+    const allowed = [
+      "admin",
+      "manager",
+      "member",
+      "sales",
+      "project_manager",
+      "developer",
+      "designer",
+      "accountant",
+    ];
+    if (norm !== null && !allowed.includes(norm)) {
       res.status(400).json({ error: "Invalid curvvtech_role" });
       return;
     }

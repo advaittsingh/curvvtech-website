@@ -43,6 +43,7 @@ type LogRow = {
   lead_phone: string | null;
   lead_call_status: string | null;
   lead_last_call_at: string | null;
+  duration_seconds?: number | null;
 };
 
 export default function AiAgent() {

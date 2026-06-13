@@ -52,6 +52,7 @@ function rowToInternalUser(row: {
   email: string | null;
   access_allowed: boolean;
   waitlist_position: number | null;
+  curvvtech_role?: string | null;
 }): InternalUser {
   return {
     id: row.id,
@@ -59,6 +60,7 @@ function rowToInternalUser(row: {
     email: row.email,
     accessAllowed: row.access_allowed,
     waitlistPosition: row.waitlist_position,
+    curvvtechRole: row.curvvtech_role ?? null,
   };
 }
 
@@ -158,9 +160,10 @@ export async function loginWithPassword(
     email: string | null;
     access_allowed: boolean;
     waitlist_position: number | null;
+    curvvtech_role: string | null;
     password_hash: string | null;
   }>(
-    `SELECT id, auth_sub, email, access_allowed, waitlist_position, password_hash
+    `SELECT id, auth_sub, email, access_allowed, waitlist_position, curvvtech_role, password_hash
      FROM users WHERE lower(trim(email)) = $1 AND password_hash IS NOT NULL LIMIT 1`,
     [email]
   );
@@ -181,6 +184,7 @@ export async function loginWithPassword(
       email: row.email,
       access_allowed: row.access_allowed,
       waitlist_position: row.waitlist_position,
+      curvvtech_role: row.curvvtech_role,
     }),
     tokens,
   };
@@ -236,8 +240,10 @@ export async function getUserById(pool: pg.Pool, userId: string): Promise<Intern
     email: string | null;
     access_allowed: boolean;
     waitlist_position: number | null;
+    curvvtech_role: string | null;
   }>(
-    `SELECT id, auth_sub, email, access_allowed, waitlist_position FROM users WHERE id = $1::uuid LIMIT 1`,
+    `SELECT id, auth_sub, email, access_allowed, waitlist_position, curvvtech_role
+     FROM users WHERE id = $1::uuid LIMIT 1`,
     [userId]
   );
   const row = r.rows[0];
