@@ -11,6 +11,9 @@ import { whatsappWebhookModuleRouter } from "./modules/whatsapp/whatsapp.routes.
 import { twilioVoiceWebhookRouter } from "./modules/aiCalls/twilioVoice.routes.js";
 import v1Router from "./routes/v1/index.js";
 import demoPublicRouter from "./modules/demo/demo.routes.js";
+import paymentsRouter from "./routes/payments.routes.js";
+import proposalsPublicRouter from "./modules/curvvtech/proposalsPublic.routes.js";
+import publicContentRouter from "./modules/curvvtech/publicContent.routes.js";
 
 /**
  * Vercel FollowUp web app: production hostname + preview deploys
@@ -109,6 +112,10 @@ export function createApp(): express.Application {
   app.use("/api/demo", demoPublicRouter);
   /** Alias for proxies without `/api` prefix (same as `/admin`). */
   app.use("/demo", demoPublicRouter);
+
+  app.use("/api", paymentsRouter);
+  app.use("/api/proposals", proposalsPublicRouter);
+  app.use("/api/public/content", publicContentRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: "NOT_FOUND", message: "Route not found" });

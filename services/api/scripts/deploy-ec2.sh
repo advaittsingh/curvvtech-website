@@ -54,6 +54,15 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
+# Use AWS_* from .env.aws so deploy targets the Curvvtech account (not another default CLI profile).
+if grep -qE '^AWS_ACCESS_KEY_ID=' "$ENV_FILE" 2>/dev/null; then
+  echo "==> Loading AWS credentials from $ENV_FILE"
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
+
 if [[ ! -f "$SSH_KEY" ]]; then
   echo "Missing SSH key: $SSH_KEY (set EC2_SSH_KEY)"
   exit 1
@@ -182,6 +191,13 @@ $DC -f docker-compose.stack.yml run --rm api node scripts/migrate.mjs
 # After `build --no-cache`, Compose must recreate the container or it may keep an image from days ago
 # (`docker ps` still shows the old image id). `--force-recreate` applies the new `followup-api-api:latest`.
 $DC -f docker-compose.stack.yml up -d --no-deps --force-recreate api
+
+if ! sudo docker exec followup-api-api-1 grep -q "generate_consulting" /app/dist/modules/curvvtech/admin/ai-tools.js 2>/dev/null; then
+  echo "ERROR: API container still running old code (missing generate_consulting). Re-run deploy or manually:"
+  echo "  cd ~/${REMOTE_DIR} && sudo docker-compose -f docker-compose.stack.yml build --no-cache api && sudo docker-compose -f docker-compose.stack.yml up -d --no-deps --force-recreate api"
+  exit 1
+fi
+echo "Verified: consulting AI routes present in running container."
 
 echo ""
 echo "API: http://${PUBLIC_IP}:3000/health"

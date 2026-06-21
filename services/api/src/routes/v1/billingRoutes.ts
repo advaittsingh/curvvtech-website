@@ -6,6 +6,7 @@ import { pool } from "../../db.js";
 import { jsonError } from "../../lib/jsonError.js";
 import { normalizePlanTier } from "../../modules/billing/planLimits.js";
 import { buildUsageJsonResponse, loadMonthlyUsage } from "../../modules/billing/planUsage.js";
+import { verifyRazorpayPaymentSignature } from "../../modules/billing/razorpayCheckout.js";
 import { getRazorpay, razorpayConfigured } from "../../modules/billing/razorpayClient.js";
 
 export const billingRoutes = Router();
@@ -212,11 +213,7 @@ billingRoutes.post("/me/billing/payments/verify", async (req, res) => {
     return;
   }
 
-  const expected = crypto
-    .createHmac("sha256", config.razorpayKeySecret)
-    .update(`${orderId}|${paymentId}`)
-    .digest("hex");
-  if (expected !== signature) {
+  if (!verifyRazorpayPaymentSignature(orderId, paymentId, signature)) {
     jsonError(res, 400, "INVALID_SIGNATURE", "Payment signature verification failed");
     return;
   }

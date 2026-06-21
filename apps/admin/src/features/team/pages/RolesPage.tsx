@@ -1,56 +1,56 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAdminApi } from "@/hooks/useAdminApi";
-import { PageHeader } from "@/components/system";
-import { ALL_PERMISSIONS, ROLE_PERMISSIONS } from "@/lib/permissions";
+import { BackendErrorAlert } from "@/components/BackendErrorAlert";
 import type { AdminRole } from "@/types/auth";
-import { Badge } from "@/components/ui/badge";
-
-const ROLE_LABELS: Record<AdminRole, string> = {
-  super_admin: "Super Admin",
-  admin: "Admin",
-  sales: "Sales",
-  project_manager: "Project Manager",
-  developer: "Developer",
-  designer: "Designer",
-  accountant: "Accountant",
-};
+import type { RolesDashboard } from "../roles-schemas";
+import { RolesCommandHeader } from "../components/roles/RolesCommandHeader";
+import { RoleCardsGrid } from "../components/roles/RoleCardsGrid";
+import { SelectedRolePanel } from "../components/roles/SelectedRolePanel";
+import { RolesSecurityPanel } from "../components/roles/RolesSecurityPanel";
 
 export default function RolesPage() {
   const api = useAdminApi();
-  const { data: roles } = useQuery({ queryKey: ["admin", "team", "roles"], queryFn: () => api.team.roles() });
-  const dbRoles = Array.isArray(roles) ? roles : [];
+  const [selected, setSelected] = useState<AdminRole>("admin");
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["admin", "team", "roles", "dashboard"],
+    queryFn: () => api.team.rolesDashboard() as Promise<RolesDashboard>,
+  });
+
+  const roles = data?.roles ?? [];
+  const selectedRole = roles.find((r) => r.role === selected) ?? roles[0];
+  const activeRole = selectedRole?.role ?? selected;
+
+  useEffect(() => {
+    if (roles.length > 0 && !roles.some((r) => r.role === selected)) {
+      setSelected(roles[0]!.role);
+    }
+  }, [roles, selected]);
 
   return (
     <div className="p-6 space-y-6">
-      <PageHeader title="Roles & permissions" description="RBAC matrix for CurvvTech OS." />
-      <div className="rounded-lg border border-stone-200 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-stone-50">
-            <tr>
-              <th className="text-left p-3 font-medium">Role</th>
-              {ALL_PERMISSIONS.map((p) => (
-                <th key={p} className="p-2 text-[10px] font-normal text-stone-500 writing-mode-vertical">{p.replace(".", " ")}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {(Object.keys(ROLE_PERMISSIONS) as AdminRole[]).map((role) => (
-              <tr key={role} className="border-t border-stone-100">
-                <td className="p-3 font-medium whitespace-nowrap">{ROLE_LABELS[role]}</td>
-                {ALL_PERMISSIONS.map((perm) => (
-                  <td key={perm} className="p-2 text-center">
-                    {ROLE_PERMISSIONS[role].includes(perm) ? <Badge className="bg-emerald-100 text-emerald-800 text-[10px]">✓</Badge> : <span className="text-stone-300">—</span>}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {dbRoles.length > 0 && (
-        <div className="text-sm text-stone-600">
-          <p className="font-medium mb-2">Database roles table</p>
-          <pre className="bg-stone-50 p-3 rounded text-xs overflow-auto">{JSON.stringify(dbRoles, null, 2)}</pre>
+      <RolesCommandHeader summary={data?.summary} />
+      {error && <BackendErrorAlert error={error as Error} />}
+
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground">Loading roles…</p>
+      ) : roles.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
+          <p className="text-base font-semibold">No team members yet</p>
+          <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+            Invite employees, assign roles, track workload, and manage payroll. Role cards will populate as your team grows.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">
+          <div className="space-y-6 min-w-0">
+            <RoleCardsGrid roles={roles} selected={activeRole} onSelect={setSelected} />
+            {selectedRole && (
+              <SelectedRolePanel role={activeRole} memberCount={selectedRole.member_count} />
+            )}
+          </div>
+          <RolesSecurityPanel insight={data?.ai_insight} />
         </div>
       )}
     </div>

@@ -125,6 +125,8 @@ export type BookDemoInput = {
   email: string;
   phone?: string | null;
   company?: string | null;
+  message?: string | null;
+  website?: string | null;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -138,6 +140,8 @@ export function validateBookInput(body: unknown): { ok: true; data: BookDemoInpu
   const email = typeof o.email === "string" ? o.email.trim().toLowerCase() : "";
   const phone = typeof o.phone === "string" ? o.phone.trim().slice(0, 40) : null;
   const company = typeof o.company === "string" ? o.company.trim().slice(0, 200) : null;
+  const message = typeof o.message === "string" ? o.message.trim().slice(0, 4000) : null;
+  const website = typeof o.website === "string" ? o.website.trim().slice(0, 500) : null;
 
   if (!isValidYmd(date)) return { ok: false, message: "Invalid date" };
   if (date < minDemoBookingYmd()) {
@@ -152,7 +156,7 @@ export function validateBookInput(body: unknown): { ok: true; data: BookDemoInpu
   if (!EMAIL_RE.test(email)) return { ok: false, message: "Invalid email" };
   return {
     ok: true,
-    data: { date, time: timeNorm, name, email, phone: phone || null, company: company || null },
+    data: { date, time: timeNorm, name, email, phone: phone || null, company: company || null, message: message || null, website: website || null },
   };
 }
 
@@ -177,8 +181,8 @@ export async function bookDemoSlot(input: BookDemoInput): Promise<
     }
     const slotId = upd.rows[0]!.id;
     const ins = await client.query<DemoRequestRow>(
-      `INSERT INTO demo_requests (slot_id, name, email, phone, company, date, "time", status)
-       VALUES ($1::uuid, $2, $3, $4, $5, $6::date, $7::time, 'pending')
+      `INSERT INTO demo_requests (slot_id, name, email, phone, company, message, website, requirements, date, "time", status, inbound_source)
+       VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $6, $8::date, $9::time, 'pending', 'demo_booking')
        RETURNING id, slot_id::text, name, email, phone, company, date::text, "time"::text, status,
          created_at::text, updated_at::text`,
       [
@@ -187,19 +191,23 @@ export async function bookDemoSlot(input: BookDemoInput): Promise<
         input.email,
         input.phone,
         input.company,
+        input.message,
+        input.website,
         input.date,
         input.time,
       ]
     );
     await client.query("COMMIT");
     const row = ins.rows[0]!;
-    return {
-      ok: true,
-      request: {
-        ...row,
-        time: formatTimeFromDb(row.time),
-      },
+    const request = {
+      ...row,
+      time: formatTimeFromDb(row.time),
     };
+    const { queueDemoAnalysis } = await import("./demoIntelligence.js");
+    const { seedInboundTimeline } = await import("./inboundActivity.js");
+    await seedInboundTimeline(request.id);
+    queueDemoAnalysis(request.id);
+    return { ok: true, request };
   } catch (e) {
     await client.query("ROLLBACK");
     const msg = e instanceof Error ? e.message : String(e);

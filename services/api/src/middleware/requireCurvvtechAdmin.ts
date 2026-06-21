@@ -3,8 +3,19 @@ import { config } from "../config.js";
 import { pool } from "../db.js";
 import { logger } from "../logger.js";
 import { verifyAccessToken } from "../modules/auth/auth.tokens.js";
+import { normalizeAdminRole, permissionsForRole } from "../lib/adminPermissions.js";
 
-const ADMIN_ROLES = ["admin", "manager"];
+const ADMIN_ROLES = [
+  "admin",
+  "manager",
+  "member",
+  "sales",
+  "project_manager",
+  "developer",
+  "designer",
+  "accountant",
+  "super_admin",
+];
 
 /** JWT access token + users.curvvtech_role must be admin or manager. */
 export async function requireCurvvtechAdmin(
@@ -59,7 +70,7 @@ export async function requireCurvvtechAdmin(
     if (!ADMIN_ROLES.includes(role)) {
       res.status(403).json({
         error: "FORBIDDEN",
-        message: "Admin or manager role required",
+        message: "CurvvTech OS staff role required",
       });
       return;
     }
@@ -68,6 +79,9 @@ export async function requireCurvvtechAdmin(
       email: row.email ?? undefined,
       tokenUse: "access",
     };
+    const normalized = normalizeAdminRole(row.curvvtech_role);
+    req.adminRole = normalized;
+    req.adminPermissions = permissionsForRole(normalized);
     next();
   } catch (e) {
     logger.warn({ err: e }, "curvvtech_admin_auth_failed");

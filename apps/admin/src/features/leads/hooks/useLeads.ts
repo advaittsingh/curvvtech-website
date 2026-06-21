@@ -1,12 +1,28 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAdminApi } from "@/hooks/useAdminApi";
-import type { LeadFormValues } from "../schemas";
+import type { LeadFilters, LeadFormValues } from "../schemas";
 
-export function useLeads(status?: string) {
+export function useLeads(filters?: LeadFilters) {
   const api = useAdminApi();
   return useQuery({
-    queryKey: ["admin", "leads", status],
-    queryFn: () => api.leads.list(status),
+    queryKey: ["admin", "leads", filters],
+    queryFn: () => api.leads.list(filters),
+  });
+}
+
+export function usePipelineSummary() {
+  const api = useAdminApi();
+  return useQuery({
+    queryKey: ["admin", "leads", "pipeline-summary"],
+    queryFn: async () => {
+      const data = await api.leads.pipelineSummary();
+      if (data && typeof data === "object" && "error" in data) {
+        throw new Error(String((data as { message?: string; error?: string }).message ?? (data as { error?: string }).error));
+      }
+      return data;
+    },
+    staleTime: 30_000,
+    retry: 1,
   });
 }
 
@@ -14,7 +30,9 @@ export function useLeadMutations() {
   const api = useAdminApi();
   const qc = useQueryClient();
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "leads"] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "leads"] });
+  };
 
   const create = useMutation({
     mutationFn: (body: LeadFormValues) => api.leads.create(body),
@@ -23,11 +41,14 @@ export function useLeadMutations() {
 
   const update = useMutation({
     mutationFn: ({ id, body }: { id: string; body: object }) => api.leads.update(id, body),
-    onSuccess: invalidate,
+    onSuccess: (_, { id }) => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: ["admin", "leads", id] });
+    },
   });
 
   const remove = useMutation({
-    mutationFn: (id: string) => api.leads.update(id, { status: "closed" }),
+    mutationFn: (id: string) => api.leads.update(id, { status: "lost" }),
     onSuccess: invalidate,
   });
 

@@ -2,6 +2,7 @@
 
 import { HomeStyleProjectGrid } from "@/components/project/home-style-project-grid";
 import { onlinePresenceList } from "@/lib/site-page-data";
+import type { CmsPortfolio } from "@/lib/cms-api";
 
 type WorkItem = {
   image: string;
@@ -10,8 +11,17 @@ type WorkItem = {
   link: string;
 };
 
-export default function WorkGrid() {
-  const list = onlinePresenceList as WorkItem[];
+export default function WorkGrid({ cmsPortfolio = [] }: { cmsPortfolio?: CmsPortfolio[] }) {
+  const staticList = onlinePresenceList as WorkItem[];
+  const list: WorkItem[] = cmsPortfolio.length
+    ? cmsPortfolio.map((p) => ({
+        image: p.image_url || staticList[0]?.image || "/images/home/online-presence/onlinePresence_1.png",
+        title: p.title,
+        tag: Array.isArray(p.tags) ? p.tags : [],
+        link: p.project_url || "#",
+      }))
+    : staticList;
+
   if (!list?.length) return null;
 
   const items = list

@@ -22,11 +22,13 @@ function stripApiPrefixEnabled(): boolean {
  */
 export function apiUrl(path: string): string {
   const p = path.startsWith('/') ? path : `/${path}`
-  if (!stripApiPrefixEnabled()) {
-    return `${RAW_BASE}${p}`
-  }
-  if (p.startsWith('/api/')) {
-    return `${RAW_BASE}${p.slice(4)}`
+  if (stripApiPrefixEnabled()) {
+    // BASE may be https://api.curvvtech.in or https://api.curvvtech.in/api — normalize before strip
+    const base = RAW_BASE.replace(/\/api\/?$/i, '')
+    if (p.startsWith('/api/')) {
+      return `${base}${p.slice(4)}`
+    }
+    return `${base}${p}`
   }
   return `${RAW_BASE}${p}`
 }

@@ -179,7 +179,7 @@ export function DashboardOverview() {
               <CalendarDays className="h-8 w-8 text-stone-300" aria-hidden />
             </div>
             <Link to="/demo-requests" className="text-xs text-blue-700 hover:underline inline-flex items-center gap-1 mt-3">
-              Demo requests <ArrowRight className="h-3 w-3" />
+              Inbound opportunities <ArrowRight className="h-3 w-3" />
             </Link>
           </CardContent>
         </Card>
@@ -270,7 +270,7 @@ export function DashboardOverview() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="border-stone-200">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-stone-900">Demo requests</CardTitle>
+            <CardTitle className="text-lg font-semibold text-stone-900">Inbound opportunities</CardTitle>
             <p className="text-sm text-stone-500">By status</p>
           </CardHeader>
           <CardContent>

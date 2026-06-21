@@ -1,5 +1,6 @@
 import type { AuthPayload, InternalUser } from "./types.js";
 import type pino from "pino";
+import type { AdminRole, Permission } from "./lib/adminPermissions.js";
 
 declare global {
   namespace Express {
@@ -12,6 +13,8 @@ declare global {
       log?: pino.Logger;
       /** Raw body buffer (set by express.json verify) for Meta webhook signature checks */
       rawBody?: Buffer;
+      adminRole?: AdminRole | null;
+      adminPermissions?: Permission[];
     }
   }
 }

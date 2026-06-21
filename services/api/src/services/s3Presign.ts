@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
 import { config } from "../config.js";
@@ -49,4 +49,36 @@ export async function presignProfileUpload(opts: {
   const expiresIn = 900;
   const url = await getSignedUrl(s3, cmd, { expiresIn });
   return { url, key, expiresIn };
+}
+
+export async function presignAdminFileUpload(opts: {
+  userId: string;
+  fileName: string;
+  contentType: string;
+  version?: number;
+}): Promise<{ url: string; key: string; expiresIn: number } | null> {
+  const s3 = client();
+  if (!s3) return null;
+
+  const safeName = opts.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const key = `admin/${opts.userId}/${randomUUID()}/${opts.version ?? 1}/${safeName}`;
+
+  const cmd = new PutObjectCommand({
+    Bucket: config.s3Bucket,
+    Key: key,
+    ContentType: opts.contentType,
+  });
+
+  const expiresIn = 900;
+  const url = await getSignedUrl(s3, cmd, { expiresIn });
+  return { url, key, expiresIn };
+}
+
+export async function presignFileDownload(key: string): Promise<{ url: string; expiresIn: number } | null> {
+  const s3 = client();
+  if (!s3 || !key) return null;
+  const expiresIn = 900;
+  const cmd = new GetObjectCommand({ Bucket: config.s3Bucket, Key: key });
+  const url = await getSignedUrl(s3, cmd, { expiresIn });
+  return { url, expiresIn };
 }

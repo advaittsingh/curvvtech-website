@@ -3,47 +3,43 @@
 @tailwind utilities;
 
 :root {
-  --background: hsl(0, 0%, 97%);
-  --foreground: hsl(20, 14.3%, 4.1%);
-  --muted: hsl(60, 4.8%, 95.9%);
-  --muted-foreground: hsl(25, 5.3%, 44.7%);
-  --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(20, 14.3%, 4.1%);
-  --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(20, 14.3%, 4.1%);
-  --border: hsl(214, 32%, 91%);
-  --input: hsl(214, 32%, 91%);
-  --primary: hsl(0, 0%, 0%);
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(60, 4.8%, 95.9%);
-  --secondary-foreground: hsl(24, 9.8%, 10%);
-  --accent: hsl(60, 4.8%, 95.9%);
-  --accent-foreground: hsl(24, 9.8%, 10%);
-  --destructive: hsl(0, 84.2%, 60.2%);
-  --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --ring: hsl(0, 0%, 0%);
+  --background: #F7F7F7;
+  --foreground: #111111;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  --popover: #FFFFFF;
+  --popover-foreground: #111111;
+  --card: #FFFFFF;
+  --card-foreground: #111111;
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --primary: #111111;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #111111;
+  --accent: #F3F4F6;
+  --accent-foreground: #111111;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --ring: #111111;
   --radius: 0.75rem;
-  --sidebar-background: hsl(0, 0%, 100%);
-  --sidebar-foreground: hsl(20, 14.3%, 4.1%);
-  --sidebar-primary: hsl(0, 0%, 0%);
-  --sidebar-primary-foreground: hsl(0, 0%, 100%);
-  --sidebar-accent: hsl(60, 4.8%, 95.9%);
-  --sidebar-accent-foreground: hsl(24, 9.8%, 10%);
-  --sidebar-border: hsl(214, 32%, 91%);
-  --sidebar-ring: hsl(0, 0%, 0%);
-
-  /* Theme configurator variables */
-  --theme-primary: var(--primary);
-  --theme-primary-foreground: var(--primary-foreground);
-  --theme-secondary: var(--secondary);
-  --theme-secondary-foreground: var(--secondary-foreground);
-  --theme-radius: var(--radius);
-  --theme-font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  --theme-font-size-base: 14px;
-  --theme-font-weight-normal: 400;
-  --theme-font-weight-medium: 500;
-  --theme-font-weight-semibold: 600;
-  --theme-font-weight-bold: 700;
+  --sidebar-background: #FFFFFF;
+  --sidebar-foreground: #111111;
+  --sidebar-primary: #111111;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F3F4F6;
+  --sidebar-accent-foreground: #111111;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #111111;
+  --chart-1: #111111;
+  --chart-2: #22C55E;
+  --chart-3: #EF4444;
+  --chart-4: #F59E0B;
+  --chart-5: #6B7280;
+  --theme-font-family: "Inter", system-ui, -apple-system, sans-serif;
 }
 
 .dark {
@@ -90,6 +86,7 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-family: var(--theme-font-family);
   }
 }
 
@@ -138,4 +135,62 @@ Texture Background - You can modify these values:
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--foreground));
+}
+
+/* Proposal PDF — print the on-screen preview (WYSIWYG) */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #proposal-print-source,
+  #proposal-print-source * {
+    visibility: visible;
+  }
+
+  #proposal-print-source {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  #proposal-print-source .shadow-lg {
+    box-shadow: none !important;
+  }
+
+  #proposal-print-source .rounded-xl {
+    border-radius: 0 !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+@media screen {
+  #proposal-print-source {
+    position: fixed;
+    left: -10000px;
+    top: 0;
+    width: 800px;
+    pointer-events: none;
+    opacity: 0;
+  }
 }
