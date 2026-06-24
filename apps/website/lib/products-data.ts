@@ -16,7 +16,7 @@ export type Product = {
 const followUpCardImage =
   '/images/Products/Follow-Up/Black Modern Website Launch Promotion Mockup Instagram Post.png';
 
-const businessOsCardImage = '/images/Products/Business-OS/card.svg';
+const businessOsCardImage = '/images/Products/Business-OS/card-mockup.svg';
 
 export const products: Product[] = [
   {
@@ -27,6 +27,7 @@ export const products: Product[] = [
     websiteUrl: 'https://followup.curvvtech.com/',
     cardImage: followUpCardImage,
     tags: ['SaaS', 'WhatsApp-first', 'Sales & support'],
+    ctaLabel: 'Explore Follow Up',
     bg_color: 'bg-purple/20',
     txt_color: 'text-purple',
   },

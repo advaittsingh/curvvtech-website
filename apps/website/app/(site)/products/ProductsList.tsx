@@ -20,5 +20,5 @@ export default function ProductsList({ items }: Props) {
     ctaLabel: item.ctaLabel,
   }));
 
-  return <HomeStyleProjectGrid items={gridItems} sectionId="products" />;
+  return <HomeStyleProjectGrid items={gridItems} sectionId="products" squareThumbnails />;
 }

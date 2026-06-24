@@ -20,9 +20,11 @@ type Props = {
   items: HomeStyleProjectItem[]
   /** e.g. id="work" for anchor links */
   sectionId?: string
+  /** Use 1:1 thumbnails (product promo cards) */
+  squareThumbnails?: boolean
 }
 
-export function HomeStyleProjectGrid({ items, sectionId }: Props) {
+export function HomeStyleProjectGrid({ items, sectionId, squareThumbnails = false }: Props) {
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, margin: '-100px' })
 
@@ -40,23 +42,23 @@ export function HomeStyleProjectGrid({ items, sectionId }: Props) {
         {items.map((item, index) => (
           <motion.div
             key={item.id}
-            className="group flex flex-col gap-6 cursor-pointer"
+            className="group flex flex-col gap-6"
             {...bottomAnimation(index)}
           >
-            <div className="relative w-full">
+            <Link
+              href={item.link || '#'}
+              target={item.link?.startsWith('http') ? '_blank' : undefined}
+              rel={item.link?.startsWith('http') ? 'noopener noreferrer' : undefined}
+              className="relative w-full block"
+            >
               <ProjectImage
                 src={item.image}
                 alt={item.title}
-                width={625}
-                height={410}
-                className="rounded-2xl w-full h-auto max-w-full"
+                width={squareThumbnails ? 1080 : 625}
+                height={squareThumbnails ? 1080 : 410}
+                className={`rounded-2xl w-full h-auto max-w-full ${squareThumbnails ? 'aspect-square object-cover' : ''}`}
               />
-              <Link
-                href={item.link || '#'}
-                target={item.link?.startsWith('http') ? '_blank' : undefined}
-                rel={item.link?.startsWith('http') ? 'noopener noreferrer' : undefined}
-                className="absolute inset-0 bg-black/50 rounded-2xl hidden group-hover:flex"
-              >
+              <span className="absolute inset-0 bg-black/50 rounded-2xl hidden group-hover:flex">
                 <span className="flex justify-end p-5 w-full">
                   <Icon
                     icon="icon-park-solid:circle-right-up"
@@ -65,11 +67,17 @@ export function HomeStyleProjectGrid({ items, sectionId }: Props) {
                     style={{ color: '#fbfbfb' }}
                   />
                 </span>
-              </Link>
-            </div>
+              </span>
+            </Link>
 
             <div className="flex flex-col items-start gap-4">
-              <h3 className="group-hover:text-purple_blue text-2xl">{item.title}</h3>
+              <Link
+                href={item.link || '#'}
+                target={item.link?.startsWith('http') ? '_blank' : undefined}
+                rel={item.link?.startsWith('http') ? 'noopener noreferrer' : undefined}
+              >
+                <h3 className="group-hover:text-purple_blue text-2xl">{item.title}</h3>
+              </Link>
               {item.description && (
                 <p className="text-dark_black/60 dark:text-white/60 text-base leading-relaxed">
                   {item.description}
