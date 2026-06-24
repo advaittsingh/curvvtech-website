@@ -10,8 +10,10 @@ export type HomeStyleProjectItem = {
   id: string
   image: string
   title: string
+  description?: string
   tags: string[]
   link: string
+  ctaLabel?: string
 }
 
 type Props = {
@@ -68,6 +70,11 @@ export function HomeStyleProjectGrid({ items, sectionId }: Props) {
 
             <div className="flex flex-col items-start gap-4">
               <h3 className="group-hover:text-purple_blue text-2xl">{item.title}</h3>
+              {item.description && (
+                <p className="text-dark_black/60 dark:text-white/60 text-base leading-relaxed">
+                  {item.description}
+                </p>
+              )}
               {item.tags.length > 0 && (
                 <div className="flex flex-wrap gap-3">
                   {item.tags.map((tag, idx) => (
@@ -79,6 +86,16 @@ export function HomeStyleProjectGrid({ items, sectionId }: Props) {
                     </p>
                   ))}
                 </div>
+              )}
+              {item.ctaLabel && (
+                <Link
+                  href={item.link || '#'}
+                  target={item.link?.startsWith('http') ? '_blank' : undefined}
+                  rel={item.link?.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  className="text-sm font-medium text-purple_blue hover:underline"
+                >
+                  {item.ctaLabel} →
+                </Link>
               )}
             </div>
           </motion.div>

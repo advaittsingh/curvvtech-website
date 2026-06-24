@@ -1,26 +1,29 @@
-'use client'
+'use client';
 
-import { usePathname } from 'next/navigation'
-import Header from './layout/header'
-import Footer from './layout/footer/Footer'
-import ScrollToTop from '@/components/scroll-to-top'
-import { ChatWidget } from './chat/ChatWidget'
+import { usePathname } from 'next/navigation';
+import Header from './layout/header';
+import Footer from './layout/footer/Footer';
+import ScrollToTop from '@/components/scroll-to-top';
+import { ChatWidget } from './chat/ChatWidget';
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  const isChat = pathname === '/chat'
+  const pathname = usePathname();
+  const isChat = pathname === '/chat';
+  const isBusinessOs = pathname === '/business-os' || pathname.startsWith('/business-os/');
 
-  if (isChat) {
+  if (isChat || isBusinessOs) {
     return (
       <>
         {children}
-        <div className="pointer-events-none fixed bottom-6 right-6 z-1000 flex flex-row-reverse items-end gap-3">
-          <div className="pointer-events-auto">
-            <ScrollToTop />
+        {!isBusinessOs && (
+          <div className="pointer-events-none fixed bottom-6 right-6 z-1000 flex flex-row-reverse items-end gap-3">
+            <div className="pointer-events-auto">
+              <ScrollToTop />
+            </div>
           </div>
-        </div>
+        )}
       </>
-    )
+    );
   }
 
   return (
@@ -37,5 +40,5 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     </>
-  )
+  );
 }

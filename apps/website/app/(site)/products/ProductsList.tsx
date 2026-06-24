@@ -14,8 +14,10 @@ export default function ProductsList({ items }: Props) {
     id: item.slug,
     image: item.cardImage,
     title: item.name,
+    description: item.description,
     tags: item.tags ?? [],
     link: item.websiteUrl,
+    ctaLabel: item.ctaLabel,
   }));
 
   return <HomeStyleProjectGrid items={gridItems} sectionId="products" />;

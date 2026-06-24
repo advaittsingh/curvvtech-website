@@ -1,0 +1,51 @@
+<svg width="1250" height="820" viewBox="0 0 1250 820" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1250" height="820" rx="32" fill="#1B1D1E"/>
+  <rect x="60" y="60" width="1130" height="700" rx="24" fill="#252729"/>
+  <rect x="60" y="60" width="1130" height="56" rx="24" fill="#2E3033"/>
+  <circle cx="92" cy="88" r="8" fill="#F4889A"/>
+  <circle cx="116" cy="88" r="8" fill="#FFAF68"/>
+  <circle cx="140" cy="88" r="8" fill="#79D45E"/>
+  <text x="170" y="94" fill="#888" font-family="Inter, sans-serif" font-size="16" font-weight="500">Business OS — Command Center</text>
+  <rect x="100" y="150" width="240" height="140" rx="16" fill="#4928FD" fill-opacity="0.15" stroke="#4928FD" stroke-opacity="0.3"/>
+  <text x="120" y="185" fill="#BA81EE" font-family="Inter, sans-serif" font-size="14" font-weight="600">CRM Pipeline</text>
+  <text x="120" y="220" fill="#fff" font-family="Inter, sans-serif" font-size="28" font-weight="700">248</text>
+  <text x="120" y="245" fill="#888" font-family="Inter, sans-serif" font-size="13">Active Leads</text>
+  <text x="120" y="275" fill="#79D45E" font-family="Inter, sans-serif" font-size="14" font-weight="600">34% Win Rate</text>
+  <rect x="370" y="150" width="240" height="140" rx="16" fill="#70B5FF" fill-opacity="0.15" stroke="#70B5FF" stroke-opacity="0.3"/>
+  <text x="390" y="185" fill="#70B5FF" font-family="Inter, sans-serif" font-size="14" font-weight="600">Projects</text>
+  <text x="390" y="220" fill="#fff" font-family="Inter, sans-serif" font-size="28" font-weight="700">12</text>
+  <text x="390" y="245" fill="#888" font-family="Inter, sans-serif" font-size="13">In Progress</text>
+  <text x="390" y="275" fill="#79D45E" font-family="Inter, sans-serif" font-size="14" font-weight="600">89% On Track</text>
+  <rect x="640" y="150" width="240" height="140" rx="16" fill="#79D45E" fill-opacity="0.15" stroke="#79D45E" stroke-opacity="0.3"/>
+  <text x="660" y="185" fill="#79D45E" font-family="Inter, sans-serif" font-size="14" font-weight="600">Analytics</text>
+  <text x="660" y="220" fill="#fff" font-family="Inter, sans-serif" font-size="28" font-weight="700">₹2.4M</text>
+  <text x="660" y="245" fill="#888" font-family="Inter, sans-serif" font-size="13">Revenue</text>
+  <text x="660" y="275" fill="#79D45E" font-family="Inter, sans-serif" font-size="14" font-weight="600">+18% Growth</text>
+  <rect x="910" y="150" width="240" height="140" rx="16" fill="#FFAF68" fill-opacity="0.15" stroke="#FFAF68" stroke-opacity="0.3"/>
+  <text x="930" y="185" fill="#FFAF68" font-family="Inter, sans-serif" font-size="14" font-weight="600">AI Assistant</text>
+  <text x="930" y="220" fill="#fff" font-family="Inter, sans-serif" font-size="28" font-weight="700">156</text>
+  <text x="930" y="245" fill="#888" font-family="Inter, sans-serif" font-size="13">Tasks Done</text>
+  <text x="930" y="275" fill="#79D45E" font-family="Inter, sans-serif" font-size="14" font-weight="600">42h Saved</text>
+  <rect x="100" y="330" width="1050" height="380" rx="16" fill="#2E3033" stroke="#444" stroke-opacity="0.5"/>
+  <text x="130" y="375" fill="#fff" font-family="Inter, sans-serif" font-size="18" font-weight="600">Revenue Overview</text>
+  <text x="1050" y="375" fill="#79D45E" font-family="Inter, sans-serif" font-size="14" font-weight="600" text-anchor="end">+18.2% this quarter</text>
+  <rect x="150" y="550" width="60" height="100" rx="4" fill="url(#barGrad)"/>
+  <rect x="240" y="500" width="60" height="150" rx="4" fill="url(#barGrad)"/>
+  <rect x="330" y="530" width="60" height="120" rx="4" fill="url(#barGrad)"/>
+  <rect x="420" y="460" width="60" height="190" rx="4" fill="url(#barGrad)"/>
+  <rect x="510" y="490" width="60" height="160" rx="4" fill="url(#barGrad)"/>
+  <rect x="600" y="420" width="60" height="230" rx="4" fill="url(#barGrad)"/>
+  <rect x="690" y="450" width="60" height="200" rx="4" fill="url(#barGrad)"/>
+  <rect x="780" y="400" width="60" height="250" rx="4" fill="url(#barGrad)"/>
+  <rect x="870" y="430" width="60" height="220" rx="4" fill="url(#barGrad)"/>
+  <rect x="960" y="380" width="60" height="270" rx="4" fill="url(#barGrad)"/>
+  <rect x="1050" y="410" width="60" height="240" rx="4" fill="url(#barGrad)"/>
+  <text x="625" y="720" fill="#4928FD" font-family="Inter, sans-serif" font-size="32" font-weight="700" text-anchor="middle">Business OS</text>
+  <text x="625" y="755" fill="#888" font-family="Inter, sans-serif" font-size="16" text-anchor="middle">The AI Operating System For Modern Businesses</text>
+  <defs>
+    <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4928FD"/>
+      <stop offset="100%" stop-color="#70B5FF"/>
+    </linearGradient>
+  </defs>
+</svg>
