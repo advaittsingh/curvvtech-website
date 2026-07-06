@@ -16,10 +16,10 @@ router.get('/services', async (_req, res) => {
 
 router.post('/services', async (req, res) => {
   try {
-    const { title, slug, description, icon, sort_order, published } = req.body
+    const { title, slug, description, icon, sort_order, published, content_json } = req.body
     const row = firstRow(await sql`
-      INSERT INTO cms_services (title, slug, description, icon, sort_order, published)
-      VALUES (${title ?? ''}, ${slug ?? title ?? ''}, ${description ?? null}, ${icon ?? null}, ${sort_order ?? 0}, ${published !== false})
+      INSERT INTO cms_services (title, slug, description, icon, sort_order, published, content_json)
+      VALUES (${title ?? ''}, ${slug ?? title ?? ''}, ${description ?? null}, ${icon ?? null}, ${sort_order ?? 0}, ${published !== false}, ${JSON.stringify(content_json ?? {})}::jsonb)
       RETURNING *
     `)
     res.status(201).json(row)
@@ -39,6 +39,8 @@ router.patch('/services/:id', async (req, res) => {
     if (b.seo_title !== undefined) await sql`UPDATE cms_services SET seo_title = ${b.seo_title}, "updatedAt" = NOW() WHERE id = ${id}::uuid`
     if (b.seo_description !== undefined) await sql`UPDATE cms_services SET seo_description = ${b.seo_description}, "updatedAt" = NOW() WHERE id = ${id}::uuid`
     if (b.hero_image_url !== undefined) await sql`UPDATE cms_services SET hero_image_url = ${b.hero_image_url}, "updatedAt" = NOW() WHERE id = ${id}::uuid`
+    if (b.icon !== undefined) await sql`UPDATE cms_services SET icon = ${b.icon}, "updatedAt" = NOW() WHERE id = ${id}::uuid`
+    if (b.sort_order !== undefined) await sql`UPDATE cms_services SET sort_order = ${b.sort_order}, "updatedAt" = NOW() WHERE id = ${id}::uuid`
     if (b.content_json !== undefined) await sql`UPDATE cms_services SET content_json = ${JSON.stringify(b.content_json)}::jsonb, "updatedAt" = NOW() WHERE id = ${id}::uuid`
     res.json(firstRow(await sql`SELECT * FROM cms_services WHERE id = ${id}::uuid`))
   } catch {
@@ -107,7 +109,7 @@ router.delete('/portfolio/:id', async (req, res) => {
 /** Public read for website */
 router.get('/public/services', async (_req, res) => {
   try {
-    const rows = await sql`SELECT title, slug, description, icon FROM cms_services WHERE published = true ORDER BY sort_order ASC`
+    const rows = await sql`SELECT title, slug, description, icon, sort_order, content_json FROM cms_services WHERE published = true ORDER BY sort_order ASC`
     res.json(rows)
   } catch {
     res.status(500).json({ error: 'Internal server error' })

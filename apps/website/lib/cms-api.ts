@@ -8,6 +8,8 @@ export type CmsService = {
   hero_image_url?: string | null;
   seo_title?: string | null;
   seo_description?: string | null;
+  content_json?: { accent?: string } | null;
+  sort_order?: number;
 };
 
 export type CmsPortfolio = {

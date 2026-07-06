@@ -183,7 +183,7 @@ export const servicesDetail: ServiceDetail[] = [
       '/images/home/innovation/analytics_reporting.jpg',
     ],
     icon: '/images/home/innovation/webdevp.svg',
-    accentColor: 'purple',
+    accentColor: 'violet',
     projectIds: [3, 4, 5, 6, 7, 8],
   },
 ];
@@ -194,6 +194,7 @@ const accentMap: Record<string, string> = {
   orange: 'bg-orange/20 text-orange',
   green: 'bg-green/20 text-green',
   pink: 'bg-pink/20 text-pink',
+  violet: 'bg-violet/20 text-violet',
 };
 
 export function getServiceBySlug(slug: string): ServiceDetail | undefined {

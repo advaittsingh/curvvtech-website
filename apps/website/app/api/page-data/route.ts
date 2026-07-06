@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { brandList } from '@/lib/brand-data'
+import { innovationList } from '@/lib/services-catalog'
 
 const avatarList = [
   {
@@ -18,15 +19,6 @@ const avatarList = [
     image: '/images/home/avatar_4.jpg',
     title: 'Isabella Clark',
   },
-]
-
-const innovationList = [
-  { slug: 'web-development', image: '/images/home/innovation/webdevp.svg', title: 'Web\nDevelopment', bg_color: 'bg-purple/20', txt_color: 'text-purple' },
-  { slug: 'app-development', image: '/images/home/innovation/uiux.svg', title: 'App\nDevelopment', bg_color: 'bg-blue/20', txt_color: 'text-blue' },
-  { slug: 'backend-api-development', image: '/images/home/innovation/analitics.svg', title: 'Backend &\nAPI Development', bg_color: 'bg-orange/20', txt_color: 'text-orange' },
-  { slug: 'ai-automation-solutions', image: '/images/home/innovation/digitalmarketing.svg', title: 'AI /\nAutomation Solutions', bg_color: 'bg-green/20', txt_color: 'text-green' },
-  { slug: 'saas-product-development', image: '/images/home/innovation/brand.svg', title: 'SaaS Product\nDevelopment', bg_color: 'bg-pink/20', txt_color: 'text-pink' },
-  { slug: 'custom-software-development', image: '/images/home/innovation/webdevp.svg', title: 'Custom Software\nDevelopment', bg_color: 'bg-purple/20', txt_color: 'text-purple' },
 ]
 
 // Work projects – one per folder in public/images/work/

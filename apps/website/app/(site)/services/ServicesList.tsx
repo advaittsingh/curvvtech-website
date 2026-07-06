@@ -5,6 +5,7 @@ import Link from "next/link";
 import React from "react";
 import { AnimatedGridItem } from "@/components/ui/animated-grid-item";
 import { innovationList } from "@/lib/site-page-data";
+import { defaultServicesCatalog, getServiceTheme } from "@/lib/services-catalog";
 import type { CmsService } from "@/lib/cms-api";
 
 type ServiceItem = {
@@ -16,23 +17,19 @@ type ServiceItem = {
   description?: string;
 };
 
-const COLORS = [
-  { bg: "bg-blue-100", txt: "text-blue-900" },
-  { bg: "bg-amber-100", txt: "text-amber-900" },
-  { bg: "bg-emerald-100", txt: "text-emerald-900" },
-  { bg: "bg-violet-100", txt: "text-violet-900" },
-];
-
 function mapCms(services: CmsService[]): ServiceItem[] {
-  return services.map((s, i) => {
-    const c = COLORS[i % COLORS.length];
+  return services.map((s) => {
+    const catalog = defaultServicesCatalog.find((c) => c.slug === s.slug);
+    const accent =
+      (s.content_json as { accent?: string } | null)?.accent ?? catalog?.accent;
+    const theme = getServiceTheme(s.slug, accent);
     return {
       slug: s.slug || undefined,
-      image: s.icon || s.hero_image_url || "/images/documentation/Categories=React.svg",
-      title: s.title,
-      bg_color: c.bg,
-      txt_color: c.txt,
-      description: s.description ?? undefined,
+      image: s.icon || catalog?.icon || "/images/home/innovation/webdevp.svg",
+      title: catalog?.displayTitle ?? s.title.replace(/ /g, "\n"),
+      bg_color: theme.bg,
+      txt_color: theme.txt,
+      description: s.description ?? catalog?.description,
     };
   });
 }
@@ -56,21 +53,23 @@ export default function ServicesList({ cmsServices = [] }: { cmsServices?: CmsSe
                 </React.Fragment>
               ))}
             </h2>
-            {item.description && <p className="text-sm text-dark_black/60 dark:text-white/60 mt-2">{item.description}</p>}
+            {item.description && (
+              <p className="text-sm text-white/50 mt-1 leading-relaxed">{item.description}</p>
+            )}
             {item.slug && (
-              <span className="text-sm font-medium text-dark_black/60 dark:text-white/60 mt-2">
+              <span className={`text-sm font-medium mt-auto ${item.txt_color} opacity-70`}>
                 View details →
               </span>
             )}
           </>
         );
 
-        const cardClass = `flex flex-col gap-4 p-8 rounded-2xl ${item.bg_color} h-full`;
+        const cardClass = `flex flex-col gap-6 lg:gap-9 p-8 rounded-2xl ${item.bg_color} h-full min-h-[220px] hover:opacity-90 transition-opacity`;
 
         return (
           <AnimatedGridItem key={item.slug ?? item.title} index={index}>
             {item.slug ? (
-              <Link href={`/services/${item.slug}`} className={`${cardClass} hover:opacity-90 transition-opacity`}>
+              <Link href={`/services/${item.slug}`} className={cardClass}>
                 {content}
               </Link>
             ) : (

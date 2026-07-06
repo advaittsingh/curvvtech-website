@@ -10,6 +10,7 @@ const extendedConfig = {
     orange: "#FFAF68",
     green: "#79D45E",
     pink: "#F4889A",
+    violet: "#A78BFA",
     blue_gradient: "#D9F3FC",
     yellow_gradient: "#FDF1D3",
     paleYellow: "#F6E683",
