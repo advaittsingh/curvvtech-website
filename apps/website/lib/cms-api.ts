@@ -35,9 +35,9 @@ export type CmsBlog = {
   category_name?: string | null;
 };
 
-async function fetchCms<T>(path: string): Promise<T[]> {
+async function fetchCms<T>(path: string, { fresh = false }: { fresh?: boolean } = {}): Promise<T[]> {
   try {
-    const res = await fetch(`${API_BASE}/api/public/content/${path}`, { next: { revalidate: 60 } });
+    const res = await fetch(`${API_BASE}/api/public/content/${path}`, fresh ? { cache: "no-store" } : { next: { revalidate: 60 } });
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data) ? data : [];
@@ -47,7 +47,7 @@ async function fetchCms<T>(path: string): Promise<T[]> {
 }
 
 export async function fetchCmsServices() {
-  return fetchCms<CmsService>("services");
+  return fetchCms<CmsService>("services", { fresh: true });
 }
 
 export async function fetchCmsPortfolio() {

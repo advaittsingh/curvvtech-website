@@ -26,7 +26,7 @@ function mapCms(services: CmsService[]): ServiceItem[] {
     return {
       slug: s.slug || undefined,
       image: s.icon || catalog?.icon || "/images/home/innovation/webdevp.svg",
-      title: catalog?.displayTitle ?? s.title.replace(/ /g, "\n"),
+      title: catalog?.displayTitle ?? s.title.replace(/ & /g, " &\n").replace(/ \/ /g, " /\n"),
       bg_color: theme.bg,
       txt_color: theme.txt,
       description: s.description ?? catalog?.description,

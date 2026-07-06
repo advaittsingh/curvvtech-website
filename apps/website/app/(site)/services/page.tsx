@@ -5,12 +5,12 @@ import { AnimatedHero } from "@/components/ui/animated-hero";
 import { AnimatedSection } from "@/components/ui/animated-section";
 import { fetchCmsServices } from "@/lib/cms-api";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Services | Curvvtech",
   description: "Web development, app development, backend & API, AI & automation, SaaS, and custom software from Curvvtech.",
 };
-
-export const revalidate = 60;
 
 const serviceBlurb =
   "We deliver end-to-end tech solutions—from web and mobile apps to APIs, cloud, and AI. Tell us your goals and we'll tailor a plan.";
