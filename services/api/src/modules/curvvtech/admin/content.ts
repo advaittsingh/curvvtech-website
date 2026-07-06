@@ -17,9 +17,10 @@ router.get('/services', async (_req, res) => {
 router.post('/services', async (req, res) => {
   try {
     const { title, slug, description, icon, sort_order, published, content_json } = req.body
+    const isPublished = published !== false
     const row = firstRow(await sql`
-      INSERT INTO cms_services (title, slug, description, icon, sort_order, published, content_json)
-      VALUES (${title ?? ''}, ${slug ?? title ?? ''}, ${description ?? null}, ${icon ?? null}, ${sort_order ?? 0}, ${published !== false}, ${JSON.stringify(content_json ?? {})}::jsonb)
+      INSERT INTO cms_services (title, slug, description, icon, sort_order, published, status, content_json)
+      VALUES (${title ?? ''}, ${slug ?? title ?? ''}, ${description ?? null}, ${icon ?? null}, ${sort_order ?? 0}, ${isPublished}, ${isPublished ? 'published' : 'draft'}, ${JSON.stringify(content_json ?? {})}::jsonb)
       RETURNING *
     `)
     res.status(201).json(row)
@@ -35,7 +36,10 @@ router.patch('/services/:id', async (req, res) => {
     if (b.title !== undefined) await sql`UPDATE cms_services SET title = ${b.title}, "updatedAt" = NOW() WHERE id = ${id}::uuid`
     if (b.slug !== undefined) await sql`UPDATE cms_services SET slug = ${b.slug}, "updatedAt" = NOW() WHERE id = ${id}::uuid`
     if (b.description !== undefined) await sql`UPDATE cms_services SET description = ${b.description}, "updatedAt" = NOW() WHERE id = ${id}::uuid`
-    if (b.published !== undefined) await sql`UPDATE cms_services SET published = ${b.published}, "updatedAt" = NOW() WHERE id = ${id}::uuid`
+    if (b.published !== undefined) {
+      const status = b.published ? 'published' : 'draft'
+      await sql`UPDATE cms_services SET published = ${b.published}, status = ${status}, "updatedAt" = NOW() WHERE id = ${id}::uuid`
+    }
     if (b.seo_title !== undefined) await sql`UPDATE cms_services SET seo_title = ${b.seo_title}, "updatedAt" = NOW() WHERE id = ${id}::uuid`
     if (b.seo_description !== undefined) await sql`UPDATE cms_services SET seo_description = ${b.seo_description}, "updatedAt" = NOW() WHERE id = ${id}::uuid`
     if (b.hero_image_url !== undefined) await sql`UPDATE cms_services SET hero_image_url = ${b.hero_image_url}, "updatedAt" = NOW() WHERE id = ${id}::uuid`

@@ -6,8 +6,10 @@ const router = Router()
 router.get('/services', async (_req, res) => {
   try {
     const rows = await sql`
-      SELECT title, slug, description, icon, hero_image_url, seo_title, seo_description, content_json
-      FROM cms_services WHERE published = true ORDER BY sort_order ASC, title ASC
+      SELECT title, slug, description, icon, hero_image_url, seo_title, seo_description, content_json, sort_order
+      FROM cms_services
+      WHERE status = 'published' OR (status IS NULL AND published = true)
+      ORDER BY sort_order ASC, title ASC
     `
     res.json(rows)
   } catch {

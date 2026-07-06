@@ -2,7 +2,7 @@
 
 CREATE UNIQUE INDEX IF NOT EXISTS cms_services_slug_unique ON cms_services (slug) WHERE slug <> '';
 
-INSERT INTO cms_services (title, slug, description, icon, sort_order, published, content_json)
+INSERT INTO cms_services (title, slug, description, icon, sort_order, published, status, content_json)
 VALUES
   (
     'Web Development',
@@ -11,6 +11,7 @@ VALUES
     '/images/home/innovation/webdevp.svg',
     0,
     true,
+    'published',
     '{"accent":"purple"}'::jsonb
   ),
   (
@@ -64,5 +65,6 @@ ON CONFLICT (slug) WHERE slug <> '' DO UPDATE SET
   icon = EXCLUDED.icon,
   sort_order = EXCLUDED.sort_order,
   published = EXCLUDED.published,
+  status = EXCLUDED.status,
   content_json = EXCLUDED.content_json,
   "updatedAt" = NOW();
