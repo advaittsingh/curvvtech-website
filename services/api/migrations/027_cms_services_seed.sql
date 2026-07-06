@@ -58,7 +58,7 @@ VALUES
     true,
     '{"accent":"violet"}'::jsonb
   )
-ON CONFLICT (slug) DO UPDATE SET
+ON CONFLICT (slug) WHERE slug <> '' DO UPDATE SET
   title = EXCLUDED.title,
   description = EXCLUDED.description,
   icon = EXCLUDED.icon,
