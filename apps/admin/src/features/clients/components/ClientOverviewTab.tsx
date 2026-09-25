@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import type { Client, ClientProject } from "../schemas";
+import type { Client, ClientProject, ClientTimelineEvent } from "../schemas";
 import {
   formatInr,
   formatOwnerDisplay,
@@ -9,6 +9,7 @@ import {
   PORTAL_URL,
   PROJECT_STATUS_LABELS,
 } from "../constants";
+import { RecentActivityWidget } from "@/components/crm/RecentActivityWidget";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,15 +22,28 @@ type Props = {
   projects: ClientProject[];
   meetingCount: number;
   members: { user_id: string; email: string }[];
+  timeline?: ClientTimelineEvent[];
   onPatch: (body: object) => void;
   onResendPortalInvite: () => void;
+  portalInviteLoading?: boolean;
 };
 
-export function ClientOverviewTab({ client, projects, meetingCount, members, onPatch, onResendPortalInvite }: Props) {
+export function ClientOverviewTab({
+  client,
+  projects,
+  meetingCount,
+  members,
+  timeline = [],
+  onPatch,
+  onResendPortalInvite,
+  portalInviteLoading = false,
+}: Props) {
   const active = projects.filter((p) => !["completed", "cancelled"].includes(String(p.status ?? "")));
 
   return (
-    <div className="grid lg:grid-cols-2 gap-4">
+    <div className="space-y-4">
+      <RecentActivityWidget events={timeline} />
+      <div className="grid lg:grid-cols-2 gap-4">
       <Section title="Contact information">
         <Field label="Name"><Input defaultValue={client.name ?? ""} onBlur={(e) => onPatch({ name: e.target.value })} /></Field>
         <Field label="Email"><Input defaultValue={client.email ?? ""} onBlur={(e) => onPatch({ email: e.target.value })} /></Field>
@@ -72,7 +86,14 @@ export function ClientOverviewTab({ client, projects, meetingCount, members, onP
           <Button size="sm" variant="outline" asChild>
             <a href={PORTAL_URL} target="_blank" rel="noreferrer">Open portal</a>
           </Button>
-          <Button size="sm" variant="ghost" onClick={onResendPortalInvite}>Resend invite</Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onResendPortalInvite}
+            disabled={portalInviteLoading || !client.email?.trim()}
+          >
+            {portalInviteLoading ? "Sending…" : client.portal_status === "invited" || client.portal_status === "active" ? "Resend invite" : "Send invite"}
+          </Button>
         </div>
       </Section>
 
@@ -101,6 +122,7 @@ export function ClientOverviewTab({ client, projects, meetingCount, members, onP
           </div>
         )}
       </Section>
+      </div>
     </div>
   );
 }
@@ -113,9 +135,9 @@ function portalLabel(status?: string | null) {
 
 function Section({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-xl border border-border bg-card p-4 space-y-3 ${className ?? ""}`}>
-      <h3 className="font-medium">{title}</h3>
-      <div className="space-y-3">{children}</div>
+    <div className={`rounded-xl border border-border bg-card p-5 lg:p-6 space-y-4 ${className ?? ""}`}>
+      <h3 className="font-semibold">{title}</h3>
+      <div className="space-y-4">{children}</div>
     </div>
   );
 }

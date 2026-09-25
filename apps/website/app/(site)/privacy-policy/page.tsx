@@ -1,9 +1,11 @@
-import { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
   title: "Privacy Policy | Curvvtech",
-  description: "Privacy Policy for Curvvtech – how we collect, use, and protect your information.",
-};
+  description:
+    "Privacy Policy for Curvvtech – how we collect, use, and protect your information.",
+  path: "/privacy-policy",
+});
 
 export default function Page() {
   return (
@@ -119,7 +121,7 @@ export default function Page() {
                 <p className="text-dark_black/80 dark:text-white/80 mt-2">
                   Curvvtech
                   <br />
-                  260, Sukhdev Vihar, New Delhi, 110025
+                  Fortale Prime, BK Circle, 1/43, 1st Cross, opposite Valmark Orchard Square, Venkateshwara Layout, 8th Phase, Kalena Agrahara, Bengaluru, Karnataka 560076
                   <br />
                   Email: <a href="mailto:info@curvvtech.com" className="text-purple_blue underline hover:no-underline">info@curvvtech.com</a>
                   <br />

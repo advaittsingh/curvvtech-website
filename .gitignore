@@ -11,7 +11,8 @@ build/
 .env
 .env.*
 !.env.example
-services/api/.deploy.env
+*.pem
+rzp-key.csv
 *.log
 .DS_Store
 coverage/
@@ -20,3 +21,4 @@ coverage/
 *.tsbuildinfo
 apps/*/dist/
 services/*/dist/
+services/api/uploads/

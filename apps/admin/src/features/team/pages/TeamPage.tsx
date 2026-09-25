@@ -8,11 +8,14 @@ import { DepartmentCards } from "../components/DepartmentCards";
 import { TeamMembersTable } from "../components/TeamMembersTable";
 import { WorkloadPanel, TeamActivityFeed, HiringTracker } from "../components/TeamSidePanels";
 import { MemberProfileDrawer } from "../components/MemberProfileDrawer";
+import { StaffInvitationsPanel } from "../components/StaffInvitationsPanel";
+import { useAuth } from "@/app/providers";
 import type { TeamDashboard, TeamMember, TeamMemberDetail } from "../team-schemas";
 
 export default function TeamPage() {
   const api = useAdminApi();
   const qc = useQueryClient();
+  const { role } = useAuth();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<TeamMember | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -45,6 +48,7 @@ export default function TeamPage() {
     <div className="p-6 space-y-6">
       <TeamCommandHeader summary={data?.summary} />
       {error && <BackendErrorAlert error={error as Error} />}
+      {role === "super_admin" && <StaffInvitationsPanel />}
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">
         <div className="space-y-6 min-w-0">

@@ -1,7 +1,10 @@
-import { Metadata } from "next";
-export const metadata: Metadata = {
-    title: "Terms & Conditions | Curvvtech",
-};
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata = createPageMetadata({
+  title: "Terms & Conditions | Curvvtech",
+  description: "Terms and conditions for using Curvvtech services and website.",
+  path: "/terms-and-conditions",
+});
 
 export default function Page() {
     return (

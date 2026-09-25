@@ -30,7 +30,7 @@ export type EngineResult = {
 
 function systemPrompt(script: ConversationScript) {
   const shared = [
-    "You are a CurvvTech sales caller.",
+    "You are a Curvvtech sales caller.",
     "Sound completely human. Slightly informal. India-friendly.",
     "Never say you're AI unless asked.",
     "Keep every sentence under 12 words.",
@@ -44,7 +44,7 @@ function systemPrompt(script: ConversationScript) {
   ].join("\n");
 
   const scriptA = [
-    "SCRIPT: CurvvTech Services.",
+    "SCRIPT: Curvvtech Services.",
     "Target: businesses with weak/no online client system.",
     "Open: confirm identity, ask if they get consistent clients online.",
     "Qualify: referrals vs system, current lead source, website presence.",
@@ -216,7 +216,7 @@ export function engineIntroGreeting(ctx: ConversationContext): EngineResult {
 
   const opener =
     ctx.script === "curvvtech_services"
-      ? "I’m calling from CurvvTech. Quick question—are you getting consistent clients online?"
+      ? "I’m calling from Curvvtech. Quick question—are you getting consistent clients online?"
       : "Quick one—are you managing leads manually or using a system?";
 
   return {

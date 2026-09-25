@@ -1,0 +1,347 @@
+<!--
+  curvvtech Client Portal — Invitation Email
+  VARIABLES: {{clientName}} {{companyName}} {{industry}} {{projectCount}}
+               {{contractValue}} {{portalRole}} {{inviteUrl}} {{year}}
+               {{logoUrl}} {{linkedinUrl}} {{instagramUrl}} {{websiteUrl}}
+  SEND: buildInviteEmail() — includes CID inline logo attachments for Gmail.
+-->
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <title>You're invited to the curvvtech Client Portal</title>
+  <!--[if mso]>
+  <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+  <![endif]-->
+  <style type="text/css">
+    body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+    table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
+    img { -ms-interpolation-mode:bicubic; border:0; height:auto; line-height:100%; outline:none; text-decoration:none; display:block; }
+    body { margin:0 !important; padding:0 !important; width:100% !important; }
+    a[x-apple-data-detectors] { color:inherit !important; text-decoration:none !important; }
+    @media only screen and (max-width:620px) {
+      .wrapper { width:100% !important; max-width:100% !important; }
+      .stack { display:block !important; width:100% !important; max-width:100% !important; }
+      .hero-pad { padding:28px 20px 16px 20px !important; }
+      .section-pad { padding-left:20px !important; padding-right:20px !important; }
+      .feature-col { display:block !important; width:100% !important; max-width:100% !important; padding:6px 0 !important; }
+      .footer-col { display:block !important; width:100% !important; text-align:center !important; padding-bottom:16px !important; }
+      .social-row { margin:0 auto !important; }
+      .cta-btn-wrap { width:100% !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#F8FAFC;font-family:Inter,Arial,Helvetica,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
+    You're invited to access your curvvtech Client Portal for {{companyName}}. Activate your account today.
+  </div>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#F8FAFC;">
+    <tr>
+      <td align="center" style="padding:24px 12px;">
+        <table role="presentation" class="wrapper" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(17,24,39,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#111827;padding:20px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="left" valign="middle" width="55%">
+                    <img src="{{logoUrl}}" width="120" height="64" alt="curvvtech logo" style="display:block;max-width:120px;width:120px;height:auto;">
+                  </td>
+                  <td align="right" valign="middle" width="45%" style="font-family:Inter,Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.14em;color:#9CA3AF;text-transform:uppercase;">
+                    BUSINESS OS
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#111827;padding:0 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td height="2" style="background-color:#6D5EF6;font-size:0;line-height:0;">&nbsp;</td></tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="background-color:#FFFFFF;">
+
+              <!-- Hero -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="hero-pad" style="padding:36px 32px 8px 32px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+                      <tr>
+                        <td style="background-color:#EDE9FE;border:1px solid #DDD6FE;border-radius:20px;padding:6px 14px;font-family:Inter,Arial,Helvetica,sans-serif;font-size:12px;font-weight:600;color:#6D5EF6;letter-spacing:0.04em;">
+                          &#9993;&nbsp; You're Invited!
+                        </td>
+                      </tr>
+                    </table>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td class="stack" valign="top" width="56%" style="padding-right:20px;">
+                          <h1 style="margin:0 0 18px 0;font-size:30px;line-height:1.2;font-weight:700;color:#111827;font-family:Inter,Arial,Helvetica,sans-serif;">
+                            Access Your<br><span style="color:#6D5EF6;">curvvtech</span> Client Portal
+                          </h1>
+                          <p style="margin:0 0 12px 0;font-size:16px;line-height:1.65;color:#111827;font-family:Inter,Arial,Helvetica,sans-serif;">Hi {{clientName}},</p>
+                          <p style="margin:0 0 12px 0;font-size:16px;line-height:1.65;color:#6B7280;font-family:Inter,Arial,Helvetica,sans-serif;">
+                            You have been invited to access your dedicated curvvtech Client Portal for <strong style="color:#111827;">{{companyName}}</strong>.
+                          </p>
+                          <p style="margin:0;font-size:16px;line-height:1.65;color:#6B7280;font-family:Inter,Arial,Helvetica,sans-serif;">
+                            Your portal gives you real-time access to all your projects, invoices, payments, files, approvals and communication in one secure workspace.
+                          </p>
+                        </td>
+                        <td class="stack" valign="top" width="44%" style="padding-top:4px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E5E7EB;border-radius:14px;background-color:#FFFFFF;box-shadow:0 8px 24px rgba(109,94,246,0.08);">
+                            <tr>
+                              <td style="padding:22px;">
+                                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                  <tr>
+                                    <td valign="top" style="padding-right:12px;">
+                                      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                        <tr>
+                                          <td width="44" height="44" align="center" valign="middle" style="width:44px;height:44px;background-color:#6D5EF6;border-radius:12px;font-size:20px;color:#FFFFFF;font-family:Inter,Arial,Helvetica,sans-serif;">
+                                            &#127970;
+                                          </td>
+                                        </tr>
+                                      </table>
+                                    </td>
+                                    <td valign="top">
+                                      <p style="margin:0 0 2px 0;font-size:16px;font-weight:700;color:#111827;font-family:Inter,Arial,Helvetica,sans-serif;">{{companyName}}</p>
+                                      <p style="margin:0;font-size:13px;color:#6B7280;font-family:Inter,Arial,Helvetica,sans-serif;">{{industry}}</p>
+                                    </td>
+                                  </tr>
+                                </table>
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:18px;">
+                                  <tr><td colspan="2" style="border-top:1px solid #F3F4F6;font-size:0;line-height:0;height:1px;">&nbsp;</td></tr>
+                                </table>
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px;">
+                                  <tr>
+                                    <td style="padding:7px 0;font-size:13px;color:#6B7280;font-family:Inter,Arial,Helvetica,sans-serif;">Projects</td>
+                                    <td align="right" style="padding:7px 0;font-size:14px;font-weight:600;color:#111827;font-family:Inter,Arial,Helvetica,sans-serif;">{{projectCount}}</td>
+                                  </tr>
+                                  <tr>
+                                    <td style="padding:7px 0;font-size:13px;color:#6B7280;font-family:Inter,Arial,Helvetica,sans-serif;">Contract Value</td>
+                                    <td align="right" style="padding:7px 0;font-size:14px;font-weight:600;color:#111827;font-family:Inter,Arial,Helvetica,sans-serif;">&#8377;{{contractValue}}</td>
+                                  </tr>
+                                  <tr>
+                                    <td style="padding:7px 0;font-size:13px;color:#6B7280;font-family:Inter,Arial,Helvetica,sans-serif;">Role</td>
+                                    <td align="right" style="padding:7px 0;font-size:14px;font-weight:600;color:#6D5EF6;font-family:Inter,Arial,Helvetica,sans-serif;">{{portalRole}}</td>
+                                  </tr>
+                                </table>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="section-pad" style="padding:12px 32px 32px 32px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F5F3FF;border:1px solid #DDD6FE;border-radius:16px;">
+                      <tr>
+                        <td style="padding:32px 28px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                              <td align="center" style="padding-bottom:20px;">
+                                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                  <tr>
+                                    <td width="56" height="56" align="center" valign="middle" style="width:56px;height:56px;background-color:#6D5EF6;border-radius:16px;font-size:26px;color:#FFFFFF;">
+                                      &#128737;
+                                    </td>
+                                  </tr>
+                                </table>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td align="center" style="padding-bottom:8px;">
+                                <p style="margin:0;font-size:20px;font-weight:700;color:#111827;font-family:Inter,Arial,Helvetica,sans-serif;">Your portal is ready!</p>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td align="center" style="padding-bottom:24px;">
+                                <p style="margin:0;font-size:15px;line-height:1.6;color:#6B7280;font-family:Inter,Arial,Helvetica,sans-serif;max-width:420px;">
+                                  Click the button below to activate your account and securely access your client portal.
+                                </p>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td align="center">
+                                <table role="presentation" class="cta-btn-wrap" cellpadding="0" cellspacing="0" border="0">
+                                  <tr>
+                                    <td align="center" bgcolor="#6D5EF6" style="border-radius:10px;background-color:#6D5EF6;">
+                                      <!--[if mso]>
+                                      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="{{inviteUrl}}" style="height:50px;v-text-anchor:middle;width:260px;" arcsize="20%" strokecolor="#6D5EF6" fillcolor="#6D5EF6">
+                                        <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">Access My Portal &#8594;</center>
+                                      </v:roundrect>
+                                      <![endif]-->
+                                      <!--[if !mso]><!-->
+                                      <a href="{{inviteUrl}}" target="_blank" style="display:inline-block;min-width:240px;min-height:44px;line-height:44px;padding:14px 32px;font-family:Inter,Arial,Helvetica,sans-serif;font-size:16px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:10px;background-color:#6D5EF6;text-align:center;">
+                                        Access My Portal &#8594;
+                                      </a>
+                                      <!--<![endif]-->
+                                    </td>
+                                  </tr>
+                                </table>
+                                <p style="margin:14px 0 0 0;font-size:12px;color:#6B7280;font-family:Inter,Arial,Helvetica,sans-serif;">
+                                  &#9201;&nbsp; This invitation expires in 7 days.
+                                </p>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Features -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="section-pad" style="padding:0 32px 32px 32px;">
+                    <p style="margin:0 0 20px 0;font-size:18px;font-weight:700;color:#111827;font-family:Inter,Arial,Helvetica,sans-serif;text-align:center;">With your client portal you can</p>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td class="feature-col" align="center" valign="top" width="20%" style="padding:4px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E5E7EB;border-radius:12px;background:#FFFFFF;">
+                            <tr><td align="center" style="padding:16px 8px;">
+                              <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;background-color:#EDE9FE;border-radius:10px;font-size:16px;color:#6D5EF6;">&#128200;</td></tr></table>
+                              <p style="margin:10px 0 0 0;font-size:11px;line-height:1.45;font-weight:600;color:#111827;font-family:Inter,Arial,Helvetica,sans-serif;">Track project progress</p>
+                            </td></tr>
+                          </table>
+                        </td>
+                        <td class="feature-col" align="center" valign="top" width="20%" style="padding:4px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E5E7EB;border-radius:12px;background:#FFFFFF;">
+                            <tr><td align="center" style="padding:16px 8px;">
+                              <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;background-color:#DCFCE7;border-radius:10px;font-size:16px;color:#16A34A;">&#128196;</td></tr></table>
+                              <p style="margin:10px 0 0 0;font-size:11px;line-height:1.45;font-weight:600;color:#111827;font-family:Inter,Arial,Helvetica,sans-serif;">View invoices &amp; payments</p>
+                            </td></tr>
+                          </table>
+                        </td>
+                        <td class="feature-col" align="center" valign="top" width="20%" style="padding:4px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E5E7EB;border-radius:12px;background:#FFFFFF;">
+                            <tr><td align="center" style="padding:16px 8px;">
+                              <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;background-color:#DBEAFE;border-radius:10px;font-size:16px;color:#2563EB;">&#128193;</td></tr></table>
+                              <p style="margin:10px 0 0 0;font-size:11px;line-height:1.45;font-weight:600;color:#111827;font-family:Inter,Arial,Helvetica,sans-serif;">Access files &amp; documents</p>
+                            </td></tr>
+                          </table>
+                        </td>
+                        <td class="feature-col" align="center" valign="top" width="20%" style="padding:4px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E5E7EB;border-radius:12px;background:#FFFFFF;">
+                            <tr><td align="center" style="padding:16px 8px;">
+                              <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;background-color:#FFEDD5;border-radius:10px;font-size:16px;color:#EA580C;">&#128172;</td></tr></table>
+                              <p style="margin:10px 0 0 0;font-size:11px;line-height:1.45;font-weight:600;color:#111827;font-family:Inter,Arial,Helvetica,sans-serif;">Chat with our team</p>
+                            </td></tr>
+                          </table>
+                        </td>
+                        <td class="feature-col" align="center" valign="top" width="20%" style="padding:4px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E5E7EB;border-radius:12px;background:#FFFFFF;">
+                            <tr><td align="center" style="padding:16px 8px;">
+                              <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="36" height="36" align="center" valign="middle" style="width:36px;height:36px;background-color:#F3E8FF;border-radius:10px;font-size:16px;color:#7C3AED;">&#128276;</td></tr></table>
+                              <p style="margin:10px 0 0 0;font-size:11px;line-height:1.45;font-weight:600;color:#111827;font-family:Inter,Arial,Helvetica,sans-serif;">Receive live updates</p>
+                            </td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Notice -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="section-pad" style="padding:0 32px 24px 32px;">
+                    <p style="margin:0;font-size:14px;line-height:1.6;color:#6B7280;text-align:center;font-family:Inter,Arial,Helvetica,sans-serif;">
+                      If you didn't expect this invitation, simply ignore this email or contact our support team.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Support card -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="section-pad" style="padding:0 32px 36px 32px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E5E7EB;border-radius:12px;background-color:#F8FAFC;">
+                      <tr>
+                        <td style="padding:20px 24px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                              <td width="44" valign="middle" style="padding-right:14px;">
+                                <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="44" height="44" align="center" valign="middle" style="width:44px;height:44px;background-color:#6D5EF6;border-radius:50%;font-size:18px;color:#FFFFFF;">&#9993;</td></tr></table>
+                              </td>
+                              <td valign="middle">
+                                <p style="margin:0 0 2px 0;font-size:14px;color:#6B7280;font-family:Inter,Arial,Helvetica,sans-serif;">Need help?</p>
+                                <a href="mailto:support@curvvtech.in" style="font-size:15px;font-weight:600;color:#6D5EF6;text-decoration:none;font-family:Inter,Arial,Helvetica,sans-serif;">support@curvvtech.in</a>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#111827;padding:28px 28px 24px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="footer-col stack" valign="top" width="58%">
+                    <img src="{{logoUrl}}" width="110" height="59" alt="curvvtech logo" style="display:block;max-width:110px;width:110px;height:auto;margin-bottom:12px;">
+                    <p style="margin:0 0 4px 0;font-size:14px;font-weight:700;color:#FFFFFF;font-family:Inter,Arial,Helvetica,sans-serif;">curvvtech Business OS</p>
+                    <p style="margin:0;font-size:13px;line-height:1.5;color:#9CA3AF;font-family:Inter,Arial,Helvetica,sans-serif;">All your business.<br>One OS.</p>
+                  </td>
+                  <td class="footer-col stack" align="right" valign="top" width="42%">
+                    <table role="presentation" class="social-row" cellpadding="0" cellspacing="0" border="0" align="right">
+                      <tr>
+                        <td style="padding:0 5px;">
+                          <a href="{{linkedinUrl}}" target="_blank" style="display:inline-block;width:36px;height:36px;line-height:36px;border-radius:50%;border:1px solid #374151;text-align:center;font-family:Inter,Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;color:#9CA3AF;text-decoration:none;">in</a>
+                        </td>
+                        <td style="padding:0 5px;">
+                          <a href="{{instagramUrl}}" target="_blank" style="display:inline-block;width:36px;height:36px;line-height:36px;border-radius:50%;border:1px solid #374151;text-align:center;font-family:Inter,Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;color:#9CA3AF;text-decoration:none;">ig</a>
+                        </td>
+                        <td style="padding:0 5px;">
+                          <a href="{{websiteUrl}}" target="_blank" style="display:inline-block;width:36px;height:36px;line-height:36px;border-radius:50%;border:1px solid #374151;text-align:center;font-family:Inter,Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;color:#9CA3AF;text-decoration:none;">&#127760;</a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;">
+                <tr>
+                  <td style="border-top:1px solid #374151;padding-top:16px;">
+                    <p style="margin:0 0 6px 0;font-size:12px;color:#6B7280;font-family:Inter,Arial,Helvetica,sans-serif;">&copy; {{year}} curvvtech. All rights reserved.</p>
+                    <p style="margin:0;font-size:11px;line-height:1.5;color:#6B7280;font-family:Inter,Arial,Helvetica,sans-serif;">
+                      Fortale Prime, BK Circle, 1/43, 1st Cross,<br>opposite Valmark Orchard Square, Venkateshwara Layout,<br>8th Phase, Kalena Agrahara, Bengaluru, Karnataka 560076
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./loadEnv.js";
 import http from "http";
 import { Server } from "socket.io";
 import { createApp } from "./app.js";
@@ -9,6 +9,8 @@ import type { Socket } from "socket.io";
 import { setChatSocket } from "./modules/curvvtech/chatSocket.js";
 import { startCallWorker } from "./workers/callWorker.js";
 import { attachTwilioMediaStreamServer } from "./services/twilio/mediaStreamServer.js";
+import { verifyAccessToken } from "./modules/auth/auth.tokens.js";
+import { verifyClientAccessToken } from "./modules/client-portal/clientTokens.js";
 
 /** UUID v4 (PostgreSQL gen_random_uuid-style) for conversation room names. */
 const CONVERSATION_UUID_RE =
@@ -68,6 +70,38 @@ io.on("connection", (socket) => {
   if (isConversationUuid(convId)) {
     socket.join(`conversation:${convId}`);
   }
+
+  /** Client Portal: authenticated sockets join their client + project rooms. */
+  const clientToken =
+    typeof socket.handshake.auth?.token === "string" ? socket.handshake.auth.token : "";
+  if (clientToken && config.clientJwtSecret) {
+    try {
+      const claims = verifyClientAccessToken(clientToken, config.clientJwtSecret);
+      if (claims.client_id) socket.join(`client:${claims.client_id}`);
+    } catch {
+      /* Not a client token — try admin staff JWT for inbox badge room. */
+      if (config.jwtAccessSecret) {
+        try {
+          verifyAccessToken(clientToken, config.jwtAccessSecret);
+          socket.join("admin:inbox");
+        } catch {
+          /* unauthenticated socket */
+        }
+      }
+    }
+  } else if (clientToken && config.jwtAccessSecret) {
+    try {
+      verifyAccessToken(clientToken, config.jwtAccessSecret);
+      socket.join("admin:inbox");
+    } catch {
+      /* unauthenticated socket */
+    }
+  }
+
+  socket.on("join_project", (id: unknown) => {
+    const pid = typeof id === "string" ? id.trim() : "";
+    if (isConversationUuid(pid)) socket.join(`project:${pid}`);
+  });
 
   socket.on("join_conversation", (id: unknown) => {
     const sid = typeof id === "string" ? id.trim() : "";

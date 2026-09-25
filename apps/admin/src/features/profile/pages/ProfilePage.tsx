@@ -7,7 +7,7 @@ export default function ProfilePage() {
 
   return (
     <div className="p-6 space-y-6 max-w-lg">
-      <PageHeader title="Profile" description="Your account in CurvvTech OS." />
+      <PageHeader title="Profile" description="Your account in Curvvtech OS." />
       <div className="grid grid-cols-2 gap-4">
         <StatCard title="Role" value={role ?? "—"} />
         <StatCard title="Access" value={user?.accessAllowed ? "Active" : "Waitlist"} />

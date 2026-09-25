@@ -148,7 +148,7 @@ export function buildProposalDocumentHtml(input: ProposalDocumentInput): string 
     coverHtml = `
       <h1>${escapeHtml(title)}</h1>
       <p>Prepared for ${escapeHtml(clientName)}</p>
-      <p class="muted">Prepared by CurvvTech</p>
+      <p class="muted">Prepared by Curvvtech</p>
       ${proposalRef ? `<p class="muted">Ref: ${escapeHtml(proposalRef)}</p>` : ''}
       ${projectType ? `<p class="muted">${escapeHtml(projectType)}</p>` : ''}
     `
@@ -286,7 +286,7 @@ export function buildProposalDocumentHtml(input: ProposalDocumentInput): string 
       <h2>Signatures</h2>
       <div class="signatures">
         <div>
-          <p class="sig-label">CurvvTech</p>
+          <p class="sig-label">Curvvtech</p>
           <div class="sig-line"></div>
           <p class="sig-name">Authorized signatory</p>
           <p class="sig-date">Date: _______________</p>
@@ -321,7 +321,7 @@ export function buildProposalDocumentHtml(input: ProposalDocumentInput): string 
       ${addonsHtml}
       ${signaturesHtml}
     </div>
-    <div class="footer">CurvvTech · Confidential proposal</div>
+    <div class="footer">Curvvtech · Confidential proposal</div>
   </div>
 </body>
 </html>`

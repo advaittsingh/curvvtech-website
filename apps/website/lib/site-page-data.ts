@@ -15,58 +15,76 @@ export { innovationList };
 const workBase = "/images/work/";
 export const onlinePresenceList = [
   {
-    image: workBase + "LUNE&LUSTRE/Lune&Lustre thumbnail.png",
-    title: "LUNE&LUSTRE",
-    tag: ["E-commerce", "Web Development"],
-    link: "https://lune-lustre.vercel.app/",
-  },
-  {
-    image: workBase + "PAATA.AI/Black Modern Website Launch Promotion Mockup Instagram Post (1).png",
-    title: "PAATA.AI",
+    image: workBase + "NIVAN FOUNDATION/cover-mockup.webp",
+    title: "NIVAN FOUNDATION",
     tag: ["Web Development"],
-    link: "https://www.paataai.com/",
+    link: "https://www.nivanfoundation.org/",
   },
   {
-    image: workBase + "MASAKO INDIA/Masako India Thumbnail.png",
+    image: workBase + "TRACKHAUZ/cover-mockup-live.webp",
+    title: "TRACKHAUZ",
+    tag: ["Web Development"],
+    link: "https://trackhauz.vercel.app/",
+  },
+  {
+    image: workBase + "TREAD TRAILS/cover-mockup-live.webp",
+    title: "TREAD TRAILS",
+    tag: ["E-commerce", "Web Development"],
+    link: "https://treadtrails-web.vercel.app/",
+  },
+  {
+    image: workBase + "MASAKO INDIA/cover-mockup.webp",
     title: "MASAKO INDIA",
     tag: ["Web Development"],
     link: "https://masakoindia.com/",
   },
   {
-    image: workBase + "BLAAZE/Black Modern Website Launch Promotion Mockup Instagram Post.png",
+    image: workBase + "BLAAZE/cover-mockup.webp",
     title: "BLAAZE",
     tag: ["Web Development"],
     link: "https://www.blaazeleadthethrill.in/",
   },
   {
-    image:
-      workBase +
-      "LIFESET - CRM /Black Modern Website Launch Promotion Mockup Instagram Post (1).png",
-    title: "LIFESET - CRM",
-    tag: ["CRM", "Web Development"],
-    link: "#",
-  },
-  {
-    image:
-      workBase +
-      "TRACKHAUZ/Black Modern Website Launch Promotion Mockup Instagram Post (1).png",
-    title: "TRACKHAUZ",
+    image: workBase + "DREAMZ/cover-mockup.webp",
+    title: "DREAMZ",
     tag: ["Web Development"],
     link: "#",
   },
   {
-    image:
-      workBase +
-      "PRIVATE MARKETPLACE TRACKER/Black Modern Website Launch Promotion Mockup Instagram Post.png",
+    image: workBase + "SANVEDA/cover-mockup.webp",
+    title: "SANVEDA",
+    tag: ["Web Development"],
+    link: "https://www.sanvedahumanitarian.org/",
+  },
+  {
+    image: workBase + "PAATA.AI/cover-mockup.webp",
+    title: "PAATA.AI",
+    tag: ["Web Development"],
+    link: "https://www.paataai.com/",
+  },
+  {
+    image: workBase + "YOUNGBOYZTOYZ/cover-mockup-live.webp",
+    title: "YBT",
+    tag: ["Web Development"],
+    link: "https://youngboyztoyz.com/",
+  },
+  {
+    image: workBase + "PRIVATE MARKETPLACE TRACKER/cover-mockup.webp",
     title: "PRIVATE MARKETPLACE TRACKER",
     tag: ["Web Development"],
     link: "#",
   },
   {
-    image: workBase + "DREAMZ/Black Modern Website Launch Promotion Mockup Instagram Post.png",
-    title: "DREAMZ",
-    tag: ["Web Development"],
+    image: workBase + "LIFESET - CRM/cover-mockup.webp",
+    title: "LIFESET - CRM",
+    tag: ["CRM", "Web Development"],
     link: "#",
+  },
+  {
+    image: workBase + "LUNE&LUSTRE/cover-mockup.webp",
+    title: "LUNE&LUSTRE",
+    tag: ["E-commerce", "Web Development"],
+    link: "https://lune-lustre.vercel.app/",
   },
 ];
 

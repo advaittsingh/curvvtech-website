@@ -1,4 +1,3 @@
-import { Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,7 +8,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
 
 type Props = {
   open: boolean;
@@ -17,7 +15,10 @@ type Props = {
   draft: string;
   onDraftChange: (value: string) => void;
   loading?: boolean;
+  sending?: boolean;
   targetLabel?: string;
+  onGenerate?: () => void;
+  onSend?: () => void;
 };
 
 export function PaymentReminderDialog({
@@ -26,16 +27,11 @@ export function PaymentReminderDialog({
   draft,
   onDraftChange,
   loading,
+  sending,
   targetLabel,
+  onGenerate,
+  onSend,
 }: Props) {
-  const { toast } = useToast();
-
-  async function copyDraft() {
-    if (!draft.trim()) return;
-    await navigator.clipboard.writeText(draft);
-    toast({ title: "Copied to clipboard" });
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -43,25 +39,28 @@ export function PaymentReminderDialog({
           <DialogTitle>Payment reminder</DialogTitle>
           <DialogDescription>
             {targetLabel
-              ? `AI draft for ${targetLabel}. Review, copy, or send via your preferred channel.`
-              : "Review the AI-generated reminder before sending."}
+              ? `Send a payment reminder for ${targetLabel}. The client gets an email and a portal notification with a link to pay.`
+              : "Send a payment reminder with a link to pay in the client portal."}
           </DialogDescription>
         </DialogHeader>
         <Textarea
-          rows={10}
+          rows={8}
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
-          placeholder={loading ? "Generating reminder…" : "Reminder text will appear here."}
-          disabled={loading}
+          placeholder={loading ? "Generating reminder…" : "Optional custom message. Leave blank for the default reminder."}
+          disabled={loading || sending}
         />
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={copyDraft} disabled={!draft.trim()}>
-            <Copy className="h-3.5 w-3.5" />
-            Copy
-          </Button>
-          <Button type="button" size="sm" onClick={() => onOpenChange(false)}>
-            Done
-          </Button>
+          {onGenerate && (
+            <Button type="button" variant="outline" size="sm" onClick={onGenerate} disabled={loading || sending}>
+              {loading ? "Generating…" : "Customize with AI"}
+            </Button>
+          )}
+          {onSend && (
+            <Button type="button" size="sm" onClick={onSend} disabled={loading || sending}>
+              {sending ? "Sending…" : "Send reminder"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

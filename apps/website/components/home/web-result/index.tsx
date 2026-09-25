@@ -35,11 +35,10 @@ function WebResult() {
               </div>
               <div className='relative 2xl:px-24 px-16 md:py-8 py-4'>
                 <h2 className='2xl:text-9xl md:text-7xl text-5xl'>
-                  <sup>+</sup>
-                  {inView ? <CountUp start={0} end={5} duration={3} /> : '0'}
+                  {inView ? <CountUp start={0} end={1} duration={3} /> : '0'}
                 </h2>
                 <p className='mt-2 text-dark_black/60 dark:text-white/60'>
-                  Years of Experience
+                  Year of Experience
                 </p>
                 <div className='hidden md:block absolute right-0 top-1/2 transform -translate-y-1/2 h-28 w-px bg-dark_black/10 dark:bg-white/10' />
               </div>

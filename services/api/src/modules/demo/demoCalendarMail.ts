@@ -1,6 +1,6 @@
-import nodemailer from "nodemailer";
 import { config } from "../../config.js";
 import { logger } from "../../logger.js";
+import { emailConfigured, sendEmail } from "../shared/communications/mailer.js";
 
 export type DemoCalendarBooking = {
   id: string;
@@ -20,7 +20,8 @@ export class DemoMailConfigurationError extends Error {
 }
 
 export function isDemoMailConfigured(): boolean {
-  return Boolean(config.demoSmtpHost && config.demoSmtpUser && config.demoSmtpPass);
+  // Resend (preferred) or SMTP both satisfy the requirement to send the invite.
+  return emailConfigured();
 }
 
 /** Interpret slot date+time as India Standard Time (no DST). */
@@ -51,7 +52,7 @@ function buildIcs(booking: DemoCalendarBooking): string {
   const loc = icsEscapeText(config.demoMeetingLocation);
   const attendeeCn = icsEscapeText(booking.name || "Guest");
   const descLines = [
-    "30-minute FollowUp product demo with CurvvTech.",
+    "30-minute FollowUp product demo with Curvvtech.",
     "",
     `Guest: ${booking.name}`,
     booking.company ? `Company: ${booking.company}` : "",
@@ -66,7 +67,7 @@ function buildIcs(booking: DemoCalendarBooking): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//CurvvTech//Demo Booking//EN",
+    "PRODID:-//Curvvtech//Demo Booking//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:REQUEST",
     "BEGIN:VEVENT",
@@ -91,13 +92,13 @@ function buildIcs(booking: DemoCalendarBooking): string {
 export async function sendDemoConfirmationInvite(booking: DemoCalendarBooking): Promise<void> {
   if (!isDemoMailConfigured()) {
     throw new DemoMailConfigurationError(
-      "Calendar email is not configured. Set DEMO_SMTP_HOST, DEMO_SMTP_USER, and DEMO_SMTP_PASS on the API (see .env.example).",
+      "Email is not configured. Set RESEND_API_KEY (preferred) or DEMO_SMTP_* on the API (see .env.example).",
     );
   }
 
   const ics = buildIcs(booking);
-  const from = config.demoCalendarFromEmail;
-  const subject = `Demo confirmed — ${booking.date} ${booking.time} IST · FollowUp / CurvvTech`;
+  const from = `${config.demoCalendarOrganizerName} <${config.demoCalendarFromEmail}>`;
+  const subject = `Demo confirmed — ${booking.date} ${booking.time} IST · FollowUp / Curvvtech`;
 
   const text = [
     `Hi ${booking.name},`,
@@ -110,51 +111,40 @@ export async function sendDemoConfirmationInvite(booking: DemoCalendarBooking): 
     "A calendar invite is attached — open it to add the meeting to your calendar.",
     "",
     `— ${config.demoCalendarOrganizerName}`,
-    from,
+    config.demoCalendarFromEmail,
   ].join("\n");
 
-  const transporter = nodemailer.createTransport({
-    host: config.demoSmtpHost,
-    port: config.demoSmtpPort,
-    secure: config.demoSmtpSecure,
-    auth: {
-      user: config.demoSmtpUser,
-      pass: config.demoSmtpPass,
-    },
+  const res = await sendEmail({
+    from,
+    to: booking.email,
+    replyTo: config.demoCalendarFromEmail,
+    subject,
+    text,
+    attachments: [
+      {
+        filename: "curvvtech-followup-demo.ics",
+        content: ics,
+        contentType: "text/calendar; charset=utf-8; method=REQUEST",
+      },
+    ],
   });
 
-  try {
-    await transporter.sendMail({
-      from: `"${config.demoCalendarOrganizerName}" <${from}>`,
-      to: booking.email,
-      replyTo: from,
-      subject,
-      text,
-      attachments: [
-        {
-          filename: "curvvtech-followup-demo.ics",
-          content: ics,
-          contentType: 'text/calendar; charset=utf-8; method=REQUEST',
-        },
-      ],
-    });
-    logger.info({ demoRequestId: booking.id, to: booking.email }, "demo_confirmation_invite_sent");
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    logger.error({ err: msg, demoRequestId: booking.id }, "demo_confirmation_invite_failed");
-    throw new Error(`Failed to send calendar invite: ${msg}`);
+  if (!res.ok) {
+    logger.error({ err: res.error, demoRequestId: booking.id }, "demo_confirmation_invite_failed");
+    throw new Error(`Failed to send calendar invite: ${res.error ?? "unknown error"}`);
   }
+  logger.info({ demoRequestId: booking.id, to: booking.email, provider: res.provider }, "demo_confirmation_invite_sent");
 }
 
-/** Production requires SMTP; dev skips silently when unset. */
+/** Production requires an email provider; dev skips silently when unset. */
 export async function maybeSendDemoConfirmationInvite(booking: DemoCalendarBooking): Promise<void> {
   if (!isDemoMailConfigured()) {
     if (config.nodeEnv === "production") {
       throw new DemoMailConfigurationError(
-        "Calendar email is not configured. Set DEMO_SMTP_HOST, DEMO_SMTP_USER, and DEMO_SMTP_PASS on the API.",
+        "Email is not configured. Set RESEND_API_KEY (preferred) or DEMO_SMTP_* on the API.",
       );
     }
-    logger.warn({ demoRequestId: booking.id }, "demo_invite_skipped_smtp_unconfigured");
+    logger.warn({ demoRequestId: booking.id }, "demo_invite_skipped_email_unconfigured");
     return;
   }
   await sendDemoConfirmationInvite(booking);

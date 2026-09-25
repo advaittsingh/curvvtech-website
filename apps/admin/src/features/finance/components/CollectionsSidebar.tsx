@@ -9,11 +9,21 @@ type Props = {
   upcoming: UpcomingCollection[];
   onGenerateReminder: () => void;
   reminderLoading?: boolean;
+  isLoading?: boolean;
 };
 
-export function CollectionsSidebar({ insight, upcoming, onGenerateReminder, reminderLoading }: Props) {
+export function CollectionsSidebar({ insight, upcoming, onGenerateReminder, reminderLoading, isLoading }: Props) {
   const ai = insight;
   const canRemind = Boolean(ai?.target_invoice_id || ai?.overdue_count);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4 animate-pulse">
+        <div className="rounded-xl border border-border bg-card h-48" />
+        <div className="rounded-xl border border-border bg-card h-40" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -48,7 +58,7 @@ export function CollectionsSidebar({ insight, upcoming, onGenerateReminder, remi
           onClick={onGenerateReminder}
         >
           <Zap className="h-3.5 w-3.5" />
-          Generate reminder
+          Send reminder
         </Button>
       </div>
 

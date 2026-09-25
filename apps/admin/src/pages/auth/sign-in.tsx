@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/app/providers";
+import { defaultRouteForRole } from "@/lib/permissions";
 
 export default function SignIn() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading, login } = useAuth();
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/";
+  const { isAuthenticated, isLoading, login, role } = useAuth();
+  const requestedFrom = (location.state as { from?: { pathname: string } })?.from?.pathname;
+  const from = requestedFrom || defaultRouteForRole(role);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,7 +29,8 @@ export default function SignIn() {
         setError(result.error ?? "Sign in failed");
         return;
       }
-      navigate(from.startsWith("/") ? from : "/", { replace: true });
+      const destination = requestedFrom || defaultRouteForRole(result.role ?? null);
+      navigate(destination.startsWith("/") ? destination : "/", { replace: true });
     } catch {
       setError("Network error");
     } finally {
@@ -36,10 +39,10 @@ export default function SignIn() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-stone-50 py-12 px-4">
+    <div className="h-full min-h-0 overflow-y-auto w-full flex items-center justify-center bg-stone-50 py-12 px-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-semibold text-stone-900">CurvvTech Admin</h1>
+          <h1 className="text-2xl font-semibold text-stone-900">Curvvtech Admin</h1>
           <p className="text-stone-600 text-sm mt-1">Sign in with your account.</p>
         </div>
         <form onSubmit={onSubmit} className="space-y-4 bg-white border border-stone-200 rounded-lg p-6 shadow-sm">

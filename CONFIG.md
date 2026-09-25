@@ -1,4 +1,4 @@
-# CurvvTech – Frontend, Backend & Admin Panel Configuration
+# Curvvtech – Frontend, Backend & Admin Panel Configuration
 
 This repo has **three deployable apps**. Each needs its own Vercel project (or local env) and the correct environment variables so they work together.
 
@@ -55,7 +55,7 @@ This repo has **three deployable apps**. Each needs its own Vercel project (or l
 - **Path:** `admin panel /`
 - **Framework:** Vite + React (SPA)
 - **Domain (production):** `https://admin.curvvtech.com`
-- **Role:** CurvvTech Admin UI; calls backend with Clerk Bearer token.
+- **Role:** Curvvtech Admin UI; calls backend with Clerk Bearer token.
 
 ### Environment variables
 

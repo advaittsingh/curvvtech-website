@@ -43,7 +43,7 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-stone-50 py-12 px-4">
+    <div className="h-full min-h-0 overflow-y-auto w-full flex items-center justify-center bg-stone-50 py-12 px-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-semibold text-stone-900">Create admin account</h1>

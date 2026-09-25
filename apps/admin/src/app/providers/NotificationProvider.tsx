@@ -1,87 +1,108 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAdminApi } from "@/hooks/useAdminApi";
+import { getAccessToken } from "@/lib/session";
 
 export type AppNotification = {
   id: string;
   title: string;
   body?: string;
-  type: "invoice_paid" | "proposal_approved" | "lead_assigned" | "project_delayed" | "info";
+  type: string;
+  href?: string | null;
   read: boolean;
   createdAt: string;
 };
 
-const SAMPLE: AppNotification[] = [
-  {
-    id: "1",
-    title: "Invoice Paid",
-    body: "INV-1042 marked paid by client",
-    type: "invoice_paid",
-    read: false,
-    createdAt: new Date(Date.now() - 3600_000).toISOString(),
-  },
-  {
-    id: "2",
-    title: "Proposal Approved",
-    body: "Acme Corp approved website redesign proposal",
-    type: "proposal_approved",
-    read: false,
-    createdAt: new Date(Date.now() - 7200_000).toISOString(),
-  },
-  {
-    id: "3",
-    title: "Lead Assigned",
-    body: "New lead from website assigned to you",
-    type: "lead_assigned",
-    read: true,
-    createdAt: new Date(Date.now() - 86400_000).toISOString(),
-  },
-  {
-    id: "4",
-    title: "Project Delayed",
-    body: "Mobile app sprint slipped 3 days",
-    type: "project_delayed",
-    read: true,
-    createdAt: new Date(Date.now() - 172800_000).toISOString(),
-  },
-];
+type NotificationApiRow = {
+  id: string;
+  title: string;
+  body: string;
+  type: string;
+  href: string | null;
+  created_at: string;
+  read: boolean;
+};
+
+type NotificationsQueryData = {
+  notifications: NotificationApiRow[];
+  unread_count: number;
+};
 
 type NotificationContextValue = {
   notifications: AppNotification[];
   unreadCount: number;
+  loading: boolean;
   markRead: (id: string) => void;
   markAllRead: () => void;
-  push: (n: Omit<AppNotification, "id" | "read" | "createdAt">) => void;
+  refresh: () => void;
 };
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<AppNotification[]>(SAMPLE);
+  const api = useAdminApi();
+  const qc = useQueryClient();
 
-  const markRead = useCallback((id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }, []);
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["admin", "notifications"],
+    queryFn: () => api.notifications.list({ limit: 40 }),
+    enabled: Boolean(getAccessToken()),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+
+  const notifications = useMemo<AppNotification[]>(
+    () =>
+      (data?.notifications ?? []).map((n) => ({
+        id: n.id,
+        title: n.title,
+        body: n.body || undefined,
+        type: n.type,
+        href: n.href,
+        read: n.read,
+        createdAt: n.created_at,
+      })),
+    [data?.notifications],
+  );
+
+  const unreadCount = data?.unread_count ?? notifications.filter((n) => !n.read).length;
+
+  const markRead = useCallback(
+    (id: string) => {
+      qc.setQueryData<NotificationsQueryData>(["admin", "notifications"], (prev) => {
+        if (!prev) return prev;
+        const next = prev.notifications.map((n) => (n.id === id ? { ...n, read: true } : n));
+        return {
+          notifications: next,
+          unread_count: Math.max(0, next.filter((n) => !n.read).length),
+        };
+      });
+      void api.notifications.markRead(id).then(() => refetch());
+    },
+    [api, qc, refetch],
+  );
 
   const markAllRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
-
-  const push = useCallback((n: Omit<AppNotification, "id" | "read" | "createdAt">) => {
-    setNotifications((prev) => [
-      {
-        ...n,
-        id: crypto.randomUUID(),
-        read: false,
-        createdAt: new Date().toISOString(),
-      },
-      ...prev,
-    ]);
-  }, []);
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
+    qc.setQueryData<NotificationsQueryData>(["admin", "notifications"], (prev) => {
+      if (!prev) return prev;
+      return {
+        notifications: prev.notifications.map((n) => ({ ...n, read: true })),
+        unread_count: 0,
+      };
+    });
+    void api.notifications.markAllRead().then(() => refetch());
+  }, [api, qc, refetch]);
 
   const value = useMemo(
-    () => ({ notifications, unreadCount, markRead, markAllRead, push }),
-    [notifications, unreadCount, markRead, markAllRead, push],
+    () => ({
+      notifications,
+      unreadCount,
+      loading: isLoading,
+      markRead,
+      markAllRead,
+      refresh: () => void refetch(),
+    }),
+    [notifications, unreadCount, isLoading, markRead, markAllRead, refetch],
   );
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;

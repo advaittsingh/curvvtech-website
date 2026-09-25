@@ -183,7 +183,13 @@ router.get('/dashboard', async (_req, res) => {
       }))
       .sort((a, b) => b.amount_cents - a.amount_cents)
 
-    const ai = await getCollectionsInsight()
+    const ai = await getCollectionsInsight().catch(() => ({
+      insight: 'Collections insight is temporarily unavailable.',
+      recommended_action: 'Review overdue invoices and send payment reminders.',
+      expected_recovery_cents: Number(pipeline?.overdue_cents ?? 0),
+      overdue_count: 0,
+      collection_probability: 80,
+    }))
 
     res.json({
       summary: {

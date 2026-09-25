@@ -6,12 +6,14 @@ import { BackendErrorAlert } from "@/components/BackendErrorAlert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ImageDropField } from "@/components/ImageDropField";
 import { useToast } from "@/hooks/use-toast";
 
 type CompanyForm = {
   company_name: string;
   tax_id: string;
   gst_number: string;
+  pan_number: string;
   address: string;
   phone: string;
   cash: string;
@@ -22,6 +24,7 @@ type CompanyForm = {
   smtp_port: string;
   smtp_user: string;
   smtp_pass: string;
+  default_gst_percent: string;
 };
 
 export default function CompanySettingsPage() {
@@ -33,9 +36,10 @@ export default function CompanySettingsPage() {
 
   const company = (data ?? {}) as Record<string, unknown>;
   const values: CompanyForm = form ?? {
-    company_name: String(company.company_name ?? "CurvvTech"),
+    company_name: String(company.company_name ?? "Curvvtech"),
     tax_id: String(company.tax_id ?? ""),
     gst_number: String(company.gst_number ?? company.tax_id ?? ""),
+    pan_number: String(company.pan_number ?? ""),
     address: String(company.address ?? ""),
     phone: String(company.phone ?? ""),
     cash: String(Number(company.cash_in_bank_cents ?? 0) / 100),
@@ -46,6 +50,7 @@ export default function CompanySettingsPage() {
     smtp_port: String(company.smtp_port ?? "587"),
     smtp_user: String(company.smtp_user ?? ""),
     smtp_pass: "",
+    default_gst_percent: String(company.default_gst_percent ?? "18"),
   };
 
   const set = (patch: Partial<CompanyForm>) => setForm({ ...values, ...patch });
@@ -56,6 +61,7 @@ export default function CompanySettingsPage() {
         company_name: values.company_name,
         tax_id: values.tax_id || null,
         gst_number: values.gst_number || null,
+        pan_number: values.pan_number || null,
         address: values.address || null,
         phone: values.phone || null,
         cash_in_bank_cents: Math.round(Number(values.cash || 0) * 100),
@@ -65,6 +71,7 @@ export default function CompanySettingsPage() {
         smtp_host: values.smtp_host || null,
         smtp_port: values.smtp_port ? Number(values.smtp_port) : null,
         smtp_user: values.smtp_user || null,
+        default_gst_percent: values.default_gst_percent ? Number(values.default_gst_percent) : null,
         ...(values.smtp_pass ? { smtp_pass: values.smtp_pass } : {}),
       }),
     onSuccess: () => {
@@ -76,19 +83,27 @@ export default function CompanySettingsPage() {
 
   return (
     <div className="p-6 max-w-xl space-y-4">
-      <PageHeader title="Company" description="Profile used across CurvvTech OS and CEO metrics." />
+      <PageHeader title="Company" description="Profile used across Curvvtech OS, invoices, and CEO metrics." />
       <BackendErrorAlert error={error} />
       <div className="rounded-xl border border-border bg-card p-5 space-y-3">
         <h3 className="font-medium text-sm">Brand</h3>
         <div><Label>Company name</Label><Input value={values.company_name} onChange={(e) => set({ company_name: e.target.value })} /></div>
-        <div><Label>Logo URL</Label><Input value={values.logo_url} onChange={(e) => set({ logo_url: e.target.value })} placeholder="https://…" /></div>
+        <ImageDropField
+          label="Logo"
+          value={values.logo_url}
+          onChange={(v) => set({ logo_url: v })}
+          maxDimension={400}
+          hint="Shown on invoices and receipts. Leave empty to use the default Curvvtech logo."
+        />
         <div className="flex gap-3 items-end">
           <div className="flex-1"><Label>Brand color</Label><Input value={values.brand_color} onChange={(e) => set({ brand_color: e.target.value })} /></div>
           <div className="h-10 w-10 rounded border border-border shrink-0" style={{ backgroundColor: values.brand_color }} />
         </div>
         <div><Label>GST / Tax ID</Label><Input value={values.gst_number} onChange={(e) => set({ gst_number: e.target.value, tax_id: e.target.value })} /></div>
+        <div><Label>PAN</Label><Input value={values.pan_number} onChange={(e) => set({ pan_number: e.target.value })} placeholder="Auto-derived from GST if blank on invoice" /></div>
         <div><Label>Address</Label><Input value={values.address} onChange={(e) => set({ address: e.target.value })} /></div>
         <div><Label>Phone</Label><Input value={values.phone} onChange={(e) => set({ phone: e.target.value })} /></div>
+        <div><Label>Default GST % (invoices)</Label><Input type="number" value={values.default_gst_percent} onChange={(e) => set({ default_gst_percent: e.target.value })} /></div>
         <div><Label>Cash in bank (₹) — CEO dashboard</Label><Input type="number" value={values.cash} onChange={(e) => set({ cash: e.target.value })} /></div>
       </div>
       <div className="rounded-xl border border-border bg-card p-5 space-y-3">

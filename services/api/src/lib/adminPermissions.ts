@@ -49,13 +49,13 @@ export const ROLE_PERMISSIONS: Record<AdminRole, Permission[]> = {
   admin: ALL.filter((p) => p !== "settings.manage"),
   sales: ["dashboard.view", "leads.view", "leads.edit", "clients.view", "clients.edit", "proposals.view", "proposals.edit"],
   project_manager: ["dashboard.view", "clients.view", "projects.view", "projects.edit", "invoices.view", "team.manage"],
-  developer: ["dashboard.view", "projects.view", "projects.edit"],
-  designer: ["dashboard.view", "projects.view", "content.view"],
+  developer: ["projects.view", "projects.edit"],
+  designer: ["projects.view", "content.view"],
   accountant: ["dashboard.view", "invoices.view", "invoices.edit", "clients.view"],
 };
 
 const BACKEND_ROLE_ALIASES: Record<string, AdminRole> = {
-  admin: "super_admin",
+  admin: "admin",
   manager: "admin",
   member: "developer",
   super_admin: "super_admin",
@@ -69,6 +69,24 @@ const BACKEND_ROLE_ALIASES: Record<string, AdminRole> = {
 export function normalizeAdminRole(raw: string | null | undefined): AdminRole | null {
   if (!raw) return null;
   return BACKEND_ROLE_ALIASES[raw.trim().toLowerCase()] ?? null;
+}
+
+export const INVITABLE_ADMIN_ROLES = [
+  "super_admin",
+  "admin",
+  "sales",
+  "project_manager",
+  "developer",
+  "designer",
+  "accountant",
+] as const satisfies readonly AdminRole[];
+
+export function isInvitableAdminRole(value: unknown): value is AdminRole {
+  return typeof value === "string" && (INVITABLE_ADMIN_ROLES as readonly string[]).includes(value);
+}
+
+export function isRestrictedProjectRole(role: AdminRole | null | undefined): boolean {
+  return role === "designer" || role === "developer";
 }
 
 export function permissionsForRole(role: AdminRole | null): Permission[] {

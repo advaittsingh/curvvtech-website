@@ -1,12 +1,14 @@
-import { Metadata } from "next";
 import Link from "next/link";
 import { AnimatedHero } from "@/components/ui/animated-hero";
 import { AnimatedSection } from "@/components/ui/animated-section";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
   title: "About us | Curvvtech",
-  description: "Curvvtech is a technology solutions company that builds custom software and offers innovative SaaS products to help businesses scale and succeed.",
-};
+  description:
+    "Curvvtech is a technology solutions company that builds custom software and offers innovative SaaS products to help businesses scale and succeed.",
+  path: "/about-us",
+});
 
 export default function AboutUsPage() {
   return (

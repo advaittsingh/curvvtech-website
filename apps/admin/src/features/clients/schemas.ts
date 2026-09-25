@@ -1,3 +1,18 @@
+export type ClientDeletionPreview = {
+  client_name?: string;
+  projects: number;
+  active_projects: number;
+  invoices: number;
+  paid_invoices: number;
+  payments: number;
+  files: number;
+  notes: number;
+  can_delete: boolean;
+  block_reason?: string | null;
+};
+
+export type ClientListView = "all" | "active" | "archived" | "deleted";
+
 export type ClientSummary = {
   lifetime_revenue_cents: number;
   outstanding_cents: number;
@@ -29,6 +44,11 @@ export type Client = {
   source_lead_name?: string | null;
   portal_status?: string | null;
   portal_last_login_at?: string | null;
+  is_archived?: boolean | null;
+  archived_at?: string | null;
+  archived_by?: string | null;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };

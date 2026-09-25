@@ -1,72 +1,126 @@
-import { Pencil } from "lucide-react";
-import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { ProjectRecord } from "../project-schemas";
-import { PROJECT_STATUS_LABELS, formatInr, formatShortDate } from "../project-schemas";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { ProjectRecord, ProjectSummary } from "../project-schemas";
+import { PROJECT_STATUS_LABELS, formatInr } from "../project-schemas";
 
 type Props = {
   project: ProjectRecord;
-  budget: string;
-  startDate: string;
-  endDate: string;
-  onBudget: (v: string) => void;
-  onStart: (v: string) => void;
-  onEnd: (v: string) => void;
-  onSave: () => void;
-  saving?: boolean;
+  summary?: ProjectSummary | null;
+  onPatch: (body: object) => void;
 };
 
-export function ProjectBudgetCard({ project, budget, startDate, endDate, onBudget, onStart, onEnd, onSave, saving }: Props) {
-  const [editing, setEditing] = useState(false);
-  const status = PROJECT_STATUS_LABELS[project.status ?? "planning"] ?? project.status ?? "Planning";
+function centsToRupee(cents: number | null | undefined) {
+  if (cents == null) return "";
+  return String(Number(cents) / 100);
+}
 
-  if (!editing) {
-    return (
-      <section className="rounded-xl border border-border bg-card p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Budget & timeline</h3>
-          <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => setEditing(true)}>
-            <Pencil className="h-3 w-3" /> Edit
-          </Button>
-        </div>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-          <ReadRow label="Budget" value={budget ? formatInr(Math.round(Number(budget) * 100)) : formatInr(project.budget_cents)} />
-          <ReadRow label="Status" value={status} />
-          <ReadRow label="Start date" value={startDate ? formatShortDate(startDate) : project.start_date ? formatShortDate(project.start_date) : "—"} />
-          <ReadRow label="Target end" value={endDate ? formatShortDate(endDate) : project.target_end_date ? formatShortDate(project.target_end_date) : "—"} />
-        </dl>
-      </section>
-    );
-  }
+function rupeeToCents(v: string) {
+  if (!v.trim()) return null;
+  return Math.round(Number(v) * 100);
+}
+
+export function ProjectBudgetCard({ project, summary, onPatch }: Props) {
+  const collected = summary?.collected_cents ?? project.collected_cents ?? 0;
+  const pending = summary?.pending_cents ?? project.pending_cents ?? 0;
 
   return (
-    <section className="rounded-xl border border-primary/30 bg-card p-4 space-y-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Edit budget & timeline</h3>
-      <div><Label>Budget (₹)</Label><Input type="number" value={budget} onChange={(e) => onBudget(e.target.value)} /></div>
-      <div className="grid grid-cols-2 gap-2">
-        <div><Label>Start</Label><Input type="date" value={startDate} onChange={(e) => onStart(e.target.value)} /></div>
-        <div><Label>Target end</Label><Input type="date" value={endDate} onChange={(e) => onEnd(e.target.value)} /></div>
+    <section className="rounded-xl border border-border bg-card p-4 space-y-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Budget & financials</h3>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <Field label="Budget (₹)">
+          <Input
+            type="number"
+            min={0}
+            defaultValue={centsToRupee(project.budget_cents)}
+            key={`budget-${project.id}-${project.budget_cents}`}
+            onBlur={(e) => {
+              const cents = rupeeToCents(e.target.value);
+              if (cents !== project.budget_cents) onPatch({ budget_cents: cents });
+            }}
+          />
+        </Field>
+        <Field label="Quoted value (₹)">
+          <Input
+            type="number"
+            min={0}
+            defaultValue={centsToRupee(project.quoted_cents)}
+            key={`quoted-${project.id}-${project.quoted_cents}`}
+            onBlur={(e) => {
+              const cents = rupeeToCents(e.target.value);
+              if (cents !== project.quoted_cents) onPatch({ quoted_cents: cents });
+            }}
+          />
+        </Field>
+        <Field label="GST (₹)">
+          <Input
+            type="number"
+            min={0}
+            defaultValue={centsToRupee(project.gst_cents)}
+            key={`gst-${project.id}-${project.gst_cents}`}
+            onBlur={(e) => {
+              const cents = rupeeToCents(e.target.value);
+              if (cents !== project.gst_cents) onPatch({ gst_cents: cents });
+            }}
+          />
+        </Field>
+        <Field label="Status">
+          <Select value={project.status ?? "planning"} onValueChange={(v) => onPatch({ status: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(PROJECT_STATUS_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Start date">
+          <Input
+            type="date"
+            defaultValue={project.start_date ? String(project.start_date).slice(0, 10) : ""}
+            key={`start-${project.id}-${project.start_date}`}
+            onBlur={(e) => {
+              const v = e.target.value || null;
+              const prev = project.start_date ? String(project.start_date).slice(0, 10) : null;
+              if (v !== prev) onPatch({ start_date: v });
+            }}
+          />
+        </Field>
+        <Field label="Target end">
+          <Input
+            type="date"
+            defaultValue={project.target_end_date ? String(project.target_end_date).slice(0, 10) : ""}
+            key={`end-${project.id}-${project.target_end_date}`}
+            onBlur={(e) => {
+              const v = e.target.value || null;
+              const prev = project.target_end_date ? String(project.target_end_date).slice(0, 10) : null;
+              if (v !== prev) onPatch({ target_end_date: v });
+            }}
+          />
+        </Field>
       </div>
-      <div className="flex items-center gap-2">
-        <Label>Status</Label>
-        <Badge variant="secondary">{status}</Badge>
-      </div>
-      <div className="flex gap-2">
-        <Button size="sm" onClick={() => { onSave(); setEditing(false); }} disabled={saving}>Save</Button>
-        <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+
+      <div className="grid grid-cols-2 gap-3 pt-1 border-t border-border">
+        <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Received</p>
+          <p className="text-lg font-semibold text-emerald-700">{formatInr(collected)}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">From paid invoices</p>
+        </div>
+        <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Pending</p>
+          <p className="text-lg font-semibold text-amber-800">{formatInr(pending)}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Budget minus collected</p>
+        </div>
       </div>
     </section>
   );
 }
 
-function ReadRow({ label, value }: { label: string; value: string }) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</dt>
-      <dd className="font-medium mt-0.5">{value}</dd>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <div className="mt-1">{children}</div>
     </div>
   );
 }

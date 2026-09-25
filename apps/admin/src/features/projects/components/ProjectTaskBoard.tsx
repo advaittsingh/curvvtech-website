@@ -3,25 +3,35 @@ import { Sparkles, Plus } from "lucide-react";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { KanbanBoard } from "@/components/system";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TaskCard } from "@/features/delivery/components/TaskCard";
+import { useToast } from "@/hooks/use-toast";
 import type { TaskRecord } from "@/features/delivery/task-schemas";
 import { TASK_STATUS_LABELS, TASK_STATUSES } from "@/features/delivery/task-schemas";
-import type { ProjectTask } from "../project-schemas";
+import type { ProjectMember, ProjectTask } from "../project-schemas";
 
 type Props = {
   projectId: string;
   tasks: ProjectTask[];
+  members: ProjectMember[];
   onGeneratePlan?: () => void;
   planLoading?: boolean;
 };
 
-export function ProjectTaskBoard({ projectId, tasks, onGeneratePlan, planLoading }: Props) {
+export function ProjectTaskBoard({ projectId, tasks, members, onGeneratePlan, planLoading }: Props) {
   const api = useAdminApi();
   const qc = useQueryClient();
+  const { toast } = useToast();
 
   const update = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => api.tasks.update(id, { status }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "tasks", projectId] }),
+    mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) => api.tasks.update(id, body),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["admin", "tasks", projectId] });
+      if ("assignee_user_id" in variables.body) toast({ title: "Task assignee updated" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Could not update task", description: error.message, variant: "destructive" });
+    },
   });
 
   const columns = TASK_STATUSES.map((status) => ({
@@ -57,8 +67,41 @@ export function ProjectTaskBoard({ projectId, tasks, onGeneratePlan, planLoading
     <KanbanBoard
       columns={columns}
       compact
-      onMove={(id, status) => update.mutate({ id, status })}
-      renderCard={(t) => <TaskCard task={t as TaskRecord} compact />}
+      onMove={(id, status) => update.mutate({ id, body: { status } })}
+      renderCard={(task) => (
+        <div>
+          <TaskCard task={task as TaskRecord} compact />
+          <div
+            className="mt-2 border-t border-border pt-2"
+            draggable={false}
+            onDragStart={(event) => event.stopPropagation()}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <Select
+              value={task.assignee_user_id ?? "unassigned"}
+              onValueChange={(userId) =>
+                update.mutate({
+                  id: task.id,
+                  body: { assignee_user_id: userId === "unassigned" ? null : userId },
+                })
+              }
+            >
+              <SelectTrigger className="h-7 w-full text-xs">
+                <SelectValue placeholder="Assign team member" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {members.map((member) => (
+                  <SelectItem key={member.user_id} value={member.user_id}>
+                    {member.email ?? member.user_id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
       renderEmptyColumn={(col) => (
         <div className="rounded-lg border border-dashed border-border px-3 py-5 text-center">
           <p className="text-xs text-muted-foreground">{col.id === "todo" ? "Create or generate tasks" : "Drag tasks here"}</p>

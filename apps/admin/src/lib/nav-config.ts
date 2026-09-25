@@ -15,29 +15,28 @@ import {
   UserCog,
   Shield,
   Settings,
-  PhoneCall,
   MessageCircle,
   CalendarDays,
   Wallet,
   Banknote,
   Workflow,
-  BookOpen,
-  Library,
-  Sparkles,
   Bot,
   Building2,
   Plug,
   Crown,
   Star,
   UsersRound,
+  GraduationCap,
 } from "lucide-react";
-import type { Permission } from "@/types/auth";
+import type { AdminRole, Permission } from "@/types/auth";
 
 export type NavItem = {
   title: string;
   href: string;
   icon: LucideIcon;
   permission?: Permission;
+  roles?: AdminRole[];
+  hiddenForRoles?: AdminRole[];
 };
 
 export type NavGroup = {
@@ -49,14 +48,15 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "",
     items: [
-      { title: "Dashboard", href: "/", icon: LayoutDashboard, permission: "dashboard.view" },
-      { title: "CEO Command Center", href: "/ceo", icon: Crown, permission: "dashboard.view" },
+      { title: "Dashboard", href: "/", icon: LayoutDashboard, permission: "dashboard.view", hiddenForRoles: ["designer", "developer"] },
+      { title: "CEO Command Center", href: "/ceo", icon: Crown, permission: "dashboard.view", hiddenForRoles: ["designer", "developer"] },
     ],
   },
   {
     label: "Sales",
     items: [
       { title: "Leads", href: "/leads", icon: Inbox, permission: "leads.view" },
+      { title: "Inbox", href: "/inbox", icon: MessageCircle, permission: "leads.view" },
       { title: "Clients", href: "/clients", icon: Users, permission: "clients.view" },
       { title: "Proposals", href: "/proposals", icon: FileSignature, permission: "proposals.view" },
       { title: "Inbound opportunities", href: "/demo-requests", icon: CalendarDays, permission: "leads.view" },
@@ -66,7 +66,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Delivery",
     items: [
       { title: "Projects", href: "/projects", icon: FolderKanban, permission: "projects.view" },
-      { title: "Tasks", href: "/tasks", icon: ListTodo, permission: "projects.view" },
+      { title: "My Work", href: "/my-work", icon: ListTodo, permission: "projects.view" },
+      { title: "Tasks", href: "/tasks", icon: ListTodo, permission: "projects.view", hiddenForRoles: ["designer", "developer"] },
       { title: "Files", href: "/files", icon: Files, permission: "projects.view" },
     ],
   },
@@ -83,6 +84,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "People",
     items: [
       { title: "Team", href: "/team", icon: UserCog, permission: "team.manage" },
+      { title: "Careers", href: "/careers", icon: GraduationCap, permission: "team.manage" },
       { title: "Roles & Permissions", href: "/team/roles", icon: Shield, permission: "team.manage" },
     ],
   },
@@ -99,18 +101,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Operations",
     items: [
-      { title: "SOPs", href: "/operations/sops", icon: Workflow, permission: "settings.manage" },
-      { title: "Knowledge Base", href: "/operations/knowledge", icon: BookOpen, permission: "settings.manage" },
-      { title: "Assets", href: "/operations/assets", icon: Library, permission: "projects.view" },
       { title: "Automations", href: "/operations/automations", icon: Workflow, permission: "settings.manage" },
-    ],
-  },
-  {
-    label: "AI",
-    items: [
-      { title: "AI Command Center", href: "/ai", icon: Sparkles, permission: "dashboard.view" },
-      { title: "Conversations", href: "/ai/conversations", icon: MessageCircle, permission: "leads.view" },
-      { title: "Campaigns", href: "/ai/campaigns", icon: PhoneCall, permission: "leads.edit" },
     ],
   },
   {
@@ -132,6 +123,8 @@ export type SearchItem = {
   group: string;
   icon: LucideIcon;
   permission?: Permission;
+  roles?: AdminRole[];
+  hiddenForRoles?: AdminRole[];
 };
 
 const ALL_NAV_HREFS = NAV_GROUPS.flatMap((g) => g.items.map((item) => item.href));
@@ -157,5 +150,7 @@ export const GLOBAL_SEARCH_ITEMS: SearchItem[] = NAV_GROUPS.flatMap((g) =>
     group: "Pages",
     icon: item.icon,
     permission: item.permission,
+    roles: item.roles,
+    hiddenForRoles: item.hiddenForRoles,
   })),
 );

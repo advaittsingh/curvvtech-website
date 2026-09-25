@@ -53,14 +53,14 @@ export const ROLE_PERMISSIONS: Record<AdminRole, Permission[]> = {
     "invoices.view",
     "team.manage",
   ],
-  developer: ["dashboard.view", "projects.view", "projects.edit"],
-  designer: ["dashboard.view", "projects.view", "content.view"],
+  developer: ["projects.view", "projects.edit"],
+  designer: ["projects.view", "content.view"],
   accountant: ["dashboard.view", "invoices.view", "invoices.edit", "clients.view"],
 };
 
 /** Legacy `users.curvvtech_role` values and future OS role slugs. */
 const BACKEND_ROLE_ALIASES: Record<string, AdminRole> = {
-  admin: "super_admin",
+  admin: "admin",
   manager: "admin",
   member: "developer",
   super_admin: "super_admin",
@@ -110,4 +110,12 @@ export function toAuthUser(payload: MeResponse): AuthUser {
 
 export function permissionsForUser(user: AuthUser | null): Permission[] {
   return permissionsForRole(user?.role ?? null);
+}
+
+export function isRestrictedProjectRole(role: AdminRole | null): boolean {
+  return role === "designer" || role === "developer";
+}
+
+export function defaultRouteForRole(role: AdminRole | null): string {
+  return role === "designer" || role === "developer" ? "/my-work" : "/";
 }

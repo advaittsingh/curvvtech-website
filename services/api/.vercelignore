@@ -1,0 +1,6 @@
+uploads
+.env
+.env.aws
+*.pem
+.vercel
+node_modules

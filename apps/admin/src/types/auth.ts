@@ -1,4 +1,4 @@
-/** CurvvTech OS admin roles (frontend contract; backend may store legacy aliases). */
+/** Curvvtech OS admin roles (frontend contract; backend may store legacy aliases). */
 export type AdminRole =
   | "super_admin"
   | "admin"

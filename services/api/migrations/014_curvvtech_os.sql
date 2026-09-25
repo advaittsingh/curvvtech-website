@@ -1,8 +1,8 @@
--- CurvvTech OS: Operations, CMS, company settings
+-- Curvvtech OS: Operations, CMS, company settings
 
 CREATE TABLE IF NOT EXISTS company_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_name TEXT NOT NULL DEFAULT 'CurvvTech',
+  company_name TEXT NOT NULL DEFAULT 'Curvvtech',
   tax_id TEXT,
   address TEXT,
   phone TEXT,
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS company_settings (
 );
 
 INSERT INTO company_settings (company_name)
-SELECT 'CurvvTech'
+SELECT 'Curvvtech'
 WHERE NOT EXISTS (SELECT 1 FROM company_settings LIMIT 1);
 
 CREATE TABLE IF NOT EXISTS cms_services (

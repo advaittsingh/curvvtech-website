@@ -3,15 +3,17 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/app/providers";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { TopBar } from "@/components/layout/TopBar";
+import { useAdminInboxSocket } from "@/features/inbox/hooks/useInboxUnreadCount";
 
 export function AdminLayout() {
   const { isAuthenticated, isLoading, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  useAdminInboxSocket();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-sm text-muted-foreground">Loading…</p>
+      <div className="h-full flex items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Checking session…</p>
       </div>
     );
   }
@@ -21,7 +23,7 @@ export function AdminLayout() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen overflow-hidden bg-background">
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
@@ -33,9 +35,9 @@ export function AdminLayout() {
         <AppSidebar onClose={() => setSidebarOpen(false)} onSignOut={() => void logout()} />
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0 relative z-10">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative z-10">
         <TopBar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 min-h-0 overflow-y-auto">
           <Outlet />
         </main>
       </div>

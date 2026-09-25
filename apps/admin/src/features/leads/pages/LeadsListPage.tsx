@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, ChevronRight, Filter, Plus, LayoutGrid, List, Sparkles } from "lucide-react";
+import { Bot, ChevronRight, Filter, Plus, LayoutGrid, List, Sparkles, Phone, Mail, MessageCircle, FileSignature, Calendar, Archive, Trash2 } from "lucide-react";
 import { useLeads, useLeadMutations, usePipelineSummary } from "../hooks/useLeads";
 import type { Lead, LeadFilters, PipelineSummary } from "../schemas";
 import {
@@ -36,6 +36,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { quickLeadSchema, type QuickLeadFormValues } from "../schemas";
 import { useAdminApi } from "@/hooks/useAdminApi";
+import { useToast } from "@/hooks/use-toast";
 
 const columns: ColumnDef<Lead>[] = [
   {
@@ -76,12 +77,48 @@ const columns: ColumnDef<Lead>[] = [
     },
   },
   {
-    id: "last_contact",
-    header: "Last contact",
-    sortValue: (r) => r.last_contacted_at ?? r.updatedAt ?? "",
+    id: "probability",
+    header: "Probability",
+    sortValue: (r) => r.probability ?? 0,
+    cell: (r) => <span className="text-sm tabular-nums">{r.probability ?? 0}%</span>,
+  },
+  {
+    id: "source",
+    header: "Source",
+    sortValue: (r) => r.source ?? "",
+    cell: (r) => (
+      <span className="text-sm text-muted-foreground">
+        {LEAD_SOURCE_LABELS[String(r.source ?? "manual")] ?? r.source ?? "—"}
+      </span>
+    ),
+  },
+  {
+    id: "priority",
+    header: "Priority",
+    sortValue: (r) => r.priority ?? "",
+    cell: (r) => (
+      <Badge variant="outline" className="capitalize text-xs">
+        {r.priority ?? "medium"}
+      </Badge>
+    ),
+  },
+  {
+    id: "created",
+    header: "Created",
+    sortValue: (r) => r.createdAt ?? "",
     cell: (r) => (
       <span className="text-muted-foreground text-sm">
-        {formatRelativeDays(r.last_contacted_at ?? r.updatedAt)}
+        {r.createdAt ? formatRelativeDays(r.createdAt) : "—"}
+      </span>
+    ),
+  },
+  {
+    id: "next_follow_up",
+    header: "Next follow-up",
+    sortValue: (r) => r.next_follow_up_at ?? "",
+    cell: (r) => (
+      <span className="text-muted-foreground text-sm">
+        {r.next_follow_up_at ? formatRelativeDays(r.next_follow_up_at) : "—"}
       </span>
     ),
   },
@@ -94,18 +131,41 @@ const columns: ColumnDef<Lead>[] = [
   },
 ];
 
-function buildTableColumns(memberMap: Map<string, string>): ColumnDef<Lead>[] {
-  return columns.map((col) =>
-    col.id === "owner"
-      ? {
-          ...col,
-          sortValue: (r) => assigneeLabel(memberMap, r.assigned_to_clerk_id),
-          cell: (r) => (
-            <span className="text-sm">{assigneeLabel(memberMap, r.assigned_to_clerk_id)}</span>
-          ),
-        }
-      : col,
-  );
+function buildTableColumns(memberMap: Map<string, string>, onDelete: (id: string) => void): ColumnDef<Lead>[] {
+  return columns.map((col) => {
+    if (col.id === "owner") {
+      return {
+        ...col,
+        sortValue: (r) => assigneeLabel(memberMap, r.assigned_to_clerk_id),
+        cell: (r) => (
+          <span className="text-sm">{assigneeLabel(memberMap, r.assigned_to_clerk_id)}</span>
+        ),
+      };
+    }
+    if (col.id === "actions") {
+      return {
+        ...col,
+        cell: (r) => (
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600"
+              aria-label={`Delete ${r.name ?? r.company ?? "lead"}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(r.id);
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
+          </div>
+        ),
+      };
+    }
+    return col;
+  });
 }
 
 function assigneeLabel(memberMap: Map<string, string>, id?: string | null): string {
@@ -115,26 +175,44 @@ function assigneeLabel(memberMap: Map<string, string>, id?: string | null): stri
   return email.split("@")[0]?.replace(/[._]/g, " ") ?? email;
 }
 
-function LeadCard({ lead, memberMap }: { lead: Lead; memberMap: Map<string, string> }) {
+function LeadCard({
+  lead,
+  memberMap,
+  onQuickAction,
+}: {
+  lead: Lead;
+  memberMap: Map<string, string>;
+  onQuickAction?: (action: string, lead: Lead) => void;
+}) {
   const st = String(lead.status ?? "new") as keyof typeof LEAD_STATUS_COLORS;
   const score = lead.score ?? 0;
   const tier = scoreTier(score);
   const lastContact = lead.last_contacted_at ?? lead.updatedAt;
+  const daysInStage = lead.updatedAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(lead.updatedAt).getTime()) / 86400000))
+    : 0;
+  const probability = lead.probability ?? 0;
 
   return (
-    <div className="space-y-2">
+    <div className="relative group space-y-2">
       <div className="flex items-start justify-between gap-2">
         <p className="font-semibold text-sm leading-tight">{lead.company ?? lead.name ?? "Lead"}</p>
         <Badge variant="outline" className={`text-[10px] shrink-0 ${scoreTierColor(tier)}`}>
-          {scoreTierLabel(tier)}
+          {tier === "hot" ? "🔥 " : ""}{scoreTierLabel(tier)}
         </Badge>
       </div>
       {lead.project_type && <p className="text-xs text-muted-foreground">{lead.project_type}</p>}
       {lead.deal_value_cents ? (
-        <p className="text-sm font-semibold">{formatInr(lead.deal_value_cents)}</p>
+        <p className="text-sm font-bold">{formatInr(lead.deal_value_cents)}</p>
       ) : lead.budget ? (
         <p className="text-sm text-muted-foreground">{lead.budget}</p>
       ) : null}
+      <div className="flex flex-wrap gap-2 text-[11px]">
+        {probability > 0 && (
+          <span className="rounded-md bg-primary/10 text-primary px-1.5 py-0.5 font-medium">{probability}%</span>
+        )}
+        <span className="text-muted-foreground">{daysInStage}d in stage</span>
+      </div>
       <div className="pt-1 space-y-1 text-[11px] text-muted-foreground border-t border-border/60">
         <p><span className="text-foreground/70">Assigned:</span> {assigneeLabel(memberMap, lead.assigned_to_clerk_id)}</p>
         <p><span className="text-foreground/70">Last contact:</span> {formatRelativeDays(lastContact)}</p>
@@ -142,6 +220,41 @@ function LeadCard({ lead, memberMap }: { lead: Lead; memberMap: Map<string, stri
       <Badge variant="outline" className={`text-[10px] ${LEAD_STATUS_COLORS[st] ?? ""}`}>
         {LEAD_STATUS_LABELS[st] ?? lead.status}
       </Badge>
+
+      {onQuickAction && (
+        <div
+          className="absolute inset-0 rounded-lg bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Quick actions</p>
+          <div className="flex flex-wrap justify-center gap-1">
+            {lead.phone && (
+              <Button size="icon" variant="secondary" className="h-8 w-8" title="Call" onClick={() => onQuickAction("call", lead)}>
+                <Phone className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            {lead.phone && (
+              <Button size="icon" variant="secondary" className="h-8 w-8" title="WhatsApp" onClick={() => onQuickAction("whatsapp", lead)}>
+                <MessageCircle className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            {lead.email && (
+              <Button size="icon" variant="secondary" className="h-8 w-8" title="Email" onClick={() => onQuickAction("email", lead)}>
+                <Mail className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            <Button size="icon" variant="secondary" className="h-8 w-8" title="Proposal" onClick={() => onQuickAction("proposal", lead)}>
+              <FileSignature className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="icon" variant="secondary" className="h-8 w-8" title="Schedule" onClick={() => onQuickAction("schedule", lead)}>
+              <Calendar className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="icon" variant="secondary" className="h-8 w-8" title="Archive" onClick={() => onQuickAction("archive", lead)}>
+              <Archive className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -200,13 +313,14 @@ function PipelineInsightsSidebar({ list, pipelineValueCents }: { list: Lead[]; p
 export default function LeadsListPage() {
   const navigate = useNavigate();
   const api = useAdminApi();
+  const { toast } = useToast();
   const [filters, setFilters] = useState<LeadFilters>({});
   const [showFilters, setShowFilters] = useState(false);
   const { data, isLoading, error } = useLeads(filters);
   const { data: summary, error: summaryError } = usePipelineSummary();
-  const { create, update, remove } = useLeadMutations();
+  const { create, update, remove, markLost } = useLeadMutations();
   const [createOpen, setCreateOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Lead | null>(null);
   const [view, setView] = useState<"table" | "kanban">("table");
 
   const { data: members } = useQuery({
@@ -262,13 +376,39 @@ export default function LeadsListPage() {
     if (created?.id) navigate(`/leads/${created.id}`);
   }
 
-  const tableColumns = useMemo(() => buildTableColumns(memberMap), [memberMap]);
+  const tableColumns = useMemo(() => buildTableColumns(memberMap, (id) => {
+    const lead = list.find((l) => l.id === id);
+    if (lead) setDeleteTarget(lead);
+  }), [memberMap, list]);
 
   const kanbanColumns = LEAD_STATUSES.filter((s) => s !== "lost").map((status) => ({
     id: status,
     title: LEAD_STATUS_LABELS[status],
     items: list.filter((l) => (l.status ?? "new") === status),
   }));
+
+  function handleKanbanQuickAction(action: string, lead: Lead) {
+    if (action === "call" && lead.phone) {
+      window.open(`tel:${lead.phone}`, "_self");
+      return;
+    }
+    if (action === "whatsapp" && lead.phone) {
+      const digits = lead.phone.replace(/\D/g, "");
+      window.open(`https://wa.me/${digits}`, "_blank");
+      return;
+    }
+    if (action === "email" && lead.email) {
+      window.open(`mailto:${lead.email}`, "_self");
+      return;
+    }
+    if (action === "proposal" || action === "schedule") {
+      navigate(`/leads/${lead.id}`);
+      return;
+    }
+    if (action === "archive") {
+      markLost.mutate(lead.id);
+    }
+  }
 
   return (
     <div className="p-6 lg:p-8 max-w-[100vw] overflow-x-hidden space-y-6">
@@ -370,7 +510,9 @@ export default function LeadsListPage() {
               desktopColumns={6}
               onMove={(id, toStatus) => update.mutate({ id, body: { status: toStatus } })}
               onCardClick={(lead) => navigate(`/leads/${lead.id}`)}
-              renderCard={(lead) => <LeadCard lead={lead} memberMap={memberMap} />}
+              renderCard={(lead) => (
+                <LeadCard lead={lead} memberMap={memberMap} onQuickAction={handleKanbanQuickAction} />
+              )}
             />
           ) : (
             <DataTable
@@ -432,15 +574,30 @@ export default function LeadsListPage() {
       </Dialog>
 
       <ConfirmDialog
-        open={Boolean(deleteId)}
-        onOpenChange={() => setDeleteId(null)}
-        title="Mark lead as lost?"
-        description="This will move the lead to Lost."
-        confirmLabel="Mark lost"
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete this lead?"
+        description={
+          deleteTarget
+            ? `Permanently delete ${deleteTarget.company ?? deleteTarget.name ?? "this lead"}? Notes and call history will be removed. Linked clients and projects are kept.`
+            : undefined
+        }
+        confirmLabel="Delete lead"
         variant="destructive"
+        loading={remove.isPending}
         onConfirm={async () => {
-          if (deleteId) await remove.mutateAsync(deleteId);
-          setDeleteId(null);
+          if (!deleteTarget) return;
+          try {
+            const res = await remove.mutateAsync(deleteTarget.id);
+            if (res && typeof res === "object" && "error" in res) {
+              toast({ title: "Delete failed", description: String((res as { error?: string }).error), variant: "destructive" });
+              return;
+            }
+            toast({ title: "Lead deleted" });
+            setDeleteTarget(null);
+          } catch (e) {
+            toast({ title: "Delete failed", description: (e as Error).message, variant: "destructive" });
+          }
         }}
       />
     </div>

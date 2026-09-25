@@ -22,15 +22,20 @@ function stripApiPrefixEnabled(): boolean {
  */
 export function apiUrl(path: string): string {
   const p = path.startsWith('/') ? path : `/${path}`
+  // Normalize so VITE_BACKEND_URL=https://host/api never produces /api/api/...
+  const base = RAW_BASE.replace(/\/api\/?$/i, '')
+
   if (stripApiPrefixEnabled()) {
-    // BASE may be https://api.curvvtech.in or https://api.curvvtech.in/api — normalize before strip
-    const base = RAW_BASE.replace(/\/api\/?$/i, '')
     if (p.startsWith('/api/')) {
       return `${base}${p.slice(4)}`
     }
     return `${base}${p}`
   }
-  return `${RAW_BASE}${p}`
+
+  if (p.startsWith('/api/')) {
+    return `${base}${p}`
+  }
+  return `${base}/api${p}`
 }
 
 /**

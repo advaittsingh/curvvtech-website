@@ -60,6 +60,120 @@ function scoreTier(score: number): 'hot' | 'warm' | 'cold' {
   return 'cold'
 }
 
+function getLeadMetaFromTags(tags: unknown, key: string): string {
+  const list = Array.isArray(tags) ? (tags as string[]) : []
+  const prefix = `meta:${key}:`
+  const tag = list.find((t) => t.startsWith(prefix))
+  return tag ? tag.slice(prefix.length) : ''
+}
+
+function computeScoreBreakdown(lead: Record<string, unknown>) {
+  const hasBudget = Boolean(String(lead.budget ?? '').trim() || Number(lead.deal_value_cents ?? 0) > 0)
+  const hasAuthority = Boolean(String(lead.email ?? '').trim() && String(lead.phone ?? '').trim())
+  const hasTimeline = Boolean(String(lead.timeline ?? '').trim() || lead.expected_close_date)
+  const hasRequirements = Boolean(String(lead.requirements ?? lead.message ?? '').trim())
+  const decisionMaker = Boolean(String(lead.name ?? '').trim() || getLeadMetaFromTags(lead.tags, 'decision_maker'))
+
+  return [
+    { label: 'Budget', ok: hasBudget },
+    { label: 'Authority', ok: hasAuthority, partial: Boolean(lead.email || lead.phone) && !hasAuthority },
+    { label: 'Timeline', ok: hasTimeline },
+    { label: 'Requirements', ok: hasRequirements },
+    { label: 'Decision maker', ok: decisionMaker },
+  ]
+}
+
+function engagementLevel(lead: Record<string, unknown>): string {
+  const ref = lead.last_contacted_at ?? lead.updatedAt
+  if (!ref) return 'Unknown'
+  const days = Math.floor((Date.now() - new Date(String(ref)).getTime()) / (1000 * 60 * 60 * 24))
+  if (days <= 2) return 'High'
+  if (days <= 7) return 'Medium'
+  return 'Low'
+}
+
+function budgetMatchPct(lead: Record<string, unknown>): number {
+  const deal = Number(lead.deal_value_cents ?? 0)
+  if (!deal) return lead.budget ? 75 : 40
+  const budgetNum = Number(String(lead.budget ?? '').replace(/[^\d.]/g, ''))
+  if (!budgetNum) return 85
+  const budgetCents = Math.round(budgetNum * 100)
+  const ratio = deal / budgetCents
+  if (ratio >= 0.85 && ratio <= 1.15) return 95
+  if (ratio >= 0.7 && ratio <= 1.3) return 80
+  return 55
+}
+
+function dealRisk(lead: Record<string, unknown>, engagement: string): string {
+  if (['won', 'lost'].includes(String(lead.status))) return 'Low'
+  const ref = lead.last_contacted_at ?? lead.updatedAt
+  if (ref) {
+    const days = Math.floor((Date.now() - new Date(String(ref)).getTime()) / (1000 * 60 * 60 * 24))
+    if (days >= 10) return 'High'
+  }
+  if (engagement === 'Low') return 'Medium'
+  if (!lead.budget && !lead.deal_value_cents) return 'Medium'
+  return 'Low'
+}
+
+function starsFromScore(score: number): number {
+  if (score >= 90) return 5
+  if (score >= 75) return 4
+  if (score >= 55) return 3
+  if (score >= 35) return 2
+  return 1
+}
+
+function recommendedActionLabel(
+  lead: Record<string, unknown>,
+  actions: { label: string }[],
+): string {
+  if (actions[0]?.label) return actions[0].label
+  const status = String(lead.status ?? 'new')
+  if (status === 'new' || status === 'qualified') return 'Schedule discovery call'
+  if (status === 'discovery_call') return 'Generate proposal'
+  if (status === 'proposal_sent') return 'Send follow-up email'
+  if (status === 'negotiation') return 'Address objections and confirm timeline'
+  return 'Update next follow-up'
+}
+
+function buildDealHealth(
+  lead: Record<string, unknown>,
+  score: number,
+  probability: number,
+  insights: string[],
+  actions: { label: string }[],
+) {
+  const engagement = engagementLevel(lead)
+  const factors = computeScoreBreakdown(lead)
+  const factorScore = factors.filter((f) => f.ok).length / factors.length
+  const healthPct = Math.min(100, Math.max(0, Math.round(score * 0.45 + probability * 0.35 + factorScore * 100 * 0.2)))
+
+  const dmMeta = getLeadMetaFromTags(lead.tags, 'decision_maker')
+  let decisionMaker = 'Not confirmed'
+  if (dmMeta) decisionMaker = 'Confirmed'
+  else if (lead.name) decisionMaker = 'Likely'
+
+  const summaryParts: string[] = []
+  if (engagement === 'High') summaryParts.push('Client is highly engaged.')
+  else if (engagement === 'Low') summaryParts.push('Engagement has dropped — re-activate the conversation.')
+  if (lead.budget || lead.deal_value_cents) summaryParts.push('Budget aligns with stated scope.')
+  if (String(lead.status) === 'proposal_sent') summaryParts.push('Proposal is live — follow up within 48 hours.')
+  if (insights[0]) summaryParts.push(insights[0])
+  if (summaryParts.length === 0) summaryParts.push('Complete discovery to sharpen close probability.')
+
+  return {
+    health_pct: healthPct,
+    stars: starsFromScore(healthPct),
+    budget_match_pct: budgetMatchPct(lead),
+    engagement,
+    decision_maker: decisionMaker,
+    risk: dealRisk(lead, engagement),
+    ai_summary: summaryParts.slice(0, 3).join(' '),
+    recommended_action: recommendedActionLabel(lead, actions),
+  }
+}
+
 async function logLeadActivity(
   leadId: string,
   action: string,
@@ -341,6 +455,14 @@ router.get('/:id/ai-insights', async (req, res) => {
       probability: Number(lead.probability ?? STATUS_PROBABILITY[String(lead.status ?? 'new')] ?? 0),
       insights: insights.slice(0, 4),
       recommended_actions: actions.slice(0, 4),
+      score_breakdown: computeScoreBreakdown(lead),
+      deal_health: buildDealHealth(
+        lead,
+        score,
+        Number(lead.probability ?? STATUS_PROBABILITY[String(lead.status ?? 'new')] ?? 0),
+        insights,
+        actions,
+      ),
     })
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })
@@ -712,6 +834,34 @@ router.patch('/:id', async (req, res) => {
     }
     const final = firstRow(await sql`SELECT * FROM crm_leads WHERE id = ${id}::uuid`)
     res.json(final)
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const auth = req.auth!
+    const existing = firstRow<{ id: string; name: string | null; company: string | null }>(
+      await sql`SELECT id::text AS id, name, company FROM crm_leads WHERE id = ${id}::uuid`,
+    )
+    if (!existing) {
+      res.status(404).json({ error: 'Lead not found' })
+      return
+    }
+    await sql`DELETE FROM crm_leads WHERE id = ${id}::uuid`
+    await sql`
+      INSERT INTO activity_logs (clerk_user_id, action, entity_type, entity_id, details)
+      VALUES (
+        ${auth.sub},
+        'lead_deleted',
+        'lead',
+        ${id},
+        ${JSON.stringify({ name: existing.name, company: existing.company })}::jsonb
+      )
+    `
+    res.status(204).end()
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })
   }

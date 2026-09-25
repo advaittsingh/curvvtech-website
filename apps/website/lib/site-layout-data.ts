@@ -3,6 +3,8 @@ export const headerData = [
   { label: "Services", href: "/services" },
   { label: "Products", href: "/products" },
   { label: "Work", href: "/work" },
+  { label: "Blog", href: "/blog" },
+  { label: "Careers", href: "/careers" },
   { label: "Contact", href: "/contact" },
 ];
 
@@ -37,12 +39,13 @@ export const footerData = {
       { name: "Work", url: "/work" },
       { name: "Services", url: "/services" },
       { name: "Products", url: "/products" },
+      { name: "Blog", url: "/blog" },
+      { name: "Careers", url: "/careers" },
     ],
   },
   otherPages: {
     name: "Other Pages",
     links: [
-      { name: "Error 404", url: "/not-found" },
       { name: "Terms & Conditions", url: "/terms-and-conditions" },
       { name: "Privacy Policy", url: "/privacy-policy" },
       { name: "Documentation", url: "/documentation" },
@@ -50,7 +53,8 @@ export const footerData = {
   },
   contactDetails: {
     name: "Contact Details",
-    address: "260, SUKHDEV VIHAR, NEW DELHI, 110025",
+    address:
+      "Fortale Prime, BK Circle, 1/43, 1st Cross, opposite Valmark Orchard Square, Venkateshwara Layout, 8th Phase, Kalena Agrahara, Bengaluru, Karnataka 560076",
     email: "support@curvvtech.in",
     phone: "7305670180",
   },

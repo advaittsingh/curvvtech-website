@@ -88,4 +88,23 @@ router.get('/blogs/:slug', async (req, res) => {
   }
 })
 
+router.get('/portfolio/:slug', async (req, res) => {
+  try {
+    const rows = await sql`
+      SELECT title, slug, description, image_url, project_url, tags, case_study_body, metrics_json, before_image_url, after_image_url, seo_title, seo_description
+      FROM cms_portfolio
+      WHERE slug = ${req.params.slug} AND published = true
+      LIMIT 1
+    `
+    const row = (rows as unknown[])[0]
+    if (!row) {
+      res.status(404).json({ error: 'Not found' })
+      return
+    }
+    res.json(row)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 export default router

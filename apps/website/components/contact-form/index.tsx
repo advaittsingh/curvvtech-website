@@ -8,7 +8,7 @@ function ContactForm() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    interest: 'design & branding',
+    interest: '',
     budget: '',
     message: '',
   })
@@ -25,7 +25,7 @@ function ContactForm() {
   const reset = () => {
     formData.name = ''
     formData.email = ''
-    formData.interest = 'design & branding'
+    formData.interest = ''
     formData.budget = ''
     formData.message = ''
   }
@@ -155,31 +155,29 @@ function ContactForm() {
                     <label htmlFor='interest'>
                       What are you interested in?
                     </label>
-                    <select
-                      className='w-full mt-2 text-base px-4 rounded-full py-2.5 border transition-all duration-500 dark:border-white/20 focus:outline-0 dark:bg-black/40'
-                      name='interest'
+                    <input
+                      className='w-full mt-2 rounded-full border px-5 py-3 outline-hidden transition dark:border-white/20
+                                                focus:border-dark_black/50 dark:focus:border-white/50 dark:bg-black/40'
                       id='interest'
+                      type='text'
+                      name='interest'
                       value={formData.interest}
-                      onChange={handleChange}>
-                      <option value='design & branding'>
-                        Design & Branding
-                      </option>
-                      <option value='Ecommerce'>Ecommerce</option>
-                      <option value='Specialist'>Specialist</option>
-                    </select>
+                      onChange={handleChange}
+                      placeholder='e.g. Web app, branding, ecommerce'
+                    />
                   </div>
                   <div className='w-full'>
                     <label htmlFor='budget'>Project budget</label>
-                    <select
-                      className='w-full mt-2 text-base px-4 rounded-full py-2.5 border transition-all duration-500 dark:text-white border-solid dark:border-white/20 focus:outline-0 dark:bg-black/40'
-                      name='budget'
+                    <input
+                      className='w-full mt-2 rounded-full border px-5 py-3 outline-hidden transition dark:border-white/20
+                                                focus:border-dark_black/50 dark:focus:border-white/50 dark:bg-black/40'
                       id='budget'
+                      type='text'
+                      name='budget'
                       value={formData.budget}
-                      onChange={handleChange}>
-                      <option value=''>Select your budget</option>
-                      <option value='$10000'>$10,000</option>
-                      <option value='$50500'>$50,500</option>
-                    </select>
+                      onChange={handleChange}
+                      placeholder='e.g. ₹50,000 – ₹1,00,000'
+                    />
                   </div>
                 </div>
                 <div className='w-full'>

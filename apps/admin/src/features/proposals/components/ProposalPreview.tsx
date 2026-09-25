@@ -28,7 +28,7 @@ export function ProposalPreview({ title, clientName, projectType, metadata, sect
           <>
             <h1 className="text-3xl font-semibold">{title}</h1>
             <p className="mt-3 text-stone-300">Prepared for {clientName ?? "Client"}</p>
-            <p className="mt-2 text-sm text-stone-400">Prepared by CurvvTech</p>
+            <p className="mt-2 text-sm text-stone-400">Prepared by Curvvtech</p>
             {metadata.proposal_reference && <p className="mt-2 text-xs text-stone-500">Ref: {metadata.proposal_reference}</p>}
             {projectType && <p className="mt-1 text-sm text-stone-400">{projectType}</p>}
           </>
@@ -152,7 +152,7 @@ export function ProposalPreview({ title, clientName, projectType, metadata, sect
         <section>
           <h2 className="text-lg font-semibold border-b border-stone-200 pb-2">Signatures</h2>
           <div className="grid sm:grid-cols-2 gap-8 mt-8">
-            <SignaturePreview label="CurvvTech" name="Authorized signatory" />
+            <SignaturePreview label="Curvvtech" name="Authorized signatory" />
             <SignaturePreview
               label={clientName ?? "Client"}
               name={metadata.signature?.client_name ?? "Client signatory"}
@@ -163,7 +163,7 @@ export function ProposalPreview({ title, clientName, projectType, metadata, sect
       </div>
 
       <div className="px-8 py-4 bg-stone-50 border-t border-stone-200 text-center text-xs text-stone-400">
-        CurvvTech · Confidential proposal
+        Curvvtech · Confidential proposal
       </div>
     </div>
   );

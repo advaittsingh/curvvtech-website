@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useState } from "react";
 
-// Use an image that exists so fallback never 404s (work folder default may be missing)
 const DEFAULT_WORK_IMAGE = "/images/home/onlinePresence/online_img_1.jpg";
 
 function encodedSrc(path: string): string {
@@ -18,16 +17,19 @@ type ProjectImageProps = React.ComponentProps<typeof Image> & {
   fallbackSrc?: string;
 };
 
-export function ProjectImage({ src, fallbackSrc = DEFAULT_WORK_IMAGE, ...props }: ProjectImageProps) {
+export function ProjectImage({ src, fallbackSrc = DEFAULT_WORK_IMAGE, sizes, quality, ...props }: ProjectImageProps) {
   const [currentSrc, setCurrentSrc] = useState(src);
-  // Encode path so "LUNE&LUSTRE" and filenames with spaces load correctly (only for string src)
   const displaySrc =
     typeof currentSrc === "string" ? encodedSrc(currentSrc) : currentSrc;
+  const isRemote = typeof displaySrc === "string" && displaySrc.startsWith("http");
 
   return (
     <Image
       {...props}
       src={displaySrc}
+      sizes={sizes ?? "(max-width: 768px) 100vw, 50vw"}
+      quality={quality ?? 75}
+      unoptimized={isRemote || props.unoptimized}
       onError={() => setCurrentSrc(fallbackSrc)}
     />
   );

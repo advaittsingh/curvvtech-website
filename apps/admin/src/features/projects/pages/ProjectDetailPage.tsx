@@ -1,26 +1,39 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ExternalLink, Sparkles } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAdminApi } from "@/hooks/useAdminApi";
+import { useAuth } from "@/app/providers";
 import { BackendErrorAlert } from "@/components/BackendErrorAlert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 import { PhaseProgressBar } from "../components/PhaseProgressBar";
 import { ProjectCommandHeader } from "../components/ProjectCommandHeader";
-import { ProjectIntelligencePanel } from "../components/ProjectIntelligencePanel";
-import { ProjectActivityFeed } from "../components/ProjectActivityFeed";
-import { ProjectClientCard } from "../components/ProjectClientCard";
 import { ProjectBudgetCard } from "../components/ProjectBudgetCard";
 import { ProjectTaskBoard } from "../components/ProjectTaskBoard";
 import { ProjectTimelineTab } from "../components/ProjectTimelineTab";
-import { ProjectFilesGrouped } from "../components/ProjectFilesGrouped";
 import { ProjectInvoicesTab } from "../components/ProjectInvoicesTab";
 import { ProjectNotesTab } from "../components/ProjectNotesTab";
 import { ProjectTeamTab } from "../components/ProjectTeamTab";
 import { ProjectPortalCard } from "../components/ProjectPortalCard";
+import { ProjectInfoEditor } from "../components/ProjectInfoEditor";
+import { ProjectAIManager } from "../components/ProjectAIManager";
+import { ProjectHealthPanel } from "../components/ProjectHealthPanel";
+import { ProjectActivityTimeline } from "../components/ProjectActivityTimeline";
+import { ProjectSummaryCards } from "../components/ProjectSummaryCards";
+import { ProjectWorkspaceTabs } from "../components/ProjectWorkspaceNav";
+import { ProjectTabHeader } from "../components/ProjectTabHeader";
+import { ProjectFinanceDashboard } from "../components/ProjectFinanceDashboard";
+import { ProjectAnalyticsPanel } from "../components/ProjectAnalyticsPanel";
+import { ProjectFileManager } from "../components/ProjectFileManager";
+import { ProjectRichTimeline } from "../components/ProjectRichTimeline";
+import { ProjectRevisionsPanel } from "../components/ProjectRevisionsPanel";
+import { ProjectChangeOrdersPanel } from "../components/ProjectChangeOrdersPanel";
+import { ProjectApprovalsPanel } from "../components/ProjectApprovalsPanel";
+import { ProjectScopePanel } from "../components/ProjectScopePanel";
+import { ProjectResourcesPanel } from "../components/ProjectResourcesPanel";
+import { ProjectDeploymentPanel } from "../components/ProjectDeploymentPanel";
+import { ProjectClientCard } from "../components/ProjectClientCard";
 import type {
   NoteType,
   ProjectInvoice,
@@ -31,21 +44,16 @@ import type {
   ProjectSummary,
   ProjectTask,
 } from "../project-schemas";
-import {
-  buildPhasesFromProgress,
-  formatInr,
-  formatShortDate,
-  resolveIntel,
-} from "../project-schemas";
-
-const TAB_ITEMS = ["overview", "tasks", "timeline", "files", "invoices", "notes", "team", "portal"] as const;
+import { buildPhasesFromProgress, buildFallbackManagerBrief, buildFallbackProjectFinance, buildFallbackProjectAnalytics, deriveProgressPct } from "../project-schemas";
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const api = useAdminApi();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("overview");
 
   const [planLoading, setPlanLoading] = useState(false);
   const [milestoneTitle, setMilestoneTitle] = useState("");
@@ -53,10 +61,6 @@ export default function ProjectDetailPage() {
   const [noteBody, setNoteBody] = useState("");
   const [noteType, setNoteType] = useState<NoteType>("internal");
   const [noteFilter, setNoteFilter] = useState<"all" | NoteType>("all");
-  const [budget, setBudget] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [budgetDirty, setBudgetDirty] = useState(false);
 
   const { data: project, error } = useQuery({
     queryKey: ["admin", "projects", id],
@@ -64,10 +68,11 @@ export default function ProjectDetailPage() {
     enabled: Boolean(id),
   });
 
-  const { data: summary } = useQuery({
+  const { data: summary, isLoading: summaryLoading, isError: summaryError, refetch: refetchSummary } = useQuery({
     queryKey: ["admin", "projects", id, "summary"],
     queryFn: () => api.projects.summary(id!) as Promise<ProjectSummary>,
     enabled: Boolean(id),
+    retry: 1,
   });
 
   const { data: milestones } = useQuery({
@@ -113,71 +118,56 @@ export default function ProjectDetailPage() {
   const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ["admin", "projects", id] });
     qc.invalidateQueries({ queryKey: ["admin", "projects", id, "summary"] });
-    qc.invalidateQueries({ queryKey: ["admin", "projects", id, "activity"] });
+    qc.invalidateQueries({ queryKey: ["admin", "projects", id, "feed"] });
     qc.invalidateQueries({ queryKey: ["admin", "projects", id, "milestones"] });
+    qc.invalidateQueries({ queryKey: ["admin", "projects", id, "rich-timeline"] });
     qc.invalidateQueries({ queryKey: ["admin", "tasks", id] });
   };
 
   const analyze = useMutation({
     mutationFn: () => api.projects.analyze(id!),
-    onSuccess: () => invalidateAll(),
-    onError: (e: Error) => toast({ title: "Analysis failed", description: e.message, variant: "destructive" }),
+    onSuccess: () => {
+      invalidateAll();
+      toast({ title: "AI analysis updated" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "AI analysis failed", description: err.message, variant: "destructive" });
+    },
   });
 
   const generatePlan = useMutation({
     mutationFn: () => api.projects.generatePlan(id!),
     onSuccess: (plan: { estimated_duration_days?: number; suggested_task_count?: number }) => {
       invalidateAll();
-      toast({
-        title: "Project plan generated",
-        description: `${plan.estimated_duration_days ?? 21} days · ${plan.suggested_task_count ?? 0} suggested tasks`,
-      });
+      toast({ title: "Plan generated", description: `${plan.estimated_duration_days ?? 21} days · ${plan.suggested_task_count ?? 0} tasks` });
     },
-    onError: (e: Error) => toast({ title: "Plan failed", description: e.message, variant: "destructive" }),
   });
 
   const analyzeStarted = useRef(false);
 
-  useEffect(() => {
-    if (!project || budgetDirty) return;
-    setBudget(project.budget_cents ? String(Number(project.budget_cents) / 100) : "");
-    setStartDate(project.start_date ? String(project.start_date).slice(0, 10) : "");
-    setEndDate(project.target_end_date ? String(project.target_end_date).slice(0, 10) : "");
-  }, [project?.budget_cents, project?.start_date, project?.target_end_date, budgetDirty]);
-
   const patchProject = useMutation({
     mutationFn: (body: object) => api.projects.update(id!, body),
-    onSuccess: () => { invalidateAll(); setBudgetDirty(false); toast({ title: "Saved" }); },
+    onSuccess: () => { invalidateAll(); toast({ title: "Saved" }); },
   });
 
   const addMilestone = useMutation({
     mutationFn: () => api.projects.addMilestone(id!, { title: milestoneTitle, due_at: milestoneDue || undefined }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "projects", id, "milestones"] });
-      qc.invalidateQueries({ queryKey: ["admin", "projects", id, "activity"] });
+      invalidateAll();
       setMilestoneTitle(""); setMilestoneDue("");
       toast({ title: "Milestone added" });
     },
   });
 
   const completeMilestone = useMutation({
-    mutationFn: (mid: string) => api.projects.updateMilestone(id!, mid, { completed_at: new Date().toISOString() }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "projects", id, "milestones"] });
-      qc.invalidateQueries({ queryKey: ["admin", "projects", id, "activity"] });
-    },
+    mutationFn: (mid: string) => api.projects.updateMilestone(id!, mid, { completed_at: new Date().toISOString(), status: "completed" }),
+    onSuccess: () => invalidateAll(),
   });
 
   const addNote = useMutation({
-    mutationFn: () =>
-      api.projects.addUpdate(id!, {
-        body: noteBody,
-        visibility: noteType === "client" ? "client" : "internal",
-        note_type: noteType,
-      }),
+    mutationFn: () => api.projects.addUpdate(id!, { body: noteBody, visibility: noteType === "client" ? "client" : "internal", note_type: noteType }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "projects", id, "updates"] });
-      qc.invalidateQueries({ queryKey: ["admin", "projects", id, "activity"] });
+      invalidateAll();
       setNoteBody("");
       toast({ title: "Note posted" });
     },
@@ -185,25 +175,34 @@ export default function ProjectDetailPage() {
 
   const addMember = useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: string }) => api.projects.addMember(id!, { user_id: userId, role }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "projects", id, "members"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "projects", id, "members"] });
+      toast({ title: "Team member assigned" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Could not assign team member", description: error.message, variant: "destructive" });
+    },
   });
 
   const removeMember = useMutation({
     mutationFn: (userId: string) => api.projects.removeMember(id!, userId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "projects", id, "members"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "projects", id, "members"] });
+      toast({ title: "Team member removed" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Could not remove team member", description: error.message, variant: "destructive" });
+    },
   });
 
   const createInvoice = useMutation({
-    mutationFn: () =>
-      api.invoices.create({
-        client_id: project?.client_id,
-        project_id: id,
-        invoice_number: `INV-${Date.now().toString(36).toUpperCase()}`,
-        status: "draft",
-      }),
-    onSuccess: (inv: { id?: string }) => {
-      if (inv?.id) navigate(`/invoices/${inv.id}`);
-    },
+    mutationFn: () => api.invoices.create({
+      client_id: project?.client_id,
+      project_id: id,
+      invoice_number: `INV-${Date.now().toString(36).toUpperCase()}`,
+      status: "draft",
+    }),
+    onSuccess: (inv: { id?: string }) => { if (inv?.id) navigate(`/invoices/${inv.id}`); },
   });
 
   useEffect(() => {
@@ -213,26 +212,6 @@ export default function ProjectDetailPage() {
   }, [project?.id, project?.analyzed_at]);
 
   const p = project && !("error" in (project as object)) ? project : null;
-
-  async function downloadFile(fileId: string) {
-    const res = await api.files.downloadUrl(fileId);
-    if (res.url) window.open(res.url, "_blank");
-    else toast({ title: "Download unavailable", variant: "destructive" });
-  }
-
-  function saveBudget() {
-    patchProject.mutate({
-      budget_cents: budget ? Math.round(Number(budget) * 100) : null,
-      start_date: startDate || null,
-      target_end_date: endDate || null,
-    });
-  }
-
-  function runGeneratePlan() {
-    setPlanLoading(true);
-    generatePlan.mutate(undefined, { onSettled: () => setPlanLoading(false) });
-  }
-
   if (!p) return <div className="p-6 text-muted-foreground">Project not found.</div>;
 
   const ms = Array.isArray(milestones) ? milestones : [];
@@ -244,161 +223,229 @@ export default function ProjectDetailPage() {
   const allMembers = Array.isArray(team) ? team : [];
   const assignedIds = new Set(memberList.map((m) => m.user_id));
   const availableMembers = allMembers.filter((m) => !assignedIds.has(m.user_id));
-  const intel = resolveIntel(p, summary);
-  const phases = intel.delivery_phases ?? buildPhasesFromProgress(Number(p.progress_pct ?? 0));
+  const effectiveProgress = deriveProgressPct(p, summary);
+  const phases = buildPhasesFromProgress(effectiveProgress);
+
+  const userName = user?.email?.split("@")[0];
+  const usingFallbackBrief = !summary?.manager_brief && !summaryLoading;
+  const brief = summary?.manager_brief
+    ? {
+        ...summary.manager_brief,
+        greeting: userName
+          ? summary.manager_brief.greeting.replace(/^Good (morning|afternoon|evening), \w+/, (m) => m.replace(/\w+$/, userName))
+          : summary.manager_brief.greeting,
+      }
+    : usingFallbackBrief
+      ? buildFallbackManagerBrief(p, summary, userName)
+      : undefined;
+
+  function refreshInsights() {
+    void refetchSummary();
+    analyze.mutate();
+  }
+
+  function handleManagerAction(actionId: string) {
+    if (actionId === "send-invoice") createInvoice.mutate();
+    else if (actionId === "generate-plan") runGeneratePlan();
+    else if (actionId === "deploy-staging") setActiveTab("deployment");
+    else if (actionId === "schedule-review" || actionId === "followup-client") setActiveTab("insights");
+    else if (actionId === "complete-tasks") setActiveTab("tasks");
+    else setActiveTab("insights");
+  }
+
+  function runGeneratePlan() {
+    setPlanLoading(true);
+    generatePlan.mutate(undefined, { onSettled: () => setPlanLoading(false) });
+  }
+
+  const patch = (body: object) => patchProject.mutate(body);
+  const financeFallback = buildFallbackProjectFinance(p, summary, invoiceList);
+  const analyticsFallback = buildFallbackProjectAnalytics(p, summary, taskList, ms);
 
   return (
-    <div className="p-6 lg:px-8 max-w-7xl mx-auto space-y-4">
-      <Link to="/projects" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Back to projects
-      </Link>
-      <BackendErrorAlert error={error} />
-
-      <ProjectCommandHeader project={p} summary={summary} />
-
-      <div className="flex flex-wrap gap-2 justify-end">
-        <Button
-          size="sm"
-          className="gap-1.5 font-semibold shadow-sm"
-          onClick={runGeneratePlan}
-          disabled={planLoading || generatePlan.isPending}
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          Generate project plan
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => createInvoice.mutate()} disabled={createInvoice.isPending}>
-          Create invoice
-        </Button>
-        <Button variant="ghost" size="sm" onClick={() => analyze.mutate()} disabled={analyze.isPending}>
-          AI report
-        </Button>
+    <div className="pb-12 bg-background">
+      <div className="px-4 sm:px-6 lg:px-8 pt-4 max-w-6xl mx-auto">
+        <Link to="/projects" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4">
+          <ArrowLeft className="h-4 w-4" /> Projects
+        </Link>
+        <BackendErrorAlert error={error} />
       </div>
 
-      <PhaseProgressBar phases={phases} />
+      <ProjectCommandHeader
+        project={p}
+        summary={summary}
+        onPatch={patch}
+        onGeneratePlan={runGeneratePlan}
+        onCreateInvoice={() => createInvoice.mutate()}
+        onAnalyze={refreshInsights}
+        planLoading={planLoading || generatePlan.isPending}
+      />
 
-      <div className="grid lg:grid-cols-[1fr_300px] gap-4 items-start">
-        <div className="min-w-0">
-          <Tabs defaultValue="overview" className="space-y-3">
-            <TabsList className="flex flex-wrap h-auto gap-1 bg-transparent p-0 w-full justify-start">
-              {TAB_ITEMS.map((t) => (
-                <TabsTrigger
-                  key={t}
-                  value={t}
-                  className={cn(
-                    "capitalize rounded-full px-4 py-2 text-sm border border-transparent",
-                    "data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-sm",
-                    "data-[state=inactive]:bg-muted/50 data-[state=inactive]:hover:bg-muted",
-                  )}
-                >
-                  {t}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+      <div className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-4 mt-4">
+        <ProjectSummaryCards
+          project={p}
+          summary={summary}
+          onFinanceClick={() => setActiveTab("finance")}
+        />
 
-            <TabsContent value="overview" className="mt-0 space-y-3">
-              <section className="rounded-xl border border-border bg-card p-4 space-y-2">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Project snapshot</h3>
-                <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                  <Row label="Client" value={p.client_name ?? "—"} />
-                  <Row label="Project type" value={intel.project_type ?? "Custom software"} />
-                  <Row label="Budget" value={formatInr(summary?.budget_cents ?? p.budget_cents)} />
-                  <Row label="Collected" value={formatInr(summary?.collected_cents)} />
-                  <Row label="Outstanding" value={formatInr(summary?.pending_cents)} />
-                  <Row label="Owner" value={summary?.manager_email?.split("@")[0] ?? "Unassigned"} />
-                  <Row label="Created" value={p.createdAt ? formatShortDate(p.createdAt) : "—"} />
-                </dl>
-              </section>
-              <ProjectBudgetCard
-                project={p}
-                budget={budget}
-                startDate={startDate}
-                endDate={endDate}
-                onBudget={(v) => { setBudget(v); setBudgetDirty(true); }}
-                onStart={(v) => { setStartDate(v); setBudgetDirty(true); }}
-                onEnd={(v) => { setEndDate(v); setBudgetDirty(true); }}
-                onSave={saveBudget}
-                saving={patchProject.isPending}
+        <PhaseProgressBar phases={phases} />
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <ProjectWorkspaceTabs />
+
+          <TabsContent value="overview" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader title="Overview" description="AI manager, health, and project snapshot" />
+            <div className="space-y-4">
+              <ProjectAIManager
+                brief={brief}
+                loading={summaryLoading && !brief}
+                error={summaryError && !brief}
+                fallback={usingFallbackBrief && Boolean(brief)}
+                onAction={handleManagerAction}
+                onRetry={refreshInsights}
               />
-            </TabsContent>
+              <div className="grid md:grid-cols-2 gap-4">
+                <ProjectHealthPanel breakdown={summary?.health_breakdown} project={p} />
+                <ProjectClientCard project={p} summary={summary} />
+              </div>
+            </div>
+          </TabsContent>
 
-            <TabsContent value="tasks" className="mt-0">
-              <ProjectTaskBoard
-                projectId={id!}
-                tasks={taskList}
-                onGeneratePlan={runGeneratePlan}
-                planLoading={planLoading || generatePlan.isPending}
-              />
-            </TabsContent>
+          <TabsContent value="tasks" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader
+              title="Tasks"
+              description={`${summary?.tasks_done ?? 0} of ${summary?.tasks_total ?? taskList.length} complete`}
+            />
+            <ProjectTaskBoard
+              projectId={id!}
+              tasks={taskList}
+              members={memberList}
+              onGeneratePlan={runGeneratePlan}
+              planLoading={planLoading || generatePlan.isPending}
+            />
+          </TabsContent>
 
-            <TabsContent value="timeline" className="mt-0">
-              <ProjectTimelineTab
-                milestones={ms}
-                title={milestoneTitle}
-                due={milestoneDue}
-                onTitle={setMilestoneTitle}
-                onDue={setMilestoneDue}
-                onAdd={() => addMilestone.mutate()}
-                adding={addMilestone.isPending}
-                onComplete={(mid) => completeMilestone.mutate(mid)}
-              />
-            </TabsContent>
+          <TabsContent value="team" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader
+              title="Project team"
+              description="Assign staff members and manage their project roles"
+            />
+            <ProjectTeamTab
+              members={memberList}
+              tasks={taskList}
+              available={availableMembers}
+              onAdd={(userId, role) => addMember.mutate({ userId, role })}
+              onRemove={(userId) => removeMember.mutate(userId)}
+            />
+          </TabsContent>
 
-            <TabsContent value="files" className="mt-0">
-              <Button variant="link" className="px-0 mb-2 gap-1 h-auto" onClick={() => navigate(`/files?project_id=${id}`)}>
-                <ExternalLink className="h-4 w-4" /> Upload in Files
-              </Button>
-              <ProjectFilesGrouped files={fileList} onDownload={downloadFile} />
-            </TabsContent>
+          <TabsContent value="milestones" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader title="Milestones" description="Delivery phases and payment milestones" />
+            <ProjectTimelineTab
+              milestones={ms}
+              title={milestoneTitle}
+              due={milestoneDue}
+              onTitle={setMilestoneTitle}
+              onDue={setMilestoneDue}
+              onAdd={() => addMilestone.mutate()}
+              adding={addMilestone.isPending}
+              onComplete={(mid) => completeMilestone.mutate(mid)}
+            />
+          </TabsContent>
 
-            <TabsContent value="invoices" className="mt-0">
+          <TabsContent value="timeline" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader title="Delivery timeline" description="Requirements through completion — with invoices, meetings, and payments" />
+            <ProjectRichTimeline projectId={id!} progressPct={effectiveProgress} />
+          </TabsContent>
+
+          <TabsContent value="documents" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader title="Documents" description="Contracts, designs, assets, and deliverables" />
+            <ProjectFileManager projectId={id!} />
+          </TabsContent>
+
+          <TabsContent value="finance" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader title="Finance" description="Revenue, expenses, profit, and cashflow" />
+            <div className="space-y-4">
+              <ProjectFinanceDashboard projectId={id!} fallback={financeFallback} />
+              <ProjectBudgetCard project={p} summary={summary} onPatch={patch} />
               <ProjectInvoicesTab invoices={invoiceList} summary={summary} />
-            </TabsContent>
+            </div>
+          </TabsContent>
 
-            <TabsContent value="notes" className="mt-0">
-              <ProjectNotesTab
-                notes={ups}
-                body={noteBody}
-                noteType={noteType}
-                filter={noteFilter}
-                onBody={setNoteBody}
-                onType={setNoteType}
-                onFilter={setNoteFilter}
-                onPost={() => addNote.mutate()}
-                posting={addNote.isPending}
-              />
-            </TabsContent>
+          <TabsContent value="analytics" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader title="Analytics" description="Burndown, velocity, revenue, and milestone progress" />
+            <ProjectAnalyticsPanel projectId={id!} fallback={analyticsFallback} />
+          </TabsContent>
 
-            <TabsContent value="team" className="mt-0">
-              <ProjectTeamTab
-                members={memberList}
-                tasks={taskList}
-                available={availableMembers}
-                onAdd={(userId, role) => addMember.mutate({ userId, role })}
-                onRemove={(userId) => removeMember.mutate(userId)}
-              />
-            </TabsContent>
+          <TabsContent value="activity" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader title="Activity" description="Everything that happened on this project" />
+            <ProjectActivityTimeline projectId={id!} />
+          </TabsContent>
 
-            <TabsContent value="portal" className="mt-0">
-              <ProjectPortalCard summary={summary} clientId={p.client_id} fileCount={fileList.length} />
-            </TabsContent>
-          </Tabs>
-        </div>
+          <TabsContent value="scope" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader title="Scope management" description="Included, excluded, future scope, and extra charges" />
+            <ProjectScopePanel projectId={id!} />
+          </TabsContent>
 
-        <aside className="space-y-3 lg:sticky lg:top-4">
-          <ProjectClientCard project={p} summary={summary} />
-          <ProjectActivityFeed projectId={id!} />
-          <ProjectIntelligencePanel intel={intel} loading={analyze.isPending && !p.analyzed_at} compact />
-        </aside>
+          <TabsContent value="revisions" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader title="Revision tracker" description="Every change requested by the client" />
+            <ProjectRevisionsPanel projectId={id!} />
+          </TabsContent>
+
+          <TabsContent value="change-orders" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader title="Change orders" description="Extra work, approvals, invoices, and payments" />
+            <ProjectChangeOrdersPanel projectId={id!} onCreateInvoice={() => createInvoice.mutate()} />
+          </TabsContent>
+
+          <TabsContent value="approvals" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader
+              title="Client approvals"
+              description="Send design, frontend, and change reviews — clients approve in their portal"
+            />
+            <ProjectApprovalsPanel projectId={id!} />
+          </TabsContent>
+
+          <TabsContent value="resources" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader title="Resource management" description="Team capacity, workload, and hours" />
+            <ProjectResourcesPanel projectId={id!} team={allMembers} />
+          </TabsContent>
+
+          <TabsContent value="deployment" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader title="Deployment" description="Hosting, domains, GitHub, and rollback history" />
+            <ProjectDeploymentPanel projectId={id!} />
+          </TabsContent>
+
+          <TabsContent value="insights" className="mt-4 focus-visible:outline-none">
+            <ProjectTabHeader title="Insights" description="Notes, team, portal, and project details" />
+            <div className="grid lg:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <ProjectNotesTab
+                  notes={ups}
+                  body={noteBody}
+                  noteType={noteType}
+                  filter={noteFilter}
+                  onBody={setNoteBody}
+                  onType={setNoteType}
+                  onFilter={setNoteFilter}
+                  onPost={() => addNote.mutate()}
+                  posting={addNote.isPending}
+                />
+                <ProjectTeamTab
+                  members={memberList}
+                  tasks={taskList}
+                  available={availableMembers}
+                  onAdd={(userId, role) => addMember.mutate({ userId, role })}
+                  onRemove={(userId) => removeMember.mutate(userId)}
+                />
+              </div>
+              <div className="space-y-4">
+                <ProjectPortalCard summary={summary} clientId={p.client_id} fileCount={fileList.length} />
+                <ProjectInfoEditor project={p} onPatch={patch} />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex gap-2">
-      <dt className="text-muted-foreground w-24 shrink-0">{label}</dt>
-      <dd>{value}</dd>
     </div>
   );
 }

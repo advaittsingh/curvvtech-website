@@ -1,5 +1,5 @@
 /**
- * One-time: create or upgrade a CurvvTech dashboard admin (JWT + password).
+ * One-time: create or upgrade a Curvvtech dashboard admin (JWT + password).
  *
  * Usage (never commit passwords):
  *   DATABASE_URL="postgresql://..." ADMIN_EMAIL="you@domain.com" ADMIN_PASSWORD="..." node scripts/create-curvvtech-admin.mjs

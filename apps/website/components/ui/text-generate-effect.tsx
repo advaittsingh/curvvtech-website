@@ -31,8 +31,8 @@ export const TextGenerateEffect = ({
           filter: filter ? "blur(0px)" : "none",
         },
         {
-          duration: duration ?? 0.5,
-          delay: stagger(0.2, { startDelay: delay }),
+          duration: duration ?? 0.25,
+          delay: stagger(0.05, { startDelay: delay }),
         }
       );
     }
@@ -49,8 +49,8 @@ export const TextGenerateEffect = ({
       {wordsArray.map((word, idx) => (
         <motion.span
           key={word + idx}
-          className="dark:text-white text-black opacity-0"
-          style={{ filter: filter ? "blur(10px)" : "none" }}
+          className="dark:text-white text-black"
+          style={{ filter: filter ? "blur(4px)" : "none" }}
         >
           {word}{" "}
         </motion.span>

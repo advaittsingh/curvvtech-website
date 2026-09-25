@@ -22,7 +22,7 @@ export default function CheckoutPage() {
           </div>
           <RazorpayCheckoutButton
             amount={100}
-            description="CurvvTech demo payment"
+            description="Curvvtech demo payment"
             label="Pay ₹1 (test)"
           />
         </div>

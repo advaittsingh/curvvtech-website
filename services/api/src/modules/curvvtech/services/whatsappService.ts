@@ -28,7 +28,7 @@ export function isWhatsAppConfigured(): boolean {
  */
 export function getWhatsAppContinueUrl(phone: string, contextMessage: string): string {
   const text = encodeURIComponent(
-    `Hello CurvvTech, I was chatting on your website about ${contextMessage}`
+    `Hello Curvvtech, I was chatting on your website about ${contextMessage}`
   )
   const num = phone.replace(/\D/g, '')
   const suffix = num.startsWith('91') ? num : `91${num}`
@@ -67,6 +67,6 @@ export async function sendTranscriptToWhatsApp(
   to: string,
   transcript: string
 ): Promise<{ success: boolean; error?: string }> {
-  const intro = 'Here is your chat transcript from CurvvTech:\n\n'
+  const intro = 'Here is your chat transcript from Curvvtech:\n\n'
   return sendWhatsAppMessage(to, intro + transcript.slice(0, 1500))
 }

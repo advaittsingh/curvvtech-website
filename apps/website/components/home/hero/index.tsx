@@ -8,9 +8,9 @@ function HeroSection() {
   const ref = useRef(null)
 
   const bottomAnimation = {
-    initial: { y: '20%', opacity: 0 },
+    initial: { y: 0, opacity: 1 },
     animate: { y: 0, opacity: 1 },
-    transition: { duration: 1, delay: 0.8 },
+    transition: { duration: 0.2 },
   }
 
   return (

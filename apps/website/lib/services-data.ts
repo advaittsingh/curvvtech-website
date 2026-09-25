@@ -30,47 +30,18 @@ export type ProjectItem = {
 // Work projects – one per folder in public/images/work/
 const workBase = '/images/work/'
 export const projects: ProjectItem[] = [
-  { id: 0, image: workBase + 'LUNE&LUSTRE/Lune&Lustre thumbnail.png', title: 'LUNE&LUSTRE', tag: ['E-commerce', 'Web Development'], link: 'https://lune-lustre.vercel.app/', serviceSlugs: ['web-development', 'app-development'] },
-  { id: 1, image: workBase + 'PAATA.AI/Black Modern Website Launch Promotion Mockup Instagram Post (1).png', title: 'PAATA.AI', tag: ['Web Development'], link: 'https://www.paataai.com/', serviceSlugs: ['web-development', 'ai-automation-solutions'] },
-  { id: 2, image: workBase + 'MASAKO INDIA/Masako India Thumbnail.png', title: 'MASAKO INDIA', tag: ['Web Development'], link: 'https://masakoindia.com/', serviceSlugs: ['web-development'] },
-  { id: 3, image: workBase + 'BLAAZE/Black Modern Website Launch Promotion Mockup Instagram Post.png', title: 'BLAAZE', tag: ['Web Development'], link: 'https://www.blaazeleadthethrill.in/', serviceSlugs: ['web-development'] },
-  {
-    id: 4,
-    image:
-      workBase +
-      'LIFESET - CRM /Black Modern Website Launch Promotion Mockup Instagram Post (1).png',
-    title: 'LIFESET - CRM',
-    tag: ['CRM', 'Web Development'],
-    link: '#',
-    serviceSlugs: ['web-development', 'custom-software-development'],
-  },
-  {
-    id: 5,
-    image:
-      workBase + 'TRACKHAUZ/Black Modern Website Launch Promotion Mockup Instagram Post (1).png',
-    title: 'TRACKHAUZ',
-    tag: ['Web Development'],
-    link: '#',
-    serviceSlugs: ['web-development'],
-  },
-  {
-    id: 6,
-    image:
-      workBase +
-      'PRIVATE MARKETPLACE TRACKER/Black Modern Website Launch Promotion Mockup Instagram Post.png',
-    title: 'PRIVATE MARKETPLACE TRACKER',
-    tag: ['Web Development'],
-    link: '#',
-    serviceSlugs: ['web-development', 'custom-software-development'],
-  },
-  {
-    id: 7,
-    image: workBase + 'DREAMZ/Black Modern Website Launch Promotion Mockup Instagram Post.png',
-    title: 'DREAMZ',
-    tag: ['Web Development'],
-    link: '#',
-    serviceSlugs: ['web-development'],
-  },
+  { id: 0, image: workBase + 'NIVAN FOUNDATION/cover-mockup.webp', title: 'NIVAN FOUNDATION', tag: ['Web Development'], link: 'https://www.nivanfoundation.org/', serviceSlugs: ['web-development'] },
+  { id: 1, image: workBase + 'TRACKHAUZ/cover-mockup-live.webp', title: 'TRACKHAUZ', tag: ['Web Development'], link: 'https://trackhauz.vercel.app/', serviceSlugs: ['web-development'] },
+  { id: 2, image: workBase + 'TREAD TRAILS/cover-mockup-live.webp', title: 'TREAD TRAILS', tag: ['E-commerce', 'Web Development'], link: 'https://treadtrails-web.vercel.app/', serviceSlugs: ['web-development'] },
+  { id: 3, image: workBase + 'MASAKO INDIA/cover-mockup.webp', title: 'MASAKO INDIA', tag: ['Web Development'], link: 'https://masakoindia.com/', serviceSlugs: ['web-development'] },
+  { id: 4, image: workBase + 'BLAAZE/cover-mockup.webp', title: 'BLAAZE', tag: ['Web Development'], link: 'https://www.blaazeleadthethrill.in/', serviceSlugs: ['web-development'] },
+  { id: 5, image: workBase + 'DREAMZ/cover-mockup.webp', title: 'DREAMZ', tag: ['Web Development'], link: '#', serviceSlugs: ['web-development'] },
+  { id: 6, image: workBase + 'SANVEDA/cover-mockup.webp', title: 'SANVEDA', tag: ['Web Development'], link: 'https://www.sanvedahumanitarian.org/', serviceSlugs: ['web-development'] },
+  { id: 7, image: workBase + 'PAATA.AI/cover-mockup.webp', title: 'PAATA.AI', tag: ['Web Development'], link: 'https://www.paataai.com/', serviceSlugs: ['web-development', 'ai-automation-solutions'] },
+  { id: 8, image: workBase + 'YOUNGBOYZTOYZ/cover-mockup-live.webp', title: 'YBT', tag: ['Web Development'], link: 'https://youngboyztoyz.com/', serviceSlugs: ['web-development'] },
+  { id: 9, image: workBase + 'PRIVATE MARKETPLACE TRACKER/cover-mockup.webp', title: 'PRIVATE MARKETPLACE TRACKER', tag: ['Web Development'], link: '#', serviceSlugs: ['web-development', 'custom-software-development'] },
+  { id: 10, image: workBase + 'LIFESET - CRM/cover-mockup.webp', title: 'LIFESET - CRM', tag: ['CRM', 'Web Development'], link: '#', serviceSlugs: ['web-development', 'custom-software-development'] },
+  { id: 11, image: workBase + 'LUNE&LUSTRE/cover-mockup.webp', title: 'LUNE&LUSTRE', tag: ['E-commerce', 'Web Development'], link: 'https://lune-lustre.vercel.app/', serviceSlugs: ['web-development', 'app-development'] },
 ];
 
 export const servicesDetail: ServiceDetail[] = [
@@ -87,7 +58,7 @@ export const servicesDetail: ServiceDetail[] = [
     ],
     icon: '/images/home/innovation/webdevp.svg',
     accentColor: 'purple',
-    projectIds: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+    projectIds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
     highlights: ['SEO-friendly', 'Conversion-friendly', 'CMS now clearly included'],
     whatWeBuild: [
       'Marketing & corporate websites',
@@ -124,7 +95,7 @@ export const servicesDetail: ServiceDetail[] = [
     ],
     icon: '/images/home/innovation/uiux.svg',
     accentColor: 'blue',
-    projectIds: [0, 1, 2],
+    projectIds: [11, 7, 3],
   },
   {
     slug: 'backend-api-development',
@@ -139,7 +110,7 @@ export const servicesDetail: ServiceDetail[] = [
     ],
     icon: '/images/home/innovation/analitics.svg',
     accentColor: 'orange',
-    projectIds: [4, 6, 7],
+    projectIds: [10, 9, 5],
   },
   {
     slug: 'ai-automation-solutions',
@@ -154,7 +125,7 @@ export const servicesDetail: ServiceDetail[] = [
     ],
     icon: '/images/home/innovation/digitalmarketing.svg',
     accentColor: 'green',
-    projectIds: [1, 7],
+    projectIds: [7, 5],
   },
   {
     slug: 'saas-product-development',
@@ -169,7 +140,7 @@ export const servicesDetail: ServiceDetail[] = [
     ],
     icon: '/images/home/innovation/brand.svg',
     accentColor: 'pink',
-    projectIds: [1, 4, 7],
+    projectIds: [7, 10, 5],
   },
   {
     slug: 'custom-software-development',
@@ -184,7 +155,7 @@ export const servicesDetail: ServiceDetail[] = [
     ],
     icon: '/images/home/innovation/webdevp.svg',
     accentColor: 'violet',
-    projectIds: [3, 4, 5, 6, 7, 8],
+    projectIds: [4, 10, 1, 9, 5, 0, 6],
   },
 ];
 

@@ -1,11 +1,14 @@
 
-import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-    title: "404 Page | Curvvtech",
-};
+export const metadata = createPageMetadata({
+  title: "404 Page | Curvvtech",
+  description: "The page you are looking for could not be found.",
+  path: "/404",
+  noIndex: true,
+});
 
 const ErrorPage = () => {
     return (

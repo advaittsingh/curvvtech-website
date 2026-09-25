@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { Button } from "@/components/ui/button";
@@ -14,16 +16,38 @@ export function IntegrationsPanel() {
   const api = useAdminApi();
   const qc = useQueryClient();
   const { toast } = useToast();
+  const [params, setParams] = useSearchParams();
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "integrations"],
     queryFn: () => api.integrations.list(),
   });
 
+  useEffect(() => {
+    const connected = params.get("connected");
+    const error = params.get("error");
+    if (connected) {
+      toast({ title: `${PROVIDER_LABELS[connected] ?? connected} connected` });
+      qc.invalidateQueries({ queryKey: ["admin", "integrations"] });
+      qc.invalidateQueries({ queryKey: ["admin", "careers", "setup"] });
+      params.delete("connected");
+      setParams(params, { replace: true });
+    } else if (error) {
+      toast({
+        title: "Google connection failed",
+        description: error === "oauth_failed" ? "Check GOOGLE_CLIENT_SECRET and the redirect URI in Google Cloud." : error,
+        variant: "destructive",
+      });
+      params.delete("error");
+      setParams(params, { replace: true });
+    }
+  }, [params, qc, setParams, toast]);
+
   const disconnect = useMutation({
     mutationFn: (provider: string) => api.integrations.disconnect(provider),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "integrations"] });
+      qc.invalidateQueries({ queryKey: ["admin", "careers", "setup"] });
       toast({ title: "Disconnected" });
     },
   });
@@ -33,15 +57,14 @@ export function IntegrationsPanel() {
   async function connect(provider: string) {
     const res = await api.integrations.oauthUrl(provider);
     if (res.configured && res.url) {
-      window.open(res.url, "_blank");
-      toast({ title: "Complete OAuth in the new window" });
-    } else {
-      toast({
-        title: "OAuth not configured",
-        description: res.message ?? "Set GOOGLE_CLIENT_ID on the API server to enable this integration.",
-        variant: "destructive",
-      });
+      window.location.assign(res.url);
+      return;
     }
+    toast({
+      title: "OAuth not configured",
+      description: res.message ?? "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET on the API.",
+      variant: "destructive",
+    });
   }
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading integrations…</p>;
@@ -49,7 +72,8 @@ export function IntegrationsPanel() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Connect Gmail, Google Calendar, and WhatsApp. OAuth requires GOOGLE_CLIENT_ID on the API server.
+        Connect Google Calendar with the hiring Google account so Careers can create Meet links when you shortlist.
+        Gmail OAuth is optional; outbound mail already uses Resend.
       </p>
       {list.map((item: { provider: string; connected: boolean }) => (
         <div key={item.provider} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
@@ -61,9 +85,13 @@ export function IntegrationsPanel() {
           </div>
           <div className="flex gap-2">
             {item.connected ? (
-              <Button variant="outline" size="sm" onClick={() => disconnect.mutate(item.provider)}>Disconnect</Button>
+              <Button variant="outline" size="sm" onClick={() => disconnect.mutate(item.provider)}>
+                Disconnect
+              </Button>
             ) : (
-              <Button size="sm" onClick={() => connect(item.provider)}>Connect</Button>
+              <Button size="sm" onClick={() => connect(item.provider)}>
+                Connect
+              </Button>
             )}
           </div>
         </div>

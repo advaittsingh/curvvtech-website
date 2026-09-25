@@ -92,6 +92,17 @@ export type TeamMemberDetail = TeamMember & {
   activity: TeamActivityItem[];
 };
 
+export type StaffInvitation = {
+  id: string;
+  email: string;
+  name?: string | null;
+  role: string;
+  status?: string | null;
+  expires_at?: string | null;
+  created_at?: string | null;
+  invite_url?: string | null;
+};
+
 export function roleLabel(role?: string | null): string {
   if (!role) return "—";
   return ROLE_META[role]?.label ?? role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());

@@ -24,7 +24,7 @@ export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
   new: "bg-blue-100 text-blue-800 border-blue-200",
   qualified: "bg-cyan-100 text-cyan-800 border-cyan-200",
   discovery_call: "bg-violet-100 text-violet-800 border-violet-200",
-  proposal_sent: "bg-indigo-100 text-indigo-800 border-indigo-200",
+  proposal_sent: "bg-orange-100 text-orange-800 border-orange-200",
   negotiation: "bg-amber-100 text-amber-800 border-amber-200",
   won: "bg-emerald-100 text-emerald-800 border-emerald-200",
   lost: "bg-stone-100 text-stone-600 border-stone-200",
@@ -83,8 +83,34 @@ export function formatRelativeDays(dateStr: string | null | undefined): string {
   return `${days} days ago`;
 }
 
+/** Compact "just now / 18m ago / 3h ago / 2d ago / 12 Jun" for feed-style timestamps. */
+export function formatRelativeTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const then = new Date(dateStr).getTime();
+  if (Number.isNaN(then)) return "—";
+  const diffMs = Date.now() - then;
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hrs = Math.floor(min / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+
+/** Short INR with L/Cr suffix for dense KPI tiles, e.g. ₹18.4L, ₹1.2Cr. */
+export function formatInrCompact(cents: number | null | undefined): string {
+  if (!cents) return "₹0";
+  const rupees = cents / 100;
+  if (rupees >= 1_00_00_000) return `₹${(rupees / 1_00_00_000).toFixed(1)}Cr`;
+  if (rupees >= 1_00_000) return `₹${(rupees / 1_00_000).toFixed(1)}L`;
+  if (rupees >= 1_000) return `₹${Math.round(rupees / 1_000)}K`;
+  return `₹${Math.round(rupees)}`;
+}
+
 export function formatInr(cents: number | null | undefined): string {
-  if (!cents) return "—";
+  if (cents == null) return "—";
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -116,19 +142,32 @@ export function formatNextFollowUp(dateStr: string | null | undefined): string {
   return formatShortDate(dateStr);
 }
 
-export const NOTE_CATEGORIES = ["meeting", "requirements", "internal"] as const;
+export const NOTE_CATEGORIES = [
+  "meeting",
+  "requirements",
+  "internal",
+  "risks",
+  "competitors",
+  "pricing",
+] as const;
 export type NoteCategory = (typeof NOTE_CATEGORIES)[number];
 
 export const NOTE_CATEGORY_LABELS: Record<NoteCategory, string> = {
   meeting: "Meeting Notes",
   requirements: "Requirements",
   internal: "Internal Notes",
+  risks: "Risks",
+  competitors: "Competitors",
+  pricing: "Pricing Notes",
 };
 
 export const NOTE_CATEGORY_PREFIX: Record<NoteCategory, string> = {
   meeting: "[Meeting Notes]",
   requirements: "[Requirements]",
   internal: "[Internal Notes]",
+  risks: "[Risks]",
+  competitors: "[Competitors]",
+  pricing: "[Pricing Notes]",
 };
 
 export function parseNoteCategory(body: string): { category: NoteCategory | "legacy"; text: string } {

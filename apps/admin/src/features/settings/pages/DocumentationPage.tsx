@@ -3,9 +3,9 @@ import { PageHeader } from "@/components/system";
 export default function DocumentationPage() {
   return (
     <div className="p-6 max-w-3xl">
-      <PageHeader title="Documentation" description="CurvvTech OS admin guide" />
+      <PageHeader title="Documentation" description="Curvvtech OS admin guide" />
       <div className="prose prose-sm text-muted-foreground space-y-4">
-        <p>CurvvTech OS connects sales, delivery, finance, and operations in one admin panel backed by the unified API.</p>
+        <p>Curvvtech OS connects sales, delivery, finance, and operations in one admin panel backed by the unified API.</p>
         <ul className="list-disc pl-5 space-y-2">
           <li><strong>Command Center</strong> — revenue, pipeline, and delivery health on the dashboard.</li>
           <li><strong>CRM</strong> — leads, clients, proposals with AI-assisted writing.</li>

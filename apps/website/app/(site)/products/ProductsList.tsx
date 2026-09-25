@@ -1,5 +1,3 @@
-'use client';
-
 import { HomeStyleProjectGrid } from '@/components/project/home-style-project-grid';
 import type { Product } from '@/lib/products-data';
 

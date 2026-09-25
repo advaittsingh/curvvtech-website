@@ -10,9 +10,22 @@ import {
   buildRoleCatalog,
   getRolesSecurityInsight,
 } from "../services/rolesIntelligence.js";
+import {
+  createStaffInvitation,
+  listStaffInvitations,
+  revokeStaffInvitation,
+  StaffInviteError,
+} from "../../auth/staffInvitations.service.js";
+import { normalizeAdminRole } from "../../../lib/adminPermissions.js";
 
 const router = Router();
 router.use(requireCurvvtechAdmin);
+
+function requireSuperAdmin(req: { adminRole?: string | null }, res: { status: (code: number) => { json: (body: unknown) => void } }): boolean {
+  if (req.adminRole === "super_admin") return true;
+  res.status(403).json({ error: "FORBIDDEN", message: "super_admin role required" });
+  return false;
+}
 
 function departmentFromRole(role: string | null | undefined, cpDept: string | null | undefined): string {
   if (cpDept?.trim()) return cpDept.trim();
@@ -30,7 +43,7 @@ function departmentFromRole(role: string | null | undefined, cpDept: string | nu
   return map[String(role ?? "").toLowerCase()] ?? "general";
 }
 
-const MEMBER_AGG = `
+const MEMBER_AGG_SELECT = `
   SELECT
     u.id::text AS user_id,
     u.email,
@@ -52,10 +65,19 @@ const MEMBER_AGG = `
   LEFT JOIN compensation_profiles cp ON cp.user_id = u.id AND cp.is_active
   LEFT JOIN project_members pm ON pm.user_id = u.id
   LEFT JOIN tasks t ON t.assignee_user_id = u.id::text
-  WHERE u.curvvtech_role IS NOT NULL
+`;
+
+const MEMBER_AGG_GROUP = `
   GROUP BY u.id, u.email, u.curvvtech_role, up.display_name, up.phone,
     cp.id, cp.monthly_salary_cents, cp.role_title, cp.department, cp.employment_type, cp.joined_at, u.created_at
 `;
+
+function memberAggregateQuery(extraWhere = ""): string {
+  return `${MEMBER_AGG_SELECT}
+    WHERE u.curvvtech_role IS NOT NULL
+    ${extraWhere}
+    ${MEMBER_AGG_GROUP}`;
+}
 
 function mapMember(row: Record<string, unknown>) {
   const active = Number(row.active_tasks ?? 0);
@@ -86,7 +108,7 @@ function mapMember(row: Record<string, unknown>) {
 
 router.get("/dashboard", async (_req, res) => {
   try {
-    const membersResult = await pool.query(`${MEMBER_AGG} ORDER BY name ASC`);
+    const membersResult = await pool.query(`${memberAggregateQuery()} ORDER BY name ASC`);
     const members = membersResult.rows.map((r) => mapMember(r as Record<string, unknown>));
 
     const summary = {
@@ -184,7 +206,7 @@ router.get("/dashboard", async (_req, res) => {
 router.get("/members/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-    const memberResult = await pool.query(`${MEMBER_AGG} AND u.id = $1::uuid`, [userId]);
+    const memberResult = await pool.query(memberAggregateQuery("AND u.id = $1::uuid"), [userId]);
     if (memberResult.rows.length === 0) {
       res.status(404).json({ error: "Not found" });
       return;
@@ -274,7 +296,7 @@ router.get("/capacity", async (_req, res) => {
 
 router.get("/members", async (_req, res) => {
   try {
-    const result = await pool.query(`${MEMBER_AGG} ORDER BY name ASC`);
+    const result = await pool.query(`${memberAggregateQuery()} ORDER BY name ASC`);
     res.json(result.rows.map((r) => mapMember(r as Record<string, unknown>)));
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
@@ -347,7 +369,52 @@ router.get("/roles", async (_req, res) => {
   }
 });
 
+router.get("/invitations", async (req, res) => {
+  if (!requireSuperAdmin(req, res)) return;
+  try {
+    res.json(await listStaffInvitations(pool));
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+router.post("/invitations", async (req, res) => {
+  if (!requireSuperAdmin(req, res)) return;
+  try {
+    const invitation = await createStaffInvitation(pool, {
+      email: String(req.body?.email ?? ""),
+      name: typeof req.body?.name === "string" ? req.body.name : undefined,
+      role: req.body?.role,
+      invitedBy: req.auth!.sub,
+      expiresInHours:
+        req.body?.expires_in_hours === undefined ? undefined : Number(req.body.expires_in_hours),
+    });
+    res.status(201).json(invitation);
+  } catch (e) {
+    if (e instanceof StaffInviteError) {
+      res.status(e.status).json({ error: "INVALID_INVITATION", message: e.message });
+      return;
+    }
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+router.delete("/invitations/:id", async (req, res) => {
+  if (!requireSuperAdmin(req, res)) return;
+  try {
+    const revoked = await revokeStaffInvitation(pool, String(req.params.id));
+    if (!revoked) {
+      res.status(404).json({ error: "Invitation not found or no longer pending" });
+      return;
+    }
+    res.status(204).end();
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message });
+  }
+});
+
 router.patch("/members/:userId", async (req, res) => {
+  if (!requireSuperAdmin(req, res)) return;
   try {
     const { userId } = req.params;
     const { curvvtech_role } = req.body as { curvvtech_role?: string | null };
@@ -356,27 +423,36 @@ router.patch("/members/:userId", async (req, res) => {
       return;
     }
     const norm =
-      curvvtech_role === "" || curvvtech_role === null ? null : String(curvvtech_role).toLowerCase();
-    const allowed = [
-      "admin",
-      "manager",
-      "member",
-      "sales",
-      "project_manager",
-      "developer",
-      "designer",
-      "accountant",
-      "super_admin",
-    ];
-    if (norm !== null && !allowed.includes(norm)) {
+      curvvtech_role === "" || curvvtech_role === null
+        ? null
+        : normalizeAdminRole(String(curvvtech_role));
+    if (curvvtech_role !== "" && curvvtech_role !== null && norm === null) {
       res.status(400).json({ error: "Invalid curvvtech_role" });
       return;
+    }
+    const current = firstRow<{ curvvtech_role: string | null }>(await sql`
+      SELECT curvvtech_role FROM users WHERE id = ${userId}::uuid
+    `);
+    if (!current) {
+      res.status(404).json({ error: "Team member not found" });
+      return;
+    }
+    if (normalizeAdminRole(current.curvvtech_role) === "super_admin" && norm !== "super_admin") {
+      const remaining = firstRow<{ count: number }>(await sql`
+        SELECT COUNT(*)::int AS count
+        FROM users
+        WHERE lower(curvvtech_role) = 'super_admin' AND id <> ${userId}::uuid
+      `);
+      if (Number(remaining?.count ?? 0) === 0) {
+        res.status(409).json({ error: "Cannot remove the last super_admin" });
+        return;
+      }
     }
     await sql`
       UPDATE users SET curvvtech_role = ${norm}, updated_at = now()
       WHERE id = ${userId}::uuid
     `;
-    const result = await pool.query(`${MEMBER_AGG} AND u.id = $1::uuid`, [userId]);
+    const result = await pool.query(memberAggregateQuery("AND u.id = $1::uuid"), [userId]);
     res.json(result.rows[0] ? mapMember(result.rows[0] as Record<string, unknown>) : {});
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });

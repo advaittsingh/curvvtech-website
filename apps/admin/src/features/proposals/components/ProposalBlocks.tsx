@@ -1,5 +1,6 @@
 import type { ProposalMetadata } from "../constants";
 import { formatInr, newId, sumLineItems } from "../constants";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,8 @@ type Section = { id: string; title: string; content: string; section_key?: strin
 export function ProposalSettingsPanel({
   clientName,
   leadName,
+  leadId,
+  clientId,
   projectType,
   computedTotalCents,
   currency,
@@ -21,6 +24,8 @@ export function ProposalSettingsPanel({
 }: {
   clientName?: string | null;
   leadName?: string | null;
+  leadId?: string | null;
+  clientId?: string | null;
   projectType?: string | null;
   computedTotalCents?: number;
   currency?: string | null;
@@ -30,12 +35,27 @@ export function ProposalSettingsPanel({
   onPatch: (body: object) => void;
 }) {
   return (
-    <aside className="rounded-xl border border-border bg-card p-4 space-y-3 h-fit sticky top-6 min-w-0 overflow-hidden">
+    <aside className="rounded-xl border border-border bg-card p-5 space-y-3 h-fit sticky top-28 min-w-0 overflow-hidden shadow-sm">
       <h3 className="font-medium text-sm">Proposal settings</h3>
       <Field label="Client">
         <Input defaultValue={clientName ?? ""} onBlur={(e) => onPatch({ client_name: e.target.value })} />
       </Field>
-      {leadName && <ReadRow label="Lead" value={leadName} />}
+      {leadName && leadId && (
+        <div className="text-sm">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Linked lead</p>
+          <Link to={`/leads/${leadId}`} className="font-medium text-primary hover:underline truncate block">
+            {leadName}
+          </Link>
+        </div>
+      )}
+      {clientId && (
+        <div className="text-sm">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Linked client</p>
+          <Link to={`/clients/${clientId}`} className="font-medium text-primary hover:underline truncate block">
+            {clientName ?? "View client"}
+          </Link>
+        </div>
+      )}
       <Field label="Project type">
         <Input defaultValue={projectType ?? ""} onBlur={(e) => onPatch({ project_type: e.target.value })} />
       </Field>
@@ -160,8 +180,8 @@ export function ProposalSectionBlock({
   const block = section.block_type ?? "text";
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-      <h3 className="font-medium">{section.title}</h3>
+    <div className="rounded-xl border border-border bg-card p-5 lg:p-6 space-y-3 shadow-sm">
+      <h3 className="font-semibold text-base">{section.title}</h3>
 
       {block === "pricing" && <PricingBlock metadata={metadata} onChange={onMetadataChange} />}
       {block === "timeline" && <TimelineBlock metadata={metadata} onChange={onMetadataChange} />}
@@ -171,8 +191,9 @@ export function ProposalSectionBlock({
       {block === "text" && (
         <Textarea
           value={section.content}
-          rows={5}
+          rows={6}
           placeholder="Write section content…"
+          className="resize-none min-h-[140px] leading-relaxed"
           onChange={(e) => onContentChange(e.target.value)}
         />
       )}
@@ -408,7 +429,7 @@ function SignatureBlock({ metadata, onChange }: { metadata: ProposalMetadata; on
   return (
     <div className="grid sm:grid-cols-2 gap-6">
       <div className="rounded-lg border border-dashed border-border p-4 space-y-3">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">CurvvTech signature</p>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">Curvvtech signature</p>
         <div className="border-b border-border h-10" />
         <p className="text-sm font-medium">Authorized signatory</p>
         <p className="text-xs text-muted-foreground">Date: _______________</p>

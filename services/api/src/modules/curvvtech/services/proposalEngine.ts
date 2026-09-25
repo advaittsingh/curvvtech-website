@@ -16,7 +16,7 @@ export const CONSULTING_PROPOSAL_SECTIONS = [
   { section_key: 'ai_opportunities', title: 'AI Opportunities', content: '', block_type: 'text' },
   { section_key: 'tech_architecture', title: 'Technical Architecture', content: '', block_type: 'text' },
   { section_key: 'development_roadmap', title: 'Development Roadmap', content: '', block_type: 'timeline' },
-  { section_key: 'why_curvvtech', title: 'Why CurvvTech', content: '', block_type: 'text' },
+  { section_key: 'why_curvvtech', title: 'Why Curvvtech', content: '', block_type: 'text' },
   { section_key: 'pricing', title: 'Investment & Milestones', content: '', block_type: 'pricing' },
   { section_key: 'addons', title: 'Optional Add-ons', content: '', block_type: 'addons' },
   { section_key: 'terms', title: 'Terms & Conditions', content: '', block_type: 'text' },
@@ -37,6 +37,13 @@ export type ProposalContextInput = {
   deal_value_cents?: number | null
   source?: string | null
   tags?: string[] | null
+  client_email?: string | null
+  client_company?: string | null
+  lead_notes?: string | null
+  client_notes?: string | null
+  active_projects?: string | null
+  lead_status?: string | null
+  probability?: number | null
 }
 
 export type BusinessAnalysis = {
@@ -93,20 +100,27 @@ export function buildProposalContext(input: ProposalContextInput): string {
 
   return [
     `Client / Company: ${client}`,
+    input.client_company ? `Client company: ${input.client_company}` : null,
+    input.client_email ? `Client email: ${input.client_email}` : null,
     input.lead_name ? `Contact: ${input.lead_name}` : null,
+    input.lead_status ? `Lead stage: ${input.lead_status}` : null,
+    input.probability != null ? `Win probability: ${input.probability}%` : null,
     `Project type: ${input.project_type ?? 'Custom digital product'}`,
     `Proposal title: ${input.title ?? `${client} Proposal`}`,
     valueInr > 0 ? `Budget / deal value: ₹${valueInr.toLocaleString('en-IN')} INR` : input.budget ? `Budget hint: ${input.budget}` : null,
     input.timeline ? `Timeline hint: ${input.timeline}` : null,
     input.source ? `Lead source: ${input.source}` : null,
     tags ? `Tags: ${tags}` : null,
-    reqs ? `Requirements & notes:\n${reqs}` : null,
+    reqs ? `Requirements & discovery:\n${reqs}` : null,
+    input.lead_notes ? `Lead notes:\n${input.lead_notes}` : null,
+    input.client_notes ? `Client notes:\n${input.client_notes}` : null,
+    input.active_projects ? `Active projects: ${input.active_projects}` : null,
   ]
     .filter(Boolean)
     .join('\n')
 }
 
-const ARCHITECT_SYSTEM = `You are a senior solution architect and business consultant at CurvvTech, a premium software agency in India.
+const ARCHITECT_SYSTEM = `You are a senior solution architect and business consultant at Curvvtech, a premium software agency in India.
 
 Analyze the client context deeply. Infer industry, business model, and growth opportunities from company name, requirements, and project type.
 
@@ -129,7 +143,7 @@ export async function generateBusinessAnalysis(context: string): Promise<Busines
   return parsed
 }
 
-const PROPOSAL_SYSTEM = `You are a senior solution architect at CurvvTech writing a premium consulting proposal.
+const PROPOSAL_SYSTEM = `You are a senior solution architect at Curvvtech writing a premium consulting proposal.
 
 You have already analyzed the client's business. Write a detailed, custom proposal — NOT a generic template.
 
@@ -145,7 +159,7 @@ Rules:
 
 Return JSON only:
 {
-  "cover": "Formatted cover page text with Prepared For, Prepared By CurvvTech, Date, Reference",
+  "cover": "Formatted cover page text with Prepared For, Prepared By Curvvtech, Date, Reference",
   "sections": [
     {"section_key":"executive_summary","content":"..."},
     {"section_key":"business_understanding","content":"..."},
@@ -155,7 +169,7 @@ Return JSON only:
     {"section_key":"monetization","content":"potential revenue streams for THIS client"},
     {"section_key":"ai_opportunities","content":"AI features recommended for THIS client"},
     {"section_key":"tech_architecture","content":"recommended stack and architecture"},
-    {"section_key":"why_curvvtech","content":"why CurvvTech is the right partner"},
+    {"section_key":"why_curvvtech","content":"why Curvvtech is the right partner"},
     {"section_key":"terms","content":"brief terms for India-based agency"}
   ],
   "scope_modules": {

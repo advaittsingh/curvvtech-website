@@ -12,7 +12,7 @@ type ProtectedRouteProps = {
 
 function AuthLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-50">
+    <div className="h-full flex items-center justify-center bg-stone-50">
       <p className="text-sm text-stone-600">Validating session…</p>
     </div>
   );
@@ -20,7 +20,7 @@ function AuthLoading() {
 
 function Forbidden() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-50 px-4">
+    <div className="h-full flex items-center justify-center bg-stone-50 px-4">
       <div className="max-w-md text-center space-y-2">
         <h1 className="text-xl font-semibold text-stone-900">Access denied</h1>
         <p className="text-sm text-stone-600">

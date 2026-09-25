@@ -1,10 +1,95 @@
 import { sql, firstRow } from '../../../lib/sqlPool.js'
+import { sendEmail } from '../../shared/communications/mailer.js'
+import { logger } from '../../../logger.js'
 
 type TriggerContext = {
   trigger_type: string
   entity_type: string
   entity_id: string
   payload: Record<string, unknown>
+}
+
+type WorkflowCondition = {
+  field: string
+  operator: string
+  value: unknown
+}
+
+/** Evaluate an optional list of AND-conditions against the trigger payload. */
+function evaluateConditions(conditions: unknown, payload: Record<string, unknown>): boolean {
+  if (!Array.isArray(conditions) || conditions.length === 0) return true
+  return conditions.every((raw) => {
+    const c = raw as WorkflowCondition
+    if (!c || !c.field) return true
+    const actual = payload[c.field]
+    const expected = c.value
+    const numA = Number(actual)
+    const numB = Number(expected)
+    const bothNumeric = !Number.isNaN(numA) && !Number.isNaN(numB) && String(expected).trim() !== ''
+    switch (c.operator) {
+      case 'eq':
+        return String(actual ?? '') === String(expected ?? '')
+      case 'neq':
+        return String(actual ?? '') !== String(expected ?? '')
+      case 'gt':
+        return bothNumeric && numA > numB
+      case 'gte':
+        return bothNumeric && numA >= numB
+      case 'lt':
+        return bothNumeric && numA < numB
+      case 'lte':
+        return bothNumeric && numA <= numB
+      case 'contains':
+        return String(actual ?? '').toLowerCase().includes(String(expected ?? '').toLowerCase())
+      default:
+        return true
+    }
+  })
+}
+
+type WorkflowRecipient = { email: string | null; name: string | null }
+
+/** Resolve the target recipient (email + name) for a workflow send_email action. */
+async function resolveWorkflowRecipient(
+  ctx: TriggerContext,
+  ac: Record<string, unknown>,
+): Promise<WorkflowRecipient | null> {
+  if (ac.to) return { email: String(ac.to), name: null }
+  try {
+    if (ctx.entity_type === 'lead') {
+      return firstRow<WorkflowRecipient>(
+        await sql`SELECT email, name FROM crm_leads WHERE id = ${ctx.entity_id}::uuid LIMIT 1`,
+      )
+    }
+    if (ctx.entity_type === 'invoice') {
+      return firstRow<WorkflowRecipient>(await sql`
+        SELECT c.email, c.name FROM invoices i
+        JOIN clients c ON c.id = i.client_id
+        WHERE i.id = ${ctx.entity_id}::uuid LIMIT 1
+      `)
+    }
+    if (ctx.entity_type === 'client') {
+      return firstRow<WorkflowRecipient>(
+        await sql`SELECT email, name FROM clients WHERE id = ${ctx.entity_id}::uuid LIMIT 1`,
+      )
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+/** Replace {{name}}, {{email}}, and {{payload.*}} tokens in workflow email copy. */
+function interpolate(template: string, recipient: WorkflowRecipient | null, ctx: TriggerContext): string {
+  return template.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_m, key: string) => {
+    if (key === 'name') return recipient?.name ?? 'there'
+    if (key === 'email') return recipient?.email ?? ''
+    if (key.startsWith('payload.')) {
+      const v = ctx.payload[key.slice('payload.'.length)]
+      return v == null ? '' : String(v)
+    }
+    return ''
+  })
 }
 
 export async function runCurvvtechWorkflows(ctx: TriggerContext): Promise<void> {
@@ -22,6 +107,9 @@ export async function runCurvvtechWorkflows(ctx: TriggerContext): Promise<void> 
     }
     if (ctx.trigger_type === 'invoice_paid' && ctx.entity_type !== 'invoice') continue
     if (ctx.trigger_type === 'proposal_accepted' && ctx.payload.status !== 'approved') continue
+
+    // Generic condition builder (trigger_config.conditions): all must match.
+    if (!evaluateConditions(cfg.conditions, ctx.payload)) continue
 
     const actions = await sql`
       SELECT action_type, action_config, step_order
@@ -90,7 +178,18 @@ export async function runCurvvtechWorkflows(ctx: TriggerContext): Promise<void> 
             results.push({ action: 'create_invoice', invoice_id: inv?.id })
           }
         } else if (action.action_type === 'send_email') {
-          results.push({ action: 'send_email', status: 'queued', note: 'Configure SMTP in company settings' })
+          const recipient = await resolveWorkflowRecipient(ctx, ac)
+          const to = String(ac.to ?? recipient?.email ?? '').trim()
+          if (!to || !to.includes('@')) {
+            results.push({ action: 'send_email', status: 'skipped', note: 'No recipient email' })
+          } else {
+            const subject = interpolate(String(ac.subject ?? 'A message from Curvvtech'), recipient, ctx)
+            const bodyRaw = interpolate(String(ac.body ?? ac.message ?? ''), recipient, ctx)
+            const html = bodyRaw.includes('<') ? bodyRaw : `<p>${bodyRaw.replace(/\n/g, '<br/>')}</p>`
+            const res = await sendEmail({ to, subject, html, text: bodyRaw || subject })
+            if (!res.ok) logger.warn({ err: res.error }, 'workflow_send_email_failed')
+            results.push({ action: 'send_email', status: res.ok ? 'sent' : 'failed', provider: res.provider })
+          }
         } else if (action.action_type === 'log_activity') {
           await sql`
             INSERT INTO activity_logs (action, entity_type, entity_id, details)
@@ -103,9 +202,12 @@ export async function runCurvvtechWorkflows(ctx: TriggerContext): Promise<void> 
       }
     }
 
+    const hadError = results.some((r) => r && typeof r === 'object' && 'error' in (r as object))
+    const runStatus = results.length === 0 ? 'skipped' : hadError ? 'failed' : 'completed'
+
     await sql`
       INSERT INTO curvvtech_workflow_runs (workflow_id, entity_type, entity_id, status, result)
-      VALUES (${wf.id}::uuid, ${ctx.entity_type}, ${ctx.entity_id}, 'completed', ${JSON.stringify(results)}::jsonb)
+      VALUES (${wf.id}::uuid, ${ctx.entity_type}, ${ctx.entity_id}, ${runStatus}, ${JSON.stringify(results)}::jsonb)
     `
   }
 }

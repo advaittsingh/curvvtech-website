@@ -1,6 +1,7 @@
 import { Menu } from "lucide-react";
 import { GlobalSearch } from "./GlobalSearch";
 import { NotificationBell } from "./NotificationBell";
+import { InboxButton } from "./InboxButton";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/app/providers";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -30,11 +31,12 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         <GlobalSearch />
       </div>
       <div className="flex items-center gap-3 shrink-0">
+        <InboxButton />
         <NotificationBell />
         <Link to="/profile" className="flex items-center gap-3 rounded-lg px-2 py-1 hover:bg-muted transition-colors">
           <div className="hidden sm:block text-right">
             <p className="text-sm font-medium text-foreground leading-tight">{name}</p>
-            <p className="text-[11px] text-muted-foreground leading-tight">CurvvTech OS</p>
+            <p className="text-[11px] text-muted-foreground leading-tight">Curvvtech OS</p>
           </div>
           <Avatar className="h-8 w-8 border border-border">
             <AvatarFallback className="bg-muted text-foreground text-xs font-medium">{initials}</AvatarFallback>

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/app/providers";
 
 type TeamMember = {
   id: string;
@@ -24,6 +25,8 @@ type TeamMember = {
 export default function TeamCmsPage() {
   const api = useAdminApi();
   const qc = useQueryClient();
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission("content.edit");
   const [editing, setEditing] = useState<TeamMember | null>(null);
   const [form, setForm] = useState({ name: "", position: "", bio: "", photo_url: "", linkedin_url: "", published: true });
 
@@ -66,15 +69,15 @@ export default function TeamCmsPage() {
       <PageHeader
         title="Team page"
         description="Team members displayed on the public About / Team page."
-        action={
+        action={canEdit ? (
           <Button size="sm" className="gap-2" onClick={() => { setEditing({ id: "", name: "" }); setForm({ name: "", position: "", bio: "", photo_url: "", linkedin_url: "", published: true }); }}>
             <Plus className="h-4 w-4" /> Add member
           </Button>
-        }
+        ) : undefined}
       />
       <BackendErrorAlert error={error} />
       {items.length === 0 && !editing ? (
-        <EmptyState title="No team members" cta={<Button onClick={() => setEditing({ id: "", name: "" })}>Add member</Button>} />
+        <EmptyState title="No team members" cta={canEdit ? <Button onClick={() => setEditing({ id: "", name: "" })}>Add member</Button> : undefined} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           {items.map((m) => (
@@ -85,15 +88,15 @@ export default function TeamCmsPage() {
               </div>
               <p className="text-sm text-muted-foreground">{m.position ?? "—"}</p>
               <p className="text-sm mt-2 line-clamp-2">{m.bio ?? ""}</p>
-              <div className="flex gap-2 mt-3">
+              {canEdit && <div className="flex gap-2 mt-3">
                 <Button variant="outline" size="sm" onClick={() => startEdit(m)}>Edit</Button>
                 <Button variant="ghost" size="sm" onClick={() => remove.mutate(m.id)}><Trash2 className="h-4 w-4" /></Button>
-              </div>
+              </div>}
             </div>
           ))}
         </div>
       )}
-      {editing && (
+      {canEdit && editing && (
         <div className="rounded-lg border border-border p-4 space-y-3 max-w-xl">
           <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
           <div><Label>Position</Label><Input value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} /></div>

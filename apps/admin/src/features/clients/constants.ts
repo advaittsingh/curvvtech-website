@@ -5,6 +5,15 @@ export {
   formatRelativeDays,
 } from "../leads/constants";
 
+export const CLIENT_LIST_VIEWS = ["all", "active", "archived", "deleted"] as const;
+
+export const CLIENT_LIST_VIEW_LABELS: Record<(typeof CLIENT_LIST_VIEWS)[number], string> = {
+  all: "All",
+  active: "Active",
+  archived: "Archived",
+  deleted: "Deleted",
+};
+
 export const CLIENT_STATUS_LABELS: Record<string, string> = {
   active: "Active Client",
   inactive: "Inactive",

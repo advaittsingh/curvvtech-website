@@ -32,8 +32,8 @@ export const config = {
   /** ioredis connection string for distributed rate limits (optional). */
   redisUrl: process.env.REDIS_URL?.trim() || "",
 
-  /** AI Calling MVP */
-  aiCallWorkerEnabled: envBool("AI_CALL_WORKER_ENABLED", true),
+  /** AI Calling MVP. Off on Vercel — no long-lived worker process. */
+  aiCallWorkerEnabled: envBool("AI_CALL_WORKER_ENABLED", !Boolean(process.env.VERCEL)),
   aiCallSimulationMode: envBool("AI_CALL_SIMULATION_MODE", true),
   aiCallMaxAttempts: envInt("AI_CALL_MAX_ATTEMPTS", 3),
   aiCallConcurrency: envInt("AI_CALL_CONCURRENCY", 2),
@@ -63,6 +63,24 @@ export const config = {
   jwtAccessExpiresSec: envInt("JWT_ACCESS_EXPIRES_SEC", 15 * 60),
   jwtRefreshExpiresSec: envInt("JWT_REFRESH_EXPIRES_SEC", 30 * 24 * 60 * 60),
 
+  /** Client Portal — completely separate auth stack from admin/staff. */
+  clientJwtSecret: process.env.CLIENT_JWT_SECRET?.trim() || "",
+  clientJwtAccessExpiresSec: envInt("CLIENT_JWT_ACCESS_EXPIRES_SEC", 15 * 60),
+  clientJwtRefreshExpiresSec: envInt("CLIENT_JWT_REFRESH_EXPIRES_SEC", 30 * 24 * 60 * 60),
+  clientPortalUrl: process.env.CLIENT_PORTAL_URL?.trim() || "https://client.curvvtech.com",
+  clientInviteFromEmail: process.env.CLIENT_INVITE_FROM_EMAIL?.trim() || "noreply@curvvtech.com",
+  staffInviteBaseUrl:
+    process.env.STAFF_INVITE_BASE_URL?.trim() ||
+    process.env.ADMIN_PANEL_URL?.trim() ||
+    "https://admin.curvvtech.com",
+  adminPanelUrl: process.env.ADMIN_PANEL_URL?.trim() || "https://admin.curvvtech.com",
+  apiPublicUrl: process.env.API_PUBLIC_URL?.trim() || "https://api.curvvtech.in",
+
+  /** Google OAuth — Calendar Meet links + Gmail (admin Settings → Integrations). */
+  googleClientId: process.env.GOOGLE_CLIENT_ID?.trim() || "",
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET?.trim() || "",
+  clientRazorpayWebhookSecret: process.env.CLIENT_RAZORPAY_WEBHOOK_SECRET?.trim() || "",
+
   /** Legacy / optional — no longer used for mobile auth. */
   cognitoRegion: process.env.COGNITO_REGION || "",
   cognitoUserPoolId: process.env.COGNITO_USER_POOL_ID || "",
@@ -90,6 +108,13 @@ export const config = {
   whatsappWebhookVerifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN?.trim() || "",
   whatsappAppSecret: process.env.WHATSAPP_APP_SECRET?.trim() || "",
 
+  /** Resend — primary transactional email provider for all outbound mail. */
+  resendApiKey: process.env.RESEND_API_KEY?.trim() || "",
+  /** Default From address for all system emails (must be on a Resend-verified domain). */
+  emailFrom: process.env.EMAIL_FROM?.trim() || "Curvvtech <noreply@curvvtech.in>",
+  /** Optional Reply-To applied to all system emails. */
+  emailReplyTo: process.env.EMAIL_REPLY_TO?.trim() || "",
+
   /** SMTP for demo confirmation + calendar (.ics) invites (e.g. Google Workspace app password). */
   demoSmtpHost: process.env.DEMO_SMTP_HOST?.trim() || "",
   demoSmtpPort: envInt("DEMO_SMTP_PORT", 587),
@@ -98,8 +123,8 @@ export const config = {
   demoSmtpPass: process.env.DEMO_SMTP_PASS?.trim() || "",
   /** From address for invites (default: advaitsingh@curvvtech.in). */
   demoCalendarFromEmail: process.env.DEMO_CALENDAR_FROM_EMAIL?.trim() || "advaitsingh@curvvtech.in",
-  demoCalendarOrganizerName: process.env.DEMO_CALENDAR_ORGANIZER_NAME?.trim() || "CurvvTech",
-  demoMeetingTitle: process.env.DEMO_MEETING_TITLE?.trim() || "CurvvTech · FollowUp product demo",
+  demoCalendarOrganizerName: process.env.DEMO_CALENDAR_ORGANIZER_NAME?.trim() || "Curvvtech",
+  demoMeetingTitle: process.env.DEMO_MEETING_TITLE?.trim() || "Curvvtech · FollowUp product demo",
   demoMeetingLocation: process.env.DEMO_MEETING_LOCATION?.trim() || "Online — meeting link will be shared separately",
 
   /** Razorpay (FollowUp billing) — create plans in Razorpay Dashboard and paste plan_id values. */

@@ -6,6 +6,7 @@ import { requireCurvvtechAdmin } from '../../../middleware/requireCurvvtechAdmin
 import { CONSULTING_PROPOSAL_SECTIONS, runConsultingProposalEngine } from '../services/proposalEngine.js'
 import { applyConsultingResult, normalizeProposalSections } from '../services/proposalApply.js'
 import { buildProposalDocumentHtml } from '../services/proposalDocumentHtml.js'
+import { loadProposalContextInput } from '../services/proposalContextLoader.js'
 
 export const DEFAULT_SECTIONS = CONSULTING_PROPOSAL_SECTIONS.map((s) => ({ ...s }))
 
@@ -139,10 +140,36 @@ router.post('/', async (req, res) => {
   }
 })
 
+router.get('/context-preview', async (req, res) => {
+  try {
+    const lead_id = req.query.lead_id ? String(req.query.lead_id) : null
+    const client_id = req.query.client_id ? String(req.query.client_id) : null
+    if (!lead_id && !client_id) {
+      res.status(400).json({ error: 'lead_id or client_id required' })
+      return
+    }
+    const ctx = await loadProposalContextInput({ lead_id, client_id })
+    res.json({
+      client_name: ctx.client_name,
+      project_type: ctx.project_type,
+      deal_value_cents: ctx.deal_value_cents ?? ctx.total_cents ?? 0,
+      requirements: ctx.requirements,
+      message: ctx.message,
+      lead_notes: ctx.lead_notes,
+      client_notes: ctx.client_notes,
+      lead_status: ctx.lead_status,
+      source: ctx.source,
+      active_projects: ctx.active_projects,
+    })
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
 router.post('/from-template', async (req, res) => {
   try {
     const auth = req.auth!
-    const { template_key, client_name, lead_id, client_id } = req.body
+    const { template_key, client_name, lead_id, client_id, title, generate_ai } = req.body
     const templates: Record<string, { title: string; project_type: string }> = {
       shopify: { title: 'Premium Shopify Store', project_type: 'Shopify Website' },
       corporate: { title: 'Corporate Website Proposal', project_type: 'Corporate Website' },
@@ -153,31 +180,64 @@ router.post('/from-template', async (req, res) => {
       maintenance: { title: 'Monthly Maintenance Agreement', project_type: 'Maintenance' },
     }
     const t = templates[String(template_key)] ?? { title: 'New Proposal', project_type: 'Custom' }
+
+    const ctxPreview = await loadProposalContextInput({ lead_id, client_id })
+    const resolvedClientName =
+      client_name ?? ctxPreview.client_name ?? 'your business'
+    const resolvedProjectType = ctxPreview.project_type ?? t.project_type
+    const resolvedTitle = title?.trim() || t.title
+    const totalCents = Number(ctxPreview.deal_value_cents ?? ctxPreview.total_cents ?? 0)
+
     const shareToken = randomBytes(16).toString('hex')
     const proposal = firstRow<{ id: string }>(await sql`
       INSERT INTO proposals (
         title, client_name, client_id, lead_id, share_token, created_by_user_id,
-        owner_user_id, template_key, project_type, metadata_json
+        owner_user_id, template_key, project_type, total_cents, metadata_json
       )
       VALUES (
-        ${t.title},
-        ${client_name ?? null},
+        ${resolvedTitle},
+        ${resolvedClientName},
         ${client_id ?? null}::uuid,
         ${lead_id ?? null}::uuid,
         ${shareToken},
         ${auth.sub},
         ${auth.sub},
         ${template_key ?? null},
-        ${t.project_type},
+        ${resolvedProjectType},
+        ${totalCents},
         '{}'::jsonb
       )
       RETURNING id::text AS id
     `)
     await insertDefaultSections(proposal!.id as string, {
-      executive_summary: `This proposal outlines a ${t.project_type.toLowerCase()} engagement tailored to ${client_name ?? 'your business'}.`,
+      executive_summary: `This proposal outlines a ${resolvedProjectType.toLowerCase()} engagement tailored to ${resolvedClientName}.`,
     })
-    await logEvent(proposal!.id as string, 'created', { template_key })
-    res.status(201).json(await loadProposal(proposal!.id as string))
+    await logEvent(proposal!.id as string, 'created', { template_key, lead_id, client_id, generate_ai: Boolean(generate_ai) })
+
+    let loaded = await loadProposal(proposal!.id as string)
+
+    if (generate_ai) {
+      const ctxInput = await loadProposalContextInput({
+        proposal: loaded ?? undefined,
+        lead_id,
+        client_id,
+      })
+      const result = await runConsultingProposalEngine(ctxInput)
+      if (result) {
+        loaded = await applyConsultingResult(proposal!.id as string, result)
+        if (lead_id) {
+          await sql`
+            UPDATE crm_leads
+            SET converted_proposal_id = ${proposal!.id}::uuid,
+                status = CASE WHEN status IN ('new', 'discovery_call', 'qualified') THEN 'proposal_sent' ELSE status END,
+                "updatedAt" = NOW()
+            WHERE id = ${lead_id}::uuid
+          `
+        }
+      }
+    }
+
+    res.status(201).json(loaded)
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })
   }
@@ -228,33 +288,15 @@ router.get('/:id/analytics', async (req, res) => {
 router.post('/:id/generate-consulting', async (req, res) => {
   try {
     const id = req.params.id
-    const proposal = firstRow<Record<string, unknown>>(await sql`
-      SELECT p.*, l.name AS lead_name, l.company AS lead_company, l.requirements, l.message,
-        l.budget, l.timeline, l.deal_value_cents, l.source, l.tags
-      FROM proposals p
-      LEFT JOIN crm_leads l ON l.id = p.lead_id
-      WHERE p.id = ${id}::uuid
-    `)
+    const proposal = await loadProposal(id)
     if (!proposal) {
       res.status(404).json({ error: 'Not found' })
       return
     }
 
-    const result = await runConsultingProposalEngine({
-      title: String(proposal.title ?? ''),
-      client_name: proposal.client_name ? String(proposal.client_name) : null,
-      project_type: proposal.project_type ? String(proposal.project_type) : null,
-      total_cents: Number(proposal.total_cents ?? 0),
-      lead_name: proposal.lead_name ? String(proposal.lead_name) : null,
-      lead_company: proposal.lead_company ? String(proposal.lead_company) : null,
-      requirements: proposal.requirements ? String(proposal.requirements) : null,
-      message: proposal.message ? String(proposal.message) : null,
-      budget: proposal.budget ? String(proposal.budget) : null,
-      timeline: proposal.timeline ? String(proposal.timeline) : null,
-      deal_value_cents: proposal.deal_value_cents ? Number(proposal.deal_value_cents) : null,
-      source: proposal.source ? String(proposal.source) : null,
-      tags: Array.isArray(proposal.tags) ? (proposal.tags as string[]) : null,
-    })
+    const ctxInput = await loadProposalContextInput({ proposal })
+
+    const result = await runConsultingProposalEngine(ctxInput)
 
     if (!result) {
       res.status(503).json({ error: 'AI generation failed — check OPENAI_API_KEY and try again' })
@@ -557,7 +599,15 @@ router.get('/:id/pdf', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    await sql`DELETE FROM proposals WHERE id = ${req.params.id}::uuid`
+    const id = req.params.id
+    const existing = firstRow<{ id: string }>(
+      await sql`SELECT id::text FROM proposals WHERE id = ${id}::uuid`,
+    )
+    if (!existing) {
+      res.status(404).json({ error: 'Proposal not found' })
+      return
+    }
+    await sql`DELETE FROM proposals WHERE id = ${id}::uuid`
     res.status(204).end()
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })

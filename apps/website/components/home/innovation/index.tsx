@@ -8,12 +8,12 @@ import { innovationList } from '@/lib/site-page-data'
 
 function Innovation() {
   const ref = useRef(null)
-  const inView = useInView(ref)
+  const inView = useInView(ref, { once: true, margin: '80px' })
 
   const bottomAnimation = (index: any) => ({
-    initial: { y: '25%', opacity: 0 },
-    animate: inView ? { y: 0, opacity: 1 } : { y: '25%', opacity: 0 },
-    transition: { duration: 0.3, delay: 0.3 + index * 0.3 },
+    initial: { y: 12, opacity: 0 },
+    animate: inView ? { y: 0, opacity: 1 } : { y: 12, opacity: 0 },
+    transition: { duration: 0.28, delay: Math.min(index * 0.05, 0.15) },
   })
   return (
     <section id='services'>
@@ -25,10 +25,10 @@ function Innovation() {
                 {...bottomAnimation(1)}
                 className='max-w-(--breakpoint-Xsm) text-center'>
                 <h2>
-                  <TextGenerateEffect words="Where innovation meets" delay={0.4} />
+                  <TextGenerateEffect words="Where innovation meets" delay={0} />
                   <TextGenerateEffect
                     words="aesthetics"
-                    delay={1}
+                    delay={0.2}
                     className="italic font-normal instrument-font"
                   />
                 </h2>
@@ -41,9 +41,9 @@ function Innovation() {
                       <motion.div
                         key={index}
                         className={`${items.bg_color} flex flex-col p-8 rounded-2xl gap-6 lg:gap-9`}
-                        initial={{ scale: 1.2, opacity: 0, filter: 'blur(8px)' }}
-                        animate={inView ? { scale: 1, opacity: 1, filter: 'blur(0px)' } : {}}
-                        transition={{ duration: 0.6, delay: 0.3 + index * 0.2, ease: 'easeInOut' }}
+                        initial={{ y: 12, opacity: 1 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ duration: 0.28, delay: Math.min(index * 0.04, 0.16), ease: 'easeOut' }}
                       >
                         <div>
                           <Image

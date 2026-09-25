@@ -6,6 +6,7 @@ import { withRequestLogger } from "./logger.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { authModuleRouter } from "./modules/auth/auth.routes.js";
 import curvvtechAdminRouter from "./modules/curvvtech/admin/index.js";
+import { googleOauthCallbackHandler } from "./modules/curvvtech/integrations/googleCalendar.js";
 import chatPublicRouter from "./modules/curvvtech/chat.routes.js";
 import { whatsappWebhookModuleRouter } from "./modules/whatsapp/whatsapp.routes.js";
 import { twilioVoiceWebhookRouter } from "./modules/aiCalls/twilioVoice.routes.js";
@@ -14,6 +15,10 @@ import demoPublicRouter from "./modules/demo/demo.routes.js";
 import paymentsRouter from "./routes/payments.routes.js";
 import proposalsPublicRouter from "./modules/curvvtech/proposalsPublic.routes.js";
 import publicContentRouter from "./modules/curvvtech/publicContent.routes.js";
+import careersPublicRouter from "./modules/curvvtech/careers/careers.public.routes.js";
+import { businessOsRouter } from "./modules/business-os/index.js";
+import { clientPortalRouter } from "./modules/client-portal/index.js";
+import emailAssetsRouter from "./routes/v1/emailAssets.routes.js";
 
 /**
  * Vercel FollowUp web app: production hostname + preview deploys
@@ -39,12 +44,14 @@ function buildCorsOriginHandler() {
     "http://localhost:3001",
     "http://localhost:3002",
     "http://localhost:5173",
-    "http://127.0.0.1:3000",
+    "http://localhost:3003",
+    "http://127.0.0.1:3003",
     "http://127.0.0.1:5173",
     "https://www.curvvtech.com",
     "https://curvvtech.com",
     "https://www.curvvtech.in",
     "https://admin.curvvtech.com",
+    "https://client.curvvtech.com",
     "https://followup.curvvtech.com",
     "https://followup.curvvtech.in",
     /** Explicit: same as isFollowupVercelOrigin (belt-and-suspenders if matcher ever diverges). */
@@ -72,12 +79,20 @@ export function createApp(): express.Application {
       origin: buildCorsOriginHandler(),
       credentials: true,
       methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization", "x-followup-api-key"],
+      allowedHeaders: ["Content-Type", "Authorization", "x-followup-api-key", "X-Organization-Id", "X-Portal-Host"],
     })
   );
   app.use(
+    express.raw({
+      type: (req) => String(req.headers["content-type"] || "").toLowerCase().includes("multipart/form-data"),
+      limit: "8mb",
+    }),
+  );
+  app.use(
     express.json({
-      limit: "1mb",
+      // 5MB accommodates inline image data URIs (logo/QR/signature) saved from
+      // Company Settings, while still guarding against oversized payloads.
+      limit: "5mb",
       verify: (req: express.Request, _res, buf) => {
         req.rawBody = buf;
       },
@@ -93,6 +108,9 @@ export function createApp(): express.Application {
     res.status(ok ? 200 : 503).json({ ok });
   });
 
+  app.use("/v1/email-assets", emailAssetsRouter);
+  app.use("/api/v1/email-assets", emailAssetsRouter);
+
   app.use("/webhook/whatsapp", whatsappWebhookModuleRouter);
   app.use("/api/webhook/whatsapp", whatsappWebhookModuleRouter);
 
@@ -105,6 +123,10 @@ export function createApp(): express.Application {
   app.use("/v1", v1Router);
   app.use("/api/v1", v1Router);
 
+  /** Google OAuth returns here without a Bearer token — must sit in front of the admin JWT gate. */
+  app.get("/api/admin/integrations/oauth/callback", googleOauthCallbackHandler);
+  app.get("/admin/integrations/oauth/callback", googleOauthCallbackHandler);
+
   app.use("/api/admin", curvvtechAdminRouter);
   /** Alias for proxies that do not expose `/api/admin/*` (same router). */
   app.use("/admin", curvvtechAdminRouter);
@@ -115,7 +137,11 @@ export function createApp(): express.Application {
 
   app.use("/api", paymentsRouter);
   app.use("/api/proposals", proposalsPublicRouter);
+  app.use("/api/bos/v1", businessOsRouter);
+  app.use("/api/client", clientPortalRouter);
   app.use("/api/public/content", publicContentRouter);
+  app.use("/api/public/careers", careersPublicRouter);
+  app.use("/public/careers", careersPublicRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: "NOT_FOUND", message: "Route not found" });

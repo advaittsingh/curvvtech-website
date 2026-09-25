@@ -70,7 +70,7 @@ export async function requireCurvvtechAdmin(
     if (!ADMIN_ROLES.includes(role)) {
       res.status(403).json({
         error: "FORBIDDEN",
-        message: "CurvvTech OS staff role required",
+        message: "Curvvtech OS staff role required",
       });
       return;
     }

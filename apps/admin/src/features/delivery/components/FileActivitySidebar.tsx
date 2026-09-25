@@ -10,7 +10,7 @@ type Props = {
   recentFiles: { id: string; name: string; updatedAt?: string }[];
   summary: FileSummary | null | undefined;
   onRecentClick: (id: string) => void;
-  onOrganize: () => void;
+  onOrganize?: () => void;
   organizing?: boolean;
 };
 
@@ -76,28 +76,30 @@ export function FileActivitySidebar({
         </ul>
       </div>
 
-      <div className="rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50/80 to-card p-4 shadow-sm">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-violet-600" />
-          <h3 className="text-sm font-semibold text-violet-950">AI organization</h3>
+      {onOrganize && (
+        <div className="rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50/80 to-card p-4 shadow-sm">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-violet-600" />
+            <h3 className="text-sm font-semibold text-violet-950">AI organization</h3>
+          </div>
+          <ul className="mt-3 space-y-2">
+            {tips.map((t, i) => (
+              <li key={i} className={cn("text-xs text-violet-900/90 leading-relaxed")}>
+                • {t}
+              </li>
+            ))}
+          </ul>
+          <Button
+            size="sm"
+            className="w-full mt-3 gap-1.5 bg-violet-600 hover:bg-violet-700"
+            onClick={onOrganize}
+            disabled={organizing}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Organize files
+          </Button>
         </div>
-        <ul className="mt-3 space-y-2">
-          {tips.map((t, i) => (
-            <li key={i} className={cn("text-xs text-violet-900/90 leading-relaxed")}>
-              • {t}
-            </li>
-          ))}
-        </ul>
-        <Button
-          size="sm"
-          className="w-full mt-3 gap-1.5 bg-violet-600 hover:bg-violet-700"
-          onClick={onOrganize}
-          disabled={organizing}
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          Organize files
-        </Button>
-      </div>
+      )}
     </div>
   );
 }

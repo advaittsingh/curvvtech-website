@@ -1,16 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DollarSign, Inbox, Sparkles, Target, TrendingUp } from "lucide-react";
+import { Inbox, Search, Sparkles } from "lucide-react";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { PageHeader } from "@/components/system";
 import { BackendErrorAlert } from "@/components/BackendErrorAlert";
 import { DemoRequestCard } from "../components/DemoRequestCard";
 import { DemoAiSheet } from "../components/DemoAiSheet";
-import type { InboundOpportunity, InboundPipelineSummary, SalesStage } from "../demo-schemas";
-import { SALES_STAGE_LABELS, SALES_STAGES } from "../demo-schemas";
-import { formatInr } from "../constants";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { InboundKpiRow } from "../components/InboundKpiRow";
+import { InboundPriorityBanner } from "../components/InboundPriorityBanner";
+import type { InboundOpportunity, SalesStage } from "../demo-schemas";
+import { SALES_STAGE_LABELS, score100FromDemo } from "../demo-schemas";
+import { formatInrCompact } from "../constants";
+import {
+  deriveInboundMetrics,
+  derivePriorityItems,
+  deriveStageCounts,
+  stageOf,
+} from "../inbound-metrics";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 type Filter = "all" | SalesStage;
@@ -21,6 +30,7 @@ export default function DemoRequestsPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [filter, setFilter] = useState<Filter>("all");
+  const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [aiOpenId, setAiOpenId] = useState<string | null>(null);
   const [aiOutput, setAiOutput] = useState("");
@@ -32,11 +42,6 @@ export default function DemoRequestsPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin", "demo-requests"],
     queryFn: () => api.demoRequests.list() as Promise<InboundOpportunity[]>,
-  });
-
-  const { data: summary } = useQuery({
-    queryKey: ["admin", "demo-requests", "summary"],
-    queryFn: () => api.demoRequests.pipelineSummary() as Promise<InboundPipelineSummary>,
   });
 
   const { data: members } = useQuery({
@@ -51,10 +56,27 @@ export default function DemoRequestsPage() {
 
   const list: InboundOpportunity[] = Array.isArray(data) ? data : [];
 
+  const metrics = useMemo(() => deriveInboundMetrics(list), [list]);
+  const priorityItems = useMemo(() => derivePriorityItems(list), [list]);
+  const stageCounts = useMemo(() => deriveStageCounts(list), [list]);
+
   const filtered = useMemo(() => {
-    if (filter === "all") return list;
-    return list.filter((r) => (r.sales_stage ?? r.display_status ?? "new") === filter);
-  }, [list, filter]);
+    const q = search.trim().toLowerCase();
+    return list.filter((r) => {
+      if (filter !== "all" && stageOf(r) !== filter) return false;
+      if (!q) return true;
+      const hay = [r.name, r.email, r.company, r.phone, r.project_type, r.ai_intelligence?.industry]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [list, filter, search]);
+
+  const sortedFiltered = useMemo(
+    () => [...filtered].sort((a, b) => score100FromDemo(b) - score100FromDemo(a)),
+    [filtered],
+  );
 
   const analyze = useMutation({
     mutationFn: (id: string) => api.demoRequests.analyze(id) as Promise<InboundOpportunity>,
@@ -145,33 +167,77 @@ export default function DemoRequestsPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
+    <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-5">
       <PageHeader
         title="Inbound opportunities"
-        description="AI-scored enquiries from your website — prioritized by value and close probability."
+        description="Your sales command center — AI-scored website enquiries, prioritized by value and close probability."
       />
 
       <BackendErrorAlert error={error} />
 
-      {summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <SummaryTile icon={Inbox} label="Total inbound" value={String(summary.total)} />
-          <SummaryTile icon={TrendingUp} label="Pipeline value" value={formatInr(summary.total_value_cents)} highlight />
-          <SummaryTile icon={DollarSign} label="Expected revenue" value={formatInr(summary.expected_revenue_cents ?? 0)} />
-          <SummaryTile icon={Target} label="Avg score" value={summary.avg_score ? `${summary.avg_score}/100` : "—"} />
+      <InboundKpiRow metrics={metrics} />
+
+      <InboundPriorityBanner
+        items={priorityItems}
+        onFocus={(stage) => setFilter(stage === "all" ? "all" : (stage as Filter))}
+      />
+
+      {/* Pipeline value by stage */}
+      {metrics.pipelineValueCents > 0 && (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-xl border border-border bg-card px-4 py-3 text-sm">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pipeline by stage</span>
+          {stageCounts
+            .filter((s) => s.stage !== "all" && s.valueCents > 0)
+            .map((s) => (
+              <span key={s.stage} className="inline-flex items-center gap-1.5">
+                <span className="text-muted-foreground">{SALES_STAGE_LABELS[s.stage as SalesStage]}</span>
+                <span className="font-semibold">{formatInrCompact(s.valueCents)}</span>
+              </span>
+            ))}
         </div>
       )}
 
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
-        <TabsList className="flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="all">All</TabsTrigger>
-          {SALES_STAGES.map((s) => (
-            <TabsTrigger key={s} value={s} className="text-xs sm:text-sm">
-              {SALES_STAGE_LABELS[s]}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      {/* Search + stage filter pills */}
+      <div className="space-y-3">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, company, email, phone…"
+            className="pl-9 h-9"
+          />
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {stageCounts.map((s) => {
+            const active = filter === s.stage;
+            const label = s.stage === "all" ? "All" : SALES_STAGE_LABELS[s.stage as SalesStage];
+            return (
+              <button
+                key={s.stage}
+                type="button"
+                onClick={() => setFilter(s.stage as Filter)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "border-border bg-card text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {label}
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 text-[10px] font-semibold tabular-nums",
+                    active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {s.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {batchAnalyze.isPending && (
         <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -182,14 +248,24 @@ export default function DemoRequestsPage() {
 
       {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
 
-      {!isLoading && filtered.length === 0 && (
+      {!isLoading && filtered.length === 0 && list.length > 0 && (
         <div className="rounded-xl border border-dashed border-border p-12 text-center text-muted-foreground">
-          No inbound opportunities in this view.
+          No opportunities match this view. Try a different stage or search.
+        </div>
+      )}
+
+      {!isLoading && list.length === 0 && (
+        <div className="rounded-xl border border-dashed border-border p-12 text-center">
+          <Inbox className="h-8 w-8 mx-auto text-muted-foreground/60 mb-3" />
+          <p className="font-medium">No inbound enquiries yet</p>
+          <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
+            Website demo requests and contact-form enquiries will appear here automatically, scored and prioritized by AI.
+          </p>
         </div>
       )}
 
       <div className="space-y-3">
-        {filtered.map((row) => (
+        {sortedFiltered.map((row) => (
           <DemoRequestCard
             key={row.id}
             row={row}
@@ -279,28 +355,6 @@ export default function DemoRequestsPage() {
           }}
         />
       )}
-    </div>
-  );
-}
-
-function SummaryTile({
-  icon: Icon,
-  label,
-  value,
-  highlight,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div className={`rounded-xl border p-4 ${highlight ? "border-primary/30 bg-primary/5" : "border-border bg-card"}`}>
-      <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-        <Icon className="h-3.5 w-3.5" />
-        {label}
-      </div>
-      <p className={`text-lg font-semibold ${highlight ? "text-primary" : ""}`}>{value}</p>
     </div>
   );
 }

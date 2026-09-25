@@ -5,24 +5,34 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
+  Clock,
   FileSignature,
+  Globe,
+  Instagram,
+  Linkedin,
   Mail,
+  MessageCircle,
   Phone,
   RefreshCw,
   Sparkles,
   UserPlus,
   Users,
 } from "lucide-react";
-import type { InboundOpportunity, SalesStage } from "../demo-schemas";
+import type { LucideIcon } from "lucide-react";
+import type { InboundOpportunity, SalesStage, ScoreTier5 } from "../demo-schemas";
 import {
+  INBOUND_SOURCE_LABEL,
   SALES_STAGE_COLORS,
   SALES_STAGE_LABELS,
   SALES_STAGES,
-  formatScore100,
+  SCORE_TIER5_CLASS,
+  SCORE_TIER5_DOT,
+  SCORE_TIER5_LABEL,
   resolveIntel,
   score100FromDemo,
+  scoreTier5,
 } from "../demo-schemas";
-import { formatInr, scoreTier, scoreTierColor } from "../constants";
+import { formatInr, formatRelativeTime } from "../constants";
 import { DemoIntelligencePanel } from "./DemoIntelligencePanel";
 import { DemoActivityTimeline } from "./DemoActivityTimeline";
 import { Badge } from "@/components/ui/badge";
@@ -77,7 +87,13 @@ export function DemoRequestCard({
   const stageKey = SALES_STAGES.includes(stage) ? stage : "new";
   const intel = resolveIntel(row);
   const score100 = score100FromDemo(row);
-  const tier = scoreTier(score100);
+  const tier = scoreTier5(score100);
+  const closeProb = row.close_probability ?? intel.close_probability ?? null;
+  const source = row.inbound_source ?? "demo_booking";
+  const SourceIcon = sourceIcon(source);
+  const subtitle = row.company ?? intel.business_type ?? null;
+  const industry = intel.industry ?? (row.company ? intel.business_type ?? null : null);
+  const value = row.deal_value_cents ? formatInr(row.deal_value_cents) : intel.potential_value_label ?? "₹80K – ₹1.2L";
 
   return (
     <Collapsible open={expanded} onOpenChange={() => onToggle()}>
@@ -85,31 +101,61 @@ export function DemoRequestCard({
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className="w-full flex items-center gap-4 p-4 text-left hover:bg-muted/40 transition-colors"
+            className="w-full flex items-start gap-3.5 p-4 text-left hover:bg-muted/40 transition-colors"
           >
+            <Avatar name={row.name} tier={tier} />
+
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold truncate">{row.name}</span>
-                {row.company && <span className="text-muted-foreground text-sm truncate">· {row.company}</span>}
                 <Badge variant="outline" className={SALES_STAGE_COLORS[stageKey] ?? ""}>
                   {SALES_STAGE_LABELS[stageKey] ?? stageKey}
                 </Badge>
+                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <SourceIcon className="h-3 w-3" />
+                  {INBOUND_SOURCE_LABEL[source] ?? "Website"}
+                </span>
               </div>
-              <p className="text-sm text-muted-foreground truncate mt-0.5">{row.email}</p>
-            </div>
-            <div className="hidden sm:flex items-center gap-6 text-sm shrink-0">
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Value</p>
-                <p className="font-medium">
-                  {row.deal_value_cents ? formatInr(row.deal_value_cents) : intel.potential_value_label ?? "₹80K – ₹1.2L"}
+
+              {subtitle && (
+                <p className="text-sm text-muted-foreground truncate mt-0.5">
+                  {subtitle}
+                  {industry && industry !== subtitle && <span className="text-muted-foreground/70"> · {industry}</span>}
                 </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Score</p>
-                <Badge variant="outline" className={scoreTierColor(tier)}>{formatScore100(row)}</Badge>
+              )}
+
+              <div className="flex items-center gap-x-3 gap-y-1 flex-wrap mt-1.5 text-[11px] text-muted-foreground">
+                {row.phone && (
+                  <span className="inline-flex items-center gap-1 font-medium text-foreground/80">
+                    <Phone className="h-3 w-3" /> {row.phone}
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1">
+                  <Mail className="h-3 w-3" /> {row.email}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="h-3 w-3" /> {formatRelativeTime(row.created_at)}
+                </span>
+                {(intel.project_type || row.project_type) && (
+                  <span className="truncate max-w-[220px]">{row.project_type ?? intel.project_type}</span>
+                )}
               </div>
             </div>
-            {expanded ? <ChevronUp className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
+
+            <div className="hidden md:flex items-center gap-5 text-sm shrink-0 pl-2">
+              <div className="text-right">
+                <p className="text-[11px] text-muted-foreground">Value</p>
+                <p className="font-semibold">{value}</p>
+              </div>
+              {closeProb != null && (
+                <div className="text-right">
+                  <p className="text-[11px] text-muted-foreground">Close</p>
+                  <p className="font-semibold">{closeProb}%</p>
+                </div>
+              )}
+              <ScorePill score={score100} tier={tier} />
+            </div>
+            {expanded ? <ChevronUp className="h-4 w-4 shrink-0 mt-1" /> : <ChevronDown className="h-4 w-4 shrink-0 mt-1" />}
           </button>
         </CollapsibleTrigger>
 
@@ -211,7 +257,7 @@ export function DemoRequestCard({
                   <div className="space-y-2">
                     <Textarea value={followUpDraft} readOnly rows={8} className="text-sm font-mono" />
                     <Button size="sm" variant="outline" asChild>
-                      <a href={`mailto:${row.email}?subject=${encodeURIComponent("CurvvTech — follow up")}&body=${encodeURIComponent(followUpDraft.replace(/^Subject:.*\n?/i, ""))}`}>
+                      <a href={`mailto:${row.email}?subject=${encodeURIComponent("Curvvtech — follow up")}&body=${encodeURIComponent(followUpDraft.replace(/^Subject:.*\n?/i, ""))}`}>
                         Open in email
                       </a>
                     </Button>
@@ -235,4 +281,61 @@ function Row({ label, value }: { label: string; value: string }) {
       <dd className="break-all">{value}</dd>
     </div>
   );
+}
+
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return `${parts[0]![0]}${parts[parts.length - 1]![0]}`.toUpperCase();
+}
+
+const AVATAR_RING: Record<ScoreTier5, string> = {
+  hot: "bg-emerald-100 text-emerald-700",
+  high: "bg-green-100 text-green-700",
+  warm: "bg-amber-100 text-amber-700",
+  cold: "bg-orange-100 text-orange-700",
+  low: "bg-stone-100 text-stone-600",
+};
+
+function Avatar({ name, tier }: { name: string; tier: ScoreTier5 }) {
+  return (
+    <div
+      className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-sm font-semibold ${AVATAR_RING[tier]}`}
+      title={name}
+    >
+      {initialsOf(name)}
+    </div>
+  );
+}
+
+function ScorePill({ score, tier }: { score: number; tier: ScoreTier5 }) {
+  return (
+    <div
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${SCORE_TIER5_CLASS[tier]}`}
+      title={`Lead score ${score}/100`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${SCORE_TIER5_DOT[tier]}`} />
+      {score} {SCORE_TIER5_LABEL[tier]}
+    </div>
+  );
+}
+
+function sourceIcon(source: string): LucideIcon {
+  switch (source) {
+    case "whatsapp":
+      return MessageCircle;
+    case "email":
+    case "contact":
+      return Mail;
+    case "phone":
+    case "referral":
+      return Phone;
+    case "linkedin":
+      return Linkedin;
+    case "instagram":
+      return Instagram;
+    default:
+      return Globe;
+  }
 }

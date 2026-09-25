@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/app/providers";
 
 const ACCENT_OPTIONS = [
   { value: "purple", label: "Purple — Web Development" },
@@ -67,6 +68,8 @@ const emptyForm = {
 export default function ServicesPage() {
   const api = useAdminApi();
   const qc = useQueryClient();
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission("content.edit");
   const [editing, setEditing] = useState<Service | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [seeding, setSeeding] = useState(false);
@@ -167,7 +170,7 @@ export default function ServicesPage() {
       <PageHeader
         title="Services"
         description="Manage website service cards — synced to curvvtech.com/services."
-        action={
+        action={canEdit ? (
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={seedDefaults} disabled={seeding}>
               {seeding ? "Syncing…" : "Sync defaults"}
@@ -176,7 +179,7 @@ export default function ServicesPage() {
               <Plus className="h-4 w-4" /> Add service
             </Button>
           </div>
-        }
+        ) : undefined}
       />
       <BackendErrorAlert error={error} />
 
@@ -185,9 +188,9 @@ export default function ServicesPage() {
           <EmptyState
             title="No services"
             description="Sync the 6 default services or add your own."
-            cta={<Button onClick={seedDefaults} disabled={seeding}>Sync defaults</Button>}
+            cta={canEdit ? <Button onClick={seedDefaults} disabled={seeding}>Sync defaults</Button> : undefined}
           />
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 max-w-3xl">
+          {canEdit && <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 max-w-3xl">
             {DEFAULT_SERVICES.map((s) => (
               <button
                 key={s.slug}
@@ -199,7 +202,7 @@ export default function ServicesPage() {
                 <p className="text-xs text-muted-foreground mt-1">{s.slug}</p>
               </button>
             ))}
-          </div>
+          </div>}
         </div>
       )}
 
@@ -225,16 +228,16 @@ export default function ServicesPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                {canEdit && <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => startEdit(s)}>Edit</Button>
                   <Button variant="ghost" size="sm" onClick={() => remove.mutate(s.id)}><Trash2 className="h-4 w-4" /></Button>
-                </div>
+                </div>}
               </li>
             ))}
         </ul>
       )}
 
-      {editing && (
+      {canEdit && editing && (
         <div className="rounded-lg border border-border p-4 space-y-3 max-w-xl">
           <div><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
           <div><Label>Slug</Label><Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="web-development" /></div>

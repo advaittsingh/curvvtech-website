@@ -9,6 +9,8 @@ import {
   runConsultingProposalEngine,
 } from '../services/proposalEngine.js'
 import { applyConsultingResult } from '../services/proposalApply.js'
+import { loadProposalContextInput } from '../services/proposalContextLoader.js'
+import { config } from '../../../config.js'
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null
 
@@ -33,8 +35,7 @@ router.post('/proposal-action', async (req, res) => {
   try {
     const { proposal_id, action, tone } = req.body
     const proposal = firstRow<Record<string, unknown>>(await sql`
-      SELECT p.*, l.name AS lead_name, l.company AS lead_company, l.requirements, l.message,
-        l.project_type AS lead_project_type, l.budget, l.timeline, l.deal_value_cents, l.source, l.tags
+      SELECT p.*, l.name AS lead_name, l.company AS lead_company
       FROM proposals p
       LEFT JOIN crm_leads l ON l.id = p.lead_id
       WHERE p.id = ${proposal_id}::uuid
@@ -44,21 +45,7 @@ router.post('/proposal-action', async (req, res) => {
       return
     }
 
-    const ctxInput = {
-      title: String(proposal.title ?? ''),
-      client_name: proposal.client_name ? String(proposal.client_name) : null,
-      project_type: String(proposal.project_type ?? proposal.lead_project_type ?? 'Custom'),
-      total_cents: Number(proposal.total_cents ?? 0),
-      lead_name: proposal.lead_name ? String(proposal.lead_name) : null,
-      lead_company: proposal.lead_company ? String(proposal.lead_company) : null,
-      requirements: proposal.requirements ? String(proposal.requirements) : null,
-      message: proposal.message ? String(proposal.message) : null,
-      budget: proposal.budget ? String(proposal.budget) : null,
-      timeline: proposal.timeline ? String(proposal.timeline) : null,
-      deal_value_cents: proposal.deal_value_cents ? Number(proposal.deal_value_cents) : null,
-      source: proposal.source ? String(proposal.source) : null,
-      tags: Array.isArray(proposal.tags) ? (proposal.tags as string[]) : null,
-    }
+    const ctxInput = await loadProposalContextInput({ proposal })
     const context = buildProposalContext(ctxInput)
 
     if (action === 'business_analysis') {
@@ -92,7 +79,7 @@ router.post('/proposal-action', async (req, res) => {
       return
     }
 
-    const projectType = ctxInput.project_type
+    const projectType = ctxInput.project_type ?? 'Custom'
     const typeHints: Record<string, string> = {
       'Shopify Website': 'luxury ecommerce Shopify store — product catalog, checkout, brand experience, not generic software',
       'Corporate Website': 'corporate B2B website — brand positioning, CMS, lead generation',
@@ -115,12 +102,12 @@ router.post('/proposal-action', async (req, res) => {
       proposed_solution: `Write Proposed Solution — Website, App, Admin, Portal, Automations as relevant.`,
       feature_recommendations: `Write Why We Recommend These Features — consultative rationale tied to client goals.`,
       monetization: `Write Monetization Opportunities specific to this client's business model.`,
-      ai_opportunities: `Write AI Opportunities CurvvTech recommends for this client.`,
+      ai_opportunities: `Write AI Opportunities Curvvtech recommends for this client.`,
       tech_architecture: `Write Technical Architecture — recommended stack, scalability, integrations.`,
-      why_curvvtech: `Write Why CurvvTech — business-first, custom dev, AI expertise, long-term support.`,
+      why_curvvtech: `Write Why Curvvtech — business-first, custom dev, AI expertise, long-term support.`,
       timeline: 'Return JSON {timeline_milestones:[{title,start_date,end_date,description}]}. Phases: Discovery, UI/UX, Development, Testing, Launch, Optimization.',
       pricing: `Return JSON {line_items:[{description,qty,amount_cents}], payment_milestones:[{label,percent}]}. INR.`,
-      terms: 'Write terms and conditions for CurvvTech agency proposal in India.',
+      terms: 'Write terms and conditions for Curvvtech agency proposal in India.',
       shorten: 'Shorten while keeping consulting depth.',
       luxury_tone: `Premium consulting tone for ${typeHint}.`,
       corporate_tone: `Formal B2B consulting tone for ${typeHint}.`,
@@ -129,7 +116,7 @@ router.post('/proposal-action', async (req, res) => {
     const system = prompts[String(action)] ?? 'Improve proposal content.'
     const toneHint = tone ? ` Tone: ${tone}.` : ''
     const content = await complete(
-      `You are a senior CurvvTech solution architect writing consulting proposals.${toneHint} ${system} Return plain text or JSON as requested. Never generic.`,
+      `You are a senior Curvvtech solution architect writing consulting proposals.${toneHint} ${system} Return plain text or JSON as requested. Never generic.`,
       context,
     )
 
@@ -162,7 +149,7 @@ router.post('/proposal', async (req, res) => {
     }
     const sectionList = Array.isArray(sections) ? sections.join(', ') : 'scope, timeline, pricing, terms'
     const content = await complete(
-      'You are a proposal writer for CurvvTech, a software agency. Write professional proposal section content in clear business English. Return JSON array of {title, content} objects.',
+      'You are a proposal writer for Curvvtech, a software agency. Write professional proposal section content in clear business English. Return JSON array of {title, content} objects.',
       `Write proposal sections (${sectionList}) for:\n${context}`
     )
     let parsed: unknown = content
@@ -230,7 +217,7 @@ router.post('/email-draft', async (req, res) => {
       if (demo) context = buildDemoContext(demo)
     }
     const draft = await complete(
-      `Write a concise business email for CurvvTech. Tone: ${tone ?? 'professional and friendly'}. Include subject line as first line prefixed with "Subject: ".`,
+      `Write a concise business email for Curvvtech. Tone: ${tone ?? 'professional and friendly'}. Include subject line as first line prefixed with "Subject: ".`,
       context
     )
     res.json({ draft })
@@ -441,7 +428,7 @@ router.post('/payment-reminder', async (req, res) => {
       : firstRow<{ name: string }>(await sql`SELECT name FROM clients WHERE id = ${inv.client_id}::uuid`)
 
     const amount = Number(inv.total_cents ?? inv.amount_cents ?? 0) / 100
-    const linkLine = inv.payment_link ? `\nPayment link: ${inv.payment_link}` : ''
+    const linkLine = `\nClient portal billing: ${config.clientPortalUrl.replace(/\/$/, "")}/billing`;
     const format = channel === 'whatsapp'
       ? 'Write a short polite WhatsApp payment reminder. No subject line.'
       : channel === 'sms'

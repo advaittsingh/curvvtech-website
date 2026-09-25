@@ -5,6 +5,7 @@ import { getActiveNavHref, NAV_GROUPS } from "@/lib/nav-config";
 import { hasPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { inboxUnreadTotal, useInboxUnreadCount } from "@/features/inbox/hooks/useInboxUnreadCount";
 
 type AppSidebarProps = {
   onClose?: () => void;
@@ -13,14 +14,17 @@ type AppSidebarProps = {
 
 export function AppSidebar({ onClose, onSignOut }: AppSidebarProps) {
   const location = useLocation();
-  const { permissions } = useAuth();
+  const { permissions, role } = useAuth();
   const activeHref = getActiveNavHref(location.pathname);
+
+  const { data: unread } = useInboxUnreadCount();
+  const inboxUnread = inboxUnreadTotal(unread);
 
   return (
     <aside className="w-60 bg-card flex flex-col relative z-10 h-full border-r border-border">
       <div className="p-5 pb-2 relative z-10 flex items-center justify-between">
         <div>
-          <h1 className="text-base font-semibold text-foreground tracking-tight">CurvvTech</h1>
+          <h1 className="text-base font-semibold text-foreground tracking-tight">Curvvtech</h1>
           <p className="text-[10px] text-muted-foreground uppercase tracking-[0.12em] font-medium">Business OS</p>
         </div>
         {onClose && (
@@ -33,7 +37,10 @@ export function AppSidebar({ onClose, onSignOut }: AppSidebarProps) {
       <nav className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4 relative z-10">
         {NAV_GROUPS.map((group) => {
           const items = group.items.filter(
-            (item) => !item.permission || hasPermission(permissions, item.permission),
+            (item) =>
+              (!item.permission || hasPermission(permissions, item.permission)) &&
+              (!item.roles || (role !== null && item.roles.includes(role))) &&
+              (!item.hiddenForRoles || role === null || !item.hiddenForRoles.includes(role)),
           );
           if (items.length === 0) return null;
           return (
@@ -47,6 +54,7 @@ export function AppSidebar({ onClose, onSignOut }: AppSidebarProps) {
                 {items.map((item) => {
                   const Icon = item.icon;
                   const isActive = activeHref === item.href;
+                  const badge = item.href === "/inbox" && inboxUnread > 0 ? inboxUnread : 0;
                   return (
                     <NavLink key={item.href} to={item.href} end onClick={onClose}>
                       <div
@@ -58,7 +66,19 @@ export function AppSidebar({ onClose, onSignOut }: AppSidebarProps) {
                         )}
                       >
                         <Icon className="mr-3 w-4 h-4 shrink-0" />
-                        {item.title}
+                        <span className="flex-1 truncate">{item.title}</span>
+                        {badge > 0 && (
+                          <span
+                            className={cn(
+                              "ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
+                              isActive
+                                ? "bg-primary-foreground text-primary"
+                                : "bg-red-500 text-white",
+                            )}
+                          >
+                            {badge > 9 ? "9+" : badge}
+                          </span>
+                        )}
                       </div>
                     </NavLink>
                   );

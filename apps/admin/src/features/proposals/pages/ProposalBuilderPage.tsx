@@ -1,10 +1,10 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft } from "lucide-react";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { BackendErrorAlert } from "@/components/BackendErrorAlert";
 import { ProposalCommandHeader } from "../components/ProposalHeader";
+import { ProposalBreadcrumbs } from "../components/ProposalBreadcrumbs";
 import { ProposalSettingsPanel, ProposalActivityPanel, ProposalSectionBlock, BusinessAnalysisPanel } from "../components/ProposalBlocks";
 import { ProposalSortableSections } from "../components/ProposalSortableSections";
 import { ProposalPreview } from "../components/ProposalPreview";
@@ -12,6 +12,7 @@ import { ProposalBlockPicker } from "../components/ProposalBlockPicker";
 import { ProposalApprovalPanel } from "../components/ProposalApprovalPanel";
 import { ProposalSectionsNav } from "../components/ProposalSectionsNav";
 import { ProposalAiSheet } from "../components/ProposalAiSheet";
+import { ConfirmDialog } from "@/components/system";
 import { BLOCK_TYPES, CONSULTING_PROPOSAL_SECTIONS, defaultMetadata, mergeConsultingAiIntoProposal, sumLineItems, type ConsultingAiResult, type ProposalMetadata } from "../constants";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,7 +29,9 @@ type Proposal = {
   expected_close_date?: string;
   owner_user_id?: string;
   owner_email?: string;
+  lead_id?: string;
   lead_name?: string;
+  client_id?: string;
   metadata_json?: ProposalMetadata;
   sections?: Section[];
   createdAt?: string;
@@ -49,6 +52,7 @@ export default function ProposalBuilderPage() {
   const [aiOpen, setAiOpen] = useState(false);
   const [aiLoading, setAiLoading] = useState("");
   const [actionLoading, setActionLoading] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { data: proposal, error } = useQuery({
     queryKey: ["admin", "proposals", id],
@@ -227,6 +231,21 @@ export default function ProposalBuilderPage() {
     }
   }
 
+  async function handleDelete() {
+    setActionLoading("delete");
+    try {
+      await api.proposals.remove(id!);
+      toast({ title: "Proposal deleted" });
+      qc.invalidateQueries({ queryKey: ["admin", "proposals"] });
+      navigate("/proposals");
+    } catch (e) {
+      toast({ title: "Delete failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setActionLoading("");
+      setDeleteOpen(false);
+    }
+  }
+
   async function handleConvert() {
     setActionLoading("convert");
     try {
@@ -398,26 +417,34 @@ export default function ProposalBuilderPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6 overflow-x-hidden">
-      <Link to="/proposals" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Back to proposals
-      </Link>
-
-      <ProposalCommandHeader
-        proposal={{ ...p, total_cents: computedTotal || p.total_cents }}
-        computedTotalCents={computedTotal}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onStatusChange={(status) => save.mutate({ status })}
-        onAiOpen={() => setAiOpen(true)}
-        aiGenerating={Boolean(aiLoading)}
-        onPreview={() => shareUrl && window.open(shareUrl, "_blank")}
-        onShare={handleShare}
-        onPdf={downloadPdf}
-        onDuplicate={handleDuplicate}
-        onConvert={handleConvert}
-        actionLoading={actionLoading}
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6 overflow-x-hidden">
+      <ProposalBreadcrumbs
+        proposalTitle={p.title}
+        clientName={p.client_name}
+        leadId={p.lead_id}
+        leadName={p.lead_name}
+        clientId={p.client_id}
       />
+
+      <div className="sticky top-0 z-20 -mx-6 px-6 lg:-mx-8 lg:px-8 py-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <ProposalCommandHeader
+          proposal={{ ...p, total_cents: computedTotal || p.total_cents }}
+          computedTotalCents={computedTotal}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onStatusChange={(status) => save.mutate({ status })}
+          onAiOpen={() => setAiOpen(true)}
+          onAiGenerate={() => void runAiAction("generate_consulting")}
+          aiGenerating={Boolean(aiLoading)}
+          onPreview={() => shareUrl && window.open(shareUrl, "_blank")}
+          onShare={handleShare}
+          onPdf={downloadPdf}
+          onDuplicate={handleDuplicate}
+          onDelete={() => setDeleteOpen(true)}
+          onConvert={handleConvert}
+          actionLoading={actionLoading}
+        />
+      </div>
 
       <div className="grid lg:grid-cols-[1fr_240px] gap-6">
         <div className="space-y-4 min-w-0">
@@ -469,6 +496,8 @@ export default function ProposalBuilderPage() {
             <ProposalSettingsPanel
               clientName={p.client_name}
               leadName={p.lead_name}
+              leadId={p.lead_id}
+              clientId={p.client_id}
               projectType={p.project_type}
               computedTotalCents={computedTotal}
               currency={p.currency}
@@ -486,6 +515,21 @@ export default function ProposalBuilderPage() {
       </div>
 
       <ProposalAiSheet open={aiOpen} onOpenChange={setAiOpen} loading={aiLoading} sections={sections} onAction={runAiAction} />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete this proposal?"
+        description={
+          p.status === "converted"
+            ? `${p.title} was converted to a project. Deleting removes the proposal document only — the project and client records stay intact.`
+            : `Permanently delete "${p.title}"? Sections, analytics, and the client share link will be removed. This cannot be undone.`
+        }
+        confirmLabel="Delete proposal"
+        variant="destructive"
+        loading={actionLoading === "delete"}
+        onConfirm={() => void handleDelete()}
+      />
 
       <div id="proposal-print-source" aria-hidden="true">
         <ProposalPreview {...previewProps} />

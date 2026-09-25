@@ -55,6 +55,17 @@ export type LeadAiInsights = {
   probability: number;
   insights: string[];
   recommended_actions: { label: string; href: string; kind: string }[];
+  score_breakdown?: { label: string; ok: boolean; partial?: boolean }[];
+  deal_health?: {
+    health_pct: number;
+    stars: number;
+    budget_match_pct: number;
+    engagement: string;
+    decision_maker: string;
+    risk: string;
+    ai_summary: string;
+    recommended_action: string;
+  };
 };
 
 export type Lead = {

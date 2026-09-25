@@ -39,7 +39,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       {/* Brand Header */}
       <div className="p-6 pb-0 relative z-10 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-stone-900">
-          CurvvTech Admin
+          Curvvtech Admin
         </h1>
         {/* Close button for mobile */}
         {onClose && (

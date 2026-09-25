@@ -48,9 +48,14 @@ export function useLeadMutations() {
   });
 
   const remove = useMutation({
+    mutationFn: (id: string) => api.leads.remove(id),
+    onSuccess: invalidate,
+  });
+
+  const markLost = useMutation({
     mutationFn: (id: string) => api.leads.update(id, { status: "lost" }),
     onSuccess: invalidate,
   });
 
-  return { create, update, remove };
+  return { create, update, remove, markLost };
 }

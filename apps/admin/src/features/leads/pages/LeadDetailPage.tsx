@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { useLeadMutations } from "../hooks/useLeads";
 import type { Lead, LeadAiInsights } from "../schemas";
 import { LeadDealHeader } from "../components/LeadDealHeader";
+import { LeadDealHealthCard } from "../components/LeadDealHealthCard";
+import { LeadBreadcrumbs } from "../components/LeadBreadcrumbs";
 import { LeadWonBanner } from "../components/LeadWonBanner";
 import { LeadAiSheet } from "../components/LeadAiSheet";
 import { LeadOverviewTab } from "../components/LeadOverviewTab";
@@ -15,8 +16,12 @@ import { LeadNotesTab } from "../components/LeadNotesTab";
 import { LeadCommunicationTab } from "../components/LeadCommunicationTab";
 import { LeadFilesTab } from "../components/LeadFilesTab";
 import type { NoteCategory } from "../constants";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { DetailTabTrigger, DetailTabsList } from "@/components/crm/DetailTabs";
+import { PipelineProgress } from "@/components/crm/PipelineProgress";
+import { LEAD_STATUSES, LEAD_STATUS_LABELS } from "../constants";
 import { useToast } from "@/hooks/use-toast";
+import { ConfirmDialog } from "@/components/system";
 
 export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -24,13 +29,14 @@ export default function LeadDetailPage() {
   const api = useAdminApi();
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { update } = useLeadMutations();
+  const { update, remove } = useLeadMutations();
   const [emailDraft, setEmailDraft] = useState("");
   const [aiOutput, setAiOutput] = useState("");
   const [aiLoading, setAiLoading] = useState("");
   const [tab, setTab] = useState("overview");
   const [aiOpen, setAiOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ["admin", "leads", id],
@@ -83,7 +89,7 @@ export default function LeadDetailPage() {
     return (
       <div className="p-6">
         <p className="text-muted-foreground">Lead not found.</p>
-        <Link to="/leads" className="text-sm underline mt-2 inline-block">Back to leads</Link>
+        <LeadBreadcrumbs leadName="Not found" />
       </div>
     );
   }
@@ -206,6 +212,24 @@ export default function LeadDetailPage() {
     refetchActivity();
   }
 
+  async function handleDeleteLead() {
+    setActionLoading("delete");
+    try {
+      const res = await remove.mutateAsync(leadId);
+      if (res && typeof res === "object" && "error" in res) {
+        toast({ title: "Delete failed", description: String((res as { error?: string }).error), variant: "destructive" });
+        return;
+      }
+      toast({ title: "Lead deleted" });
+      navigate("/leads");
+    } catch (e) {
+      toast({ title: "Delete failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setActionLoading("");
+      setDeleteOpen(false);
+    }
+  }
+
   const aiActions = {
     emailDraft: async () => {
       const res = await api.ai.emailDraft({ lead_id: leadId, purpose: "Follow up on enquiry" });
@@ -231,10 +255,8 @@ export default function LeadDetailPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-5xl mx-auto overflow-x-hidden space-y-6">
-      <Link to="/leads" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Back to pipeline
-      </Link>
+    <div className="p-6 lg:p-8 max-w-6xl mx-auto overflow-x-hidden space-y-6">
+      <LeadBreadcrumbs leadName={lead.name ?? lead.company ?? "Lead"} />
 
       {lead.status === "won" && (
         <LeadWonBanner
@@ -247,34 +269,62 @@ export default function LeadDetailPage() {
         />
       )}
 
-      <LeadDealHeader
-        lead={lead}
-        score={score}
-        ownerEmail={ownerEmail}
-        actionLoading={actionLoading}
-        onStatusChange={(status) => {
+      <div className="sticky top-0 z-20 -mx-6 px-6 lg:-mx-8 lg:px-8 py-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 space-y-4">
+        <LeadDealHeader
+          lead={lead}
+          score={score}
+          ownerEmail={ownerEmail}
+          aiInsights={aiInsights}
+          actionLoading={actionLoading}
+          onGenerateProposal={handleGenerateProposal}
+          onCreateClient={handleCreateClient}
+          onCreateProject={handleCreateProject}
+          onScheduleCall={handleScheduleCall}
+          onOpenAi={() => setAiOpen(true)}
+          onDelete={() => setDeleteOpen(true)}
+        />
+
+        <LeadDealHealthCard
+          lead={lead}
+          score={score}
+          aiInsights={aiInsights}
+          onOpenAi={() => setAiOpen(true)}
+          onRecommendedAction={() => {
+            const action = aiInsights?.recommended_actions?.[0]?.kind;
+            if (action === "generate_proposal") void handleGenerateProposal();
+            else if (action === "schedule_call") handleScheduleCall();
+            else if (action === "follow_up") {
+              setAiOpen(true);
+              void runAi("email", aiActions.emailDraft);
+            } else void handleGenerateProposal();
+          }}
+        />
+      </div>
+
+      <PipelineProgress
+        stages={LEAD_STATUSES.filter((s) => s !== "lost").map((s) => ({
+          id: s,
+          label: LEAD_STATUS_LABELS[s].replace(" Call", "").replace(" Sent", ""),
+        }))}
+        currentId={currentStatus}
+        onStageChange={(status) => {
           patch({ status });
           refreshAll();
         }}
-        onGenerateProposal={handleGenerateProposal}
-        onCreateClient={handleCreateClient}
-        onCreateProject={handleCreateProject}
-        onScheduleCall={handleScheduleCall}
-        onOpenAi={() => setAiOpen(true)}
       />
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="flex-wrap h-auto w-full justify-start">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="communication">Communication</TabsTrigger>
-          <TabsTrigger value="files">Files</TabsTrigger>
-        </TabsList>
+        <DetailTabsList>
+          <DetailTabTrigger value="overview">Overview</DetailTabTrigger>
+          <DetailTabTrigger value="timeline">Timeline</DetailTabTrigger>
+          <DetailTabTrigger value="activity">Activity</DetailTabTrigger>
+          <DetailTabTrigger value="notes">Notes</DetailTabTrigger>
+          <DetailTabTrigger value="communication">Communication</DetailTabTrigger>
+          <DetailTabTrigger value="files">Files</DetailTabTrigger>
+        </DetailTabsList>
 
         <TabsContent value="overview" className="mt-4">
-          <LeadOverviewTab lead={lead} members={memberList} onPatch={patch} />
+          <LeadOverviewTab lead={lead} score={score} members={memberList} onPatch={patch} />
         </TabsContent>
 
         <TabsContent value="timeline" className="mt-4">
@@ -321,6 +371,17 @@ export default function LeadDetailPage() {
         onGenerateProposal={handleGenerateProposal}
         onAiAction={runAi}
         actions={aiActions}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete this lead?"
+        description={`Permanently delete ${lead.company ?? lead.name ?? "this lead"}? Notes and call history will be removed. Linked clients and projects are kept.`}
+        confirmLabel="Delete lead"
+        variant="destructive"
+        loading={actionLoading === "delete" || remove.isPending}
+        onConfirm={() => void handleDeleteLead()}
       />
     </div>
   );

@@ -5,6 +5,7 @@ import {
   FolderKanban,
   Inbox,
   Loader2,
+  Plus,
   Receipt,
   Search,
   Users,
@@ -66,16 +67,20 @@ export function GlobalSearch() {
   const [loading, setLoading] = useState(false);
   const [entityResults, setEntityResults] = useState<EntityResults>(EMPTY_RESULTS);
   const navigate = useNavigate();
-  const { permissions } = useAuth();
+  const { permissions, role } = useAuth();
+  const restricted = role === "designer";
   const debouncedQuery = useDebouncedValue(query.trim(), 250);
   const shortcut = useMemo(() => modKeyLabel(), []);
 
   const navItems = useMemo(
     () =>
       GLOBAL_SEARCH_ITEMS.filter(
-        (item) => !item.permission || hasPermission(permissions, item.permission),
+        (item) =>
+          (!item.permission || hasPermission(permissions, item.permission)) &&
+          (!item.roles || (role !== null && item.roles.includes(role))) &&
+          (!item.hiddenForRoles || role === null || !item.hiddenForRoles.includes(role)),
       ),
-    [permissions],
+    [permissions, role],
   );
 
   const filteredNav = useMemo(() => {
@@ -101,6 +106,11 @@ export function GlobalSearch() {
         setLoading(false);
         return;
       }
+      if (restricted) {
+        setEntityResults(EMPTY_RESULTS);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
         const data = (await adminApi(getAccessToken()).search(q)) as EntityResults;
@@ -117,7 +127,7 @@ export function GlobalSearch() {
         setLoading(false);
       }
     },
-    [],
+    [restricted],
   );
 
   useEffect(() => {
@@ -172,7 +182,9 @@ export function GlobalSearch() {
         aria-label="Open search"
       >
         <Search className="h-4 w-4 shrink-0 opacity-70" />
-        <span className="flex-1 text-left truncate">Search leads, clients, invoices…</span>
+        <span className="flex-1 text-left truncate">
+          {restricted ? "Search workspace pages…" : "Search leads, clients, invoices…"}
+        </span>
         <kbd className="pointer-events-none hidden md:inline-flex h-5 select-none items-center gap-0.5 rounded border border-border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
           {shortcut}
         </kbd>
@@ -183,7 +195,7 @@ export function GlobalSearch() {
 
       <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
         <CommandInput
-          placeholder="Search pages, leads, clients, projects…"
+          placeholder={restricted ? "Search workspace pages…" : "Search pages, leads, clients, projects…"}
           value={query}
           onValueChange={setQuery}
         />
@@ -199,7 +211,40 @@ export function GlobalSearch() {
 
           {!query.trim() && (
             <div className="px-3 py-2 text-xs text-muted-foreground">
-              Type to search records, or pick a page below
+              {restricted ? "Search pages in your workspace" : "Type to search records, or pick an action below"}
+            </div>
+          )}
+
+          {!query.trim() && !restricted && (
+            <CommandGroup heading="Quick actions">
+              <CommandItem value="action-new-lead" onSelect={() => go("/leads")}>
+                <Plus className="text-muted-foreground" />
+                <span>Create lead</span>
+              </CommandItem>
+              <CommandItem value="action-new-client" onSelect={() => go("/clients")}>
+                <Users className="text-muted-foreground" />
+                <span>Create client</span>
+              </CommandItem>
+              <CommandItem value="action-new-invoice" onSelect={() => go("/invoices")}>
+                <Receipt className="text-muted-foreground" />
+                <span>Create invoice</span>
+              </CommandItem>
+              <CommandItem value="action-new-proposal" onSelect={() => go("/proposals")}>
+                <FileSignature className="text-muted-foreground" />
+                <span>Create proposal</span>
+              </CommandItem>
+              <CommandItem value="action-new-project" onSelect={() => go("/projects")}>
+                <FolderKanban className="text-muted-foreground" />
+                <span>Open projects</span>
+              </CommandItem>
+            </CommandGroup>
+          )}
+
+          {!query.trim() && filteredNav.length > 0 && <CommandSeparator />}
+
+          {!query.trim() && (
+            <div className="px-3 py-2 text-xs text-muted-foreground">
+              Pages
             </div>
           )}
 

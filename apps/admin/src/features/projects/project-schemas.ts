@@ -27,10 +27,18 @@ export type ProjectRecord = {
   name?: string;
   client_id?: string;
   client_name?: string;
+  client_company?: string;
   client_email?: string;
+  client_website?: string;
   status?: string;
   progress_pct?: number;
   budget_cents?: number | null;
+  quoted_cents?: number | null;
+  gst_cents?: number | null;
+  collected_cents?: number;
+  pending_cents?: number;
+  expense_cents?: number;
+  profit_cents?: number;
   start_date?: string | null;
   target_end_date?: string | null;
   project_type?: string | null;
@@ -39,8 +47,67 @@ export type ProjectRecord = {
   ai_intelligence?: ProjectIntelligence | null;
   analyzed_at?: string | null;
   internal_notes?: string | null;
+  live_url?: string | null;
+  repository_url?: string | null;
+  figma_url?: string | null;
+  priority?: string | null;
+  tags?: string[] | null;
+  color?: string | null;
+  is_internal?: boolean;
+  archived_at?: string | null;
+  completed_at?: string | null;
+  referred_by?: string | null;
+  manager_email?: string | null;
+  open_milestones?: number;
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type ProjectListStats = {
+  total: number;
+  active: number;
+  completed: number;
+  in_progress: number;
+  archived: number;
+  total_budget_cents: number;
+  total_collected_cents: number;
+  total_pending_cents: number;
+};
+
+export type HealthBreakdown = {
+  timeline: number;
+  budget: number;
+  tasks: number;
+  communication: number;
+  payments: number;
+  overall: number;
+};
+
+export type ManagerAction = {
+  id: string;
+  label: string;
+  type: string;
+  priority: "high" | "medium" | "low";
+};
+
+export type ManagerBrief = {
+  greeting: string;
+  summary_lines: string[];
+  suggested_actions: ManagerAction[];
+  estimated_completion: string;
+  awaiting: string[];
+  outstanding_cents: number;
+  priorities: string[];
+};
+
+export type FeedEvent = {
+  id: string;
+  event_type: string;
+  title: string;
+  description?: string | null;
+  actor?: string | null;
+  created_at: string;
+  icon?: string;
 };
 
 export type ProjectSummary = {
@@ -48,6 +115,14 @@ export type ProjectSummary = {
   collected_cents: number;
   pending_cents: number;
   collection_pct: number;
+  expense_cents?: number;
+  profit_cents?: number;
+  health_score?: number;
+  health_breakdown?: HealthBreakdown;
+  manager_brief?: ManagerBrief;
+  tasks_done?: number;
+  tasks_total?: number;
+  days_since_last_contact?: number | null;
   next_milestone: string | null;
   next_milestone_due_at: string | null;
   days_elapsed: number;
@@ -62,6 +137,123 @@ export type ProjectSummary = {
   };
   intelligence: ProjectIntelligence;
   delivery_phases: DeliveryPhase[];
+  invoice_count?: number;
+  task_count?: number;
+  open_milestones?: number;
+};
+
+export type ProjectFinance = {
+  revenue_cents: number;
+  expenses_cents: number;
+  profit_cents: number;
+  gst_cents: number;
+  pending_cents: number;
+  expected_cents: number;
+  budget_cents: number;
+  quoted_cents: number;
+  margin_pct: number;
+  collection_pct: number;
+  cashflow: { month: string; inflow: number; outflow: number; net: number }[];
+  payment_history: { id: string; invoice_number?: string; amount_cents: number; paid_at?: string }[];
+  invoices: { id: string; invoice_number?: string; status?: string; total_cents: number; paid_at?: string }[];
+};
+
+export type ProjectAnalytics = {
+  completion_pct: number;
+  milestone_pct: number;
+  tasks_total: number;
+  tasks_done: number;
+  burndown: { week: string; remaining: number; ideal: number }[];
+  velocity: { week: string; completed: number }[];
+  milestone_progress: { title?: string; pct: number; status: string }[];
+  revenue_trend: { period: string; revenue: number }[];
+  profit_trend: { period: string; profit: number }[];
+  time_spent_hours: number;
+  time_estimated_hours: number;
+};
+
+export type ProjectRevision = {
+  id: string;
+  revision_number: number;
+  requested_by?: string;
+  description?: string;
+  status?: string;
+  files_json?: unknown[];
+  completed_by?: string;
+  hours_spent?: number;
+  approved?: boolean;
+  approved_at?: string;
+  createdAt?: string;
+};
+
+export type ProjectChangeOrder = {
+  id: string;
+  title?: string;
+  description?: string;
+  estimated_hours?: number;
+  cost_cents?: number;
+  status?: string;
+  approval_status?: string;
+  payment_status?: string;
+  invoice_id?: string;
+  createdAt?: string;
+};
+
+export type ProjectScopeItem = {
+  id: string;
+  category: string;
+  title?: string;
+  description?: string;
+  cost_cents?: number;
+  sort_order?: number;
+};
+
+export type ProjectResource = {
+  id: string;
+  user_id: string;
+  email?: string;
+  role?: string;
+  allocation_pct?: number;
+  estimated_hours?: number;
+  actual_hours?: number;
+  weekly_capacity_hours?: number;
+  efficiency_pct?: number;
+  open_tasks?: number;
+};
+
+export type ProjectDeploymentConfig = {
+  id?: string;
+  hosting?: string;
+  server?: string;
+  domain?: string;
+  github_repo?: string;
+  github_branch?: string;
+  production_url?: string;
+  staging_url?: string;
+  ssl_status?: string;
+  cron_jobs?: unknown[];
+  database_info?: string;
+  api_keys_json?: Record<string, string>;
+  env_notes?: string;
+  last_deployed_at?: string;
+  last_deployed_by?: string;
+};
+
+export type ProjectDeploymentHistory = {
+  id: string;
+  environment?: string;
+  version?: string;
+  deployed_by?: string;
+  status?: string;
+  notes?: string;
+  deployed_at?: string;
+};
+
+export type ProjectFolder = {
+  id: string;
+  name: string;
+  folder_kind?: string;
+  file_count?: number;
 };
 
 export type ProjectActivity = {
@@ -75,8 +267,11 @@ export type ProjectActivity = {
 export type ProjectMilestone = {
   id: string;
   title?: string;
+  description?: string | null;
   due_at?: string | null;
   completed_at?: string | null;
+  completion_pct?: number;
+  status?: string;
 };
 
 export type ProjectTask = {
@@ -137,7 +332,38 @@ export const PROJECT_STATUS_LABELS: Record<string, string> = {
   completed: "Completed",
   on_hold: "On Hold",
   cancelled: "Cancelled",
+  archived: "Archived",
 };
+
+export const PROJECT_PRIORITY_LABELS: Record<string, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  urgent: "Urgent",
+};
+
+export function healthColor(score: number): string {
+  if (score >= 75) return "text-emerald-600";
+  if (score >= 50) return "text-amber-600";
+  return "text-red-600";
+}
+
+export function healthBg(score: number): string {
+  if (score >= 75) return "bg-emerald-500";
+  if (score >= 50) return "bg-amber-500";
+  return "bg-red-500";
+}
+
+export function computeListHealth(project: ProjectRecord): number {
+  const progress = Number(project.progress_pct ?? 0);
+  const budget = Number(project.budget_cents ?? 0);
+  const collected = Number(project.collected_cents ?? 0);
+  const collectionPct = budget > 0 ? (collected / budget) * 100 : 100;
+  let score = 50 + Math.min(25, progress * 0.25) + Math.min(10, collectionPct * 0.1);
+  if (project.status === "completed") score = Math.max(score, 85);
+  if (project.status === "cancelled") score = Math.min(score, 40);
+  return Math.round(Math.max(0, Math.min(100, score)));
+}
 
 export const TEAM_ROLES = [
   { key: "project_manager", label: "Project Manager" },
@@ -154,6 +380,139 @@ const DEFAULT_PHASES: DeliveryPhase[] = [
   { key: "launch", label: "Launch", status: "pending", progress: 0 },
 ];
 
+export function buildFallbackManagerBrief(
+  project: ProjectRecord,
+  summary?: ProjectSummary | null,
+  userName?: string,
+): ManagerBrief {
+  const firstName = userName?.split(/[@.\s]/)[0] ?? "there";
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? `Good morning, ${firstName}` : hour < 17 ? `Good afternoon, ${firstName}` : `Good evening, ${firstName}`;
+
+  const progress = Number(project.progress_pct ?? 0);
+  const pending = summary?.pending_cents ?? project.pending_cents ?? 0;
+  const statusLabel = PROJECT_STATUS_LABELS[project.status ?? "planning"] ?? project.status ?? "Planning";
+  const intel = resolveIntel(project, summary);
+
+  const summaryLines: string[] = [];
+  if (intel.ai_summary) {
+    summaryLines.push(intel.ai_summary.split("\n").filter(Boolean)[0] ?? intel.ai_summary);
+  } else {
+    summaryLines.push(`${project.name ?? "Project"} is ${statusLabel.toLowerCase()} at ${progress}% progress.`);
+  }
+  if (pending > 0) summaryLines.push(`${formatInr(pending)} outstanding on this project.`);
+  if (summary?.next_milestone) summaryLines.push(`Next milestone: ${summary.next_milestone}.`);
+  if (summary?.days_since_last_contact != null && summary.days_since_last_contact >= 3) {
+    summaryLines.push(`No client contact for ${summary.days_since_last_contact} days.`);
+  }
+
+  const estimated =
+    project.status === "completed"
+      ? "Completed"
+      : project.target_end_date
+        ? formatShortDate(project.target_end_date)
+        : intel.predicted_completion ?? "TBD";
+
+  const actions: ManagerAction[] = [];
+  if (pending > 0) actions.push({ id: "send-invoice", label: "Send invoice", type: "invoice", priority: "high" });
+  if ((summary?.tasks_total ?? 0) > (summary?.tasks_done ?? 0)) {
+    actions.push({
+      id: "complete-tasks",
+      label: `Complete ${(summary?.tasks_total ?? 0) - (summary?.tasks_done ?? 0)} open tasks`,
+      type: "task",
+      priority: "medium",
+    });
+  }
+  if (progress >= 60) actions.push({ id: "deploy-staging", label: "Deploy staging", type: "deploy", priority: "medium" });
+  if (actions.length === 0) actions.push({ id: "generate-plan", label: "Generate project plan", type: "plan", priority: "medium" });
+
+  return {
+    greeting,
+    summary_lines: summaryLines.slice(0, 5),
+    suggested_actions: actions.slice(0, 5),
+    estimated_completion: estimated,
+    awaiting: pending > 0 ? ["Invoice payment"] : [],
+    outstanding_cents: pending,
+    priorities: intel.recommended_action ? [intel.recommended_action] : [],
+  };
+}
+
+export function buildFallbackProjectFinance(
+  project: ProjectRecord,
+  summary?: ProjectSummary | null,
+  invoices: ProjectInvoice[] = [],
+): ProjectFinance {
+  const budgetCents = Number(summary?.budget_cents ?? project.budget_cents ?? 0);
+  const collectedCents = Number(summary?.collected_cents ?? project.collected_cents ?? 0);
+  const expenseCents = Number(summary?.expense_cents ?? project.expense_cents ?? 0);
+  const gstCents = Number(project.gst_cents ?? 0);
+  const quotedCents = Number(project.quoted_cents ?? budgetCents);
+  const pendingCents = Number(summary?.pending_cents ?? project.pending_cents ?? Math.max(0, budgetCents - collectedCents));
+  const profitCents = collectedCents - expenseCents;
+  const collectionPct = budgetCents > 0 ? Math.round((collectedCents / budgetCents) * 100) : 0;
+  const marginPct = collectedCents > 0 ? Math.round((profitCents / collectedCents) * 100) : 0;
+  const paid = invoices.filter((i) => i.status === "paid");
+
+  return {
+    revenue_cents: collectedCents,
+    expenses_cents: expenseCents,
+    profit_cents: profitCents,
+    gst_cents: gstCents,
+    pending_cents: pendingCents,
+    expected_cents: budgetCents + gstCents,
+    budget_cents: budgetCents,
+    quoted_cents: quotedCents,
+    margin_pct: marginPct,
+    collection_pct: collectionPct,
+    cashflow: [],
+    payment_history: paid.map((i) => ({
+      id: i.id,
+      invoice_number: i.invoice_number,
+      amount_cents: Number(i.total_cents ?? 0),
+      paid_at: i.paid_at,
+    })),
+    invoices: invoices.map((i) => ({
+      id: i.id,
+      invoice_number: i.invoice_number,
+      status: i.status,
+      total_cents: Number(i.total_cents ?? 0),
+      paid_at: i.paid_at,
+    })),
+  };
+}
+
+export function buildFallbackProjectAnalytics(
+  project: ProjectRecord,
+  summary?: ProjectSummary | null,
+  tasks: ProjectTask[] = [],
+  milestones: ProjectMilestone[] = [],
+): ProjectAnalytics {
+  const total = tasks.length;
+  const done = tasks.filter((t) => t.status === "done" || t.status === "completed").length;
+  const completionPct = total > 0 ? Math.round((done / total) * 100) : Number(project.progress_pct ?? 0);
+  const msDone = milestones.filter((m) => m.completed_at).length;
+  const milestonePct = milestones.length > 0 ? Math.round((msDone / milestones.length) * 100) : completionPct;
+
+  return {
+    completion_pct: completionPct,
+    milestone_pct: milestonePct,
+    tasks_total: summary?.tasks_total ?? total,
+    tasks_done: summary?.tasks_done ?? done,
+    burndown: [],
+    velocity: [],
+    milestone_progress: milestones.map((m) => ({
+      title: m.title,
+      pct: m.completed_at ? 100 : 0,
+      status: m.completed_at ? "completed" : "pending",
+    })),
+    revenue_trend: [],
+    profit_trend: [],
+    time_spent_hours: 0,
+    time_estimated_hours: 0,
+  };
+}
+
 export function buildPhasesFromProgress(progressPct: number): DeliveryPhase[] {
   const thresholds = [15, 35, 70, 90, 100];
   return DEFAULT_PHASES.map((phase, i) => {
@@ -166,6 +525,36 @@ export function buildPhasesFromProgress(progressPct: number): DeliveryPhase[] {
     }
     return { ...phase, status: "pending" as const, progress: 0 };
   });
+}
+
+/** Convert delivery roadmap phases into an overall completion percentage. */
+export function phasesToProgress(phases: DeliveryPhase[] | null | undefined): number {
+  if (!phases || phases.length === 0) return 0;
+  const sum = phases.reduce((acc, p) => {
+    if (p.status === "done") return acc + 100;
+    if (p.status === "in_progress") return acc + Math.max(5, Number(p.progress ?? 50));
+    return acc;
+  }, 0);
+  return Math.round(sum / phases.length);
+}
+
+/**
+ * Effective progress for display: keeps the ring in sync with the delivery
+ * roadmap and status instead of relying on the stale stored `progress_pct`.
+ * A completed project is always 100%; otherwise use the stored value or the
+ * roadmap-derived value, whichever is higher.
+ */
+export function deriveProgressPct(project: ProjectRecord, summary?: ProjectSummary | null): number {
+  if (project.status === "completed") return 100;
+  const stored = Number(project.progress_pct ?? 0);
+  const storedPhases =
+    Array.isArray(project.delivery_phases) && project.delivery_phases.length > 0
+      ? project.delivery_phases
+      : Array.isArray(summary?.delivery_phases) && summary!.delivery_phases.length > 0
+        ? summary!.delivery_phases
+        : null;
+  if (!storedPhases) return stored;
+  return Math.max(stored, phasesToProgress(storedPhases));
 }
 
 export function resolveIntel(project: ProjectRecord, summary?: ProjectSummary | null): ProjectIntelligence {

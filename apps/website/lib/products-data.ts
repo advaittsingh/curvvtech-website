@@ -14,7 +14,7 @@ export type Product = {
 };
 
 const followUpCardImage =
-  '/images/Products/Follow-Up/Black Modern Website Launch Promotion Mockup Instagram Post.png';
+  '/images/Products/Follow-Up/Black Modern Website Launch Promotion Mockup Instagram Post.webp';
 
 const businessOsCardImage = '/images/Products/Business-OS/card-mockup.svg';
 

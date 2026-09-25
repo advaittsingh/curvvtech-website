@@ -108,6 +108,69 @@ export const SALES_STAGE_COLORS: Record<SalesStage, string> = {
   lost: "bg-stone-100 text-stone-600 border-stone-200",
 };
 
+/* ── Score tiers (5 levels for fast scanning) ─────────────── */
+
+export type ScoreTier5 = "hot" | "high" | "warm" | "cold" | "low";
+
+export function scoreTier5(score: number): ScoreTier5 {
+  if (score >= 85) return "hot";
+  if (score >= 70) return "high";
+  if (score >= 55) return "warm";
+  if (score >= 40) return "cold";
+  return "low";
+}
+
+export const SCORE_TIER5_LABEL: Record<ScoreTier5, string> = {
+  hot: "Hot",
+  high: "High",
+  warm: "Warm",
+  cold: "Cold",
+  low: "Low",
+};
+
+export const SCORE_TIER5_CLASS: Record<ScoreTier5, string> = {
+  hot: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  high: "bg-green-100 text-green-700 border-green-200",
+  warm: "bg-amber-100 text-amber-800 border-amber-200",
+  cold: "bg-orange-100 text-orange-800 border-orange-200",
+  low: "bg-red-100 text-red-700 border-red-200",
+};
+
+export const SCORE_TIER5_DOT: Record<ScoreTier5, string> = {
+  hot: "bg-emerald-500",
+  high: "bg-green-500",
+  warm: "bg-amber-500",
+  cold: "bg-orange-500",
+  low: "bg-red-500",
+};
+
+/* ── Inbound sources ──────────────────────────────────────── */
+
+export type InboundSourceKey =
+  | "demo_booking"
+  | "website"
+  | "whatsapp"
+  | "email"
+  | "contact"
+  | "referral"
+  | "linkedin"
+  | "facebook"
+  | "instagram"
+  | "phone";
+
+export const INBOUND_SOURCE_LABEL: Record<string, string> = {
+  demo_booking: "Website demo",
+  website: "Website",
+  whatsapp: "WhatsApp",
+  email: "Email",
+  contact: "Contact form",
+  referral: "Referral",
+  linkedin: "LinkedIn",
+  facebook: "Facebook",
+  instagram: "Instagram",
+  phone: "Phone",
+};
+
 export function score100FromDemo(row: InboundOpportunity): number {
   if (row.ai_intelligence?.score_100) return row.ai_intelligence.score_100;
   if (row.lead_score != null) return Math.round(Number(row.lead_score) * 10);

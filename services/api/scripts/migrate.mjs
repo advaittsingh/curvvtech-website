@@ -2,13 +2,15 @@
 /**
  * Runs SQL migrations in lexical order from backend/migrations/*.sql
  */
-import "dotenv/config";
+import dotenv from "dotenv";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, "..", ".env.aws") });
+dotenv.config({ path: path.join(__dirname, "..", ".env") });
 const migrationsDir = path.join(__dirname, "..", "migrations");
 
 const connectionString = process.env.DATABASE_URL;

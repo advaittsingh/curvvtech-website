@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node -e \"const fs=require('fs');const path=require('path');const src='src/templates/email';const dist='dist/templates/email';fs.mkdirSync(dist,{recursive:true});fs.mkdirSync(path.join(dist,'assets'),{recursive:true});fs.copyFileSync(path.join(src,'invite-email.html'),path.join(dist,'invite-email.html'));for (const f of ['curvvtech-logo.png','curvvtech-logo-white.png']) fs.copyFileSync(path.join(src,'assets',f),path.join(dist,'assets',f))\"",
+    "vercel-build": "echo skip-compile",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "migrate": "node scripts/migrate.mjs",
@@ -12,7 +13,8 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "deploy:ec2": "bash scripts/deploy-ec2.sh"
+    "deploy:vercel": "vercel deploy --prod --yes --scope curvvtech",
+    "vercel:link": "vercel link --yes --scope curvvtech --project curvvtech-api"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.744.0",
@@ -32,6 +34,7 @@
     "pg": "^8.13.1",
     "pino": "^9.6.0",
     "razorpay": "^2.9.6",
+    "resend": "^6.17.1",
     "socket.io": "^4.7.2",
     "twilio": "^4.19.0",
     "ws": "^8.18.3",

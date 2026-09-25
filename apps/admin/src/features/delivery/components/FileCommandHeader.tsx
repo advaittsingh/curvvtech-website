@@ -9,8 +9,9 @@ type Props = {
   onUpload: () => void;
   onCreateFolder: () => void;
   onCreateDocument: () => void;
-  onOrganize: () => void;
+  onOrganize?: () => void;
   organizing?: boolean;
+  actionsDisabled?: boolean;
 };
 
 function MetricPill({
@@ -39,6 +40,7 @@ export function FileCommandHeader({
   onCreateDocument,
   onOrganize,
   organizing,
+  actionsDisabled,
 }: Props) {
   const s = summary;
 
@@ -53,19 +55,21 @@ export function FileCommandHeader({
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={onOrganize} disabled={organizing}>
-            <Sparkles className="h-3.5 w-3.5" />
-            {organizing ? "Organizing…" : "Organize files"}
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={onCreateDocument}>
+          {onOrganize && (
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={onOrganize} disabled={organizing}>
+              <Sparkles className="h-3.5 w-3.5" />
+              {organizing ? "Organizing…" : "Organize files"}
+            </Button>
+          )}
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={onCreateDocument} disabled={actionsDisabled}>
             <FilePlus2 className="h-3.5 w-3.5" />
             Create document
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={onCreateFolder}>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={onCreateFolder} disabled={actionsDisabled}>
             <FolderPlus className="h-3.5 w-3.5" />
             Create folder
           </Button>
-          <Button size="sm" className="gap-1.5" onClick={onUpload}>
+          <Button size="sm" className="gap-1.5" onClick={onUpload} disabled={actionsDisabled}>
             <Upload className="h-3.5 w-3.5" />
             Upload files
           </Button>

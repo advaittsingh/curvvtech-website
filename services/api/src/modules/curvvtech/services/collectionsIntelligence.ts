@@ -33,6 +33,7 @@ export async function getCollectionsInsight(): Promise<CollectionsAiInsight> {
           AND due_at >= date_trunc('week', CURRENT_DATE)
           AND due_at < date_trunc('week', CURRENT_DATE) + interval '7 days'
       ), 0)::bigint AS due_this_week_cents
+    FROM invoices
   `)
 
   const overdueCount = Number(stats?.overdue_count ?? 0)

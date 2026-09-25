@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+:root {
+  --brand: #111111;
+  --brand-accent: #2563eb;
+
+  --bg: #f6f7f9;
+  --bg-tint: #eef1f6;
+  --panel: #ffffff;
+  --panel-2: #fafbfc;
+  --border: #e7e9ee;
+  --border-strong: #d6dae1;
+  --text: #0d1220;
+  --muted: #667085;
+  --muted-2: #98a2b3;
+
+  --ok: #059669;
+  --ok-bg: #ecfdf3;
+  --warn: #b45309;
+  --warn-bg: #fffaeb;
+  --danger: #d92d20;
+  --danger-bg: #fef3f2;
+  --info: #175cd3;
+  --info-bg: #eff6ff;
+  --orange: #ea580c;
+  --orange-bg: #fff7ed;
+  --purple: #7c3aed;
+  --purple-bg: #f5f3ff;
+
+  --ring: color-mix(in srgb, var(--brand) 22%, transparent);
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-md: 0 4px 16px -4px rgba(16, 24, 40, 0.1), 0 2px 6px -2px rgba(16, 24, 40, 0.06);
+  --shadow-lg: 0 24px 48px -12px rgba(16, 24, 40, 0.18);
+}
+
+html,
+body {
+  background:
+    radial-gradient(1200px 600px at 100% -10%, var(--bg-tint), transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Subtle scrollbars */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-2) 45%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muted-2) 70%, transparent);
+  background-clip: content-box;
+}
+
+@keyframes cp-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes cp-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes cp-pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+}
+@keyframes cp-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.cp-animate {
+  animation: cp-fade-up 0.4s ease both;
+}
+.cp-animate-in {
+  animation: cp-fade-in 0.3s ease both;
+}
+.cp-live-dot {
+  animation: cp-pulse-dot 1.6s ease-in-out infinite;
+}
+
+.cp-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-tint);
+}
+.cp-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, #ffffff 60%, transparent),
+    transparent
+  );
+  animation: cp-shimmer 1.4s infinite;
+}

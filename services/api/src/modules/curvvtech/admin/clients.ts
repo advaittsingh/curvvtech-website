@@ -2,11 +2,99 @@ import { Router } from 'express'
 import { pool } from '../../../db.js'
 import { sql, firstRow } from '../../../lib/sqlPool.js'
 import { requireCurvvtechAdmin } from '../../../middleware/requireCurvvtechAdmin.js'
+import { asyncHandler } from '../../../lib/asyncHandler.js'
+import { sendPaymentReminder } from '../services/paymentReminder.js'
 
 const router = Router()
 router.use(requireCurvvtechAdmin)
 
 const INV_AMT = 'COALESCE(i.total_cents, i.amount_cents, 0)'
+
+type ClientView = 'active' | 'archived' | 'deleted' | 'all'
+
+function viewFilterClause(view: ClientView): string {
+  if (view === 'active') return 'WHERE c.deleted_at IS NULL AND c.is_archived = false'
+  if (view === 'archived') return 'WHERE c.deleted_at IS NULL AND c.is_archived = true'
+  if (view === 'deleted') return 'WHERE c.deleted_at IS NOT NULL'
+  return ''
+}
+
+async function logClientActivity(
+  clientId: string,
+  action: string,
+  message: string,
+  clerkUserId?: string | null,
+) {
+  await sql`
+    INSERT INTO activity_logs (clerk_user_id, action, entity_type, entity_id, details)
+    VALUES (
+      ${clerkUserId ?? null},
+      ${action},
+      'client',
+      ${clientId},
+      ${JSON.stringify({ message })}::jsonb
+    )
+  `
+}
+
+async function getClientLinkedCounts(clientId: string) {
+  const projResult = await pool.query(
+    `SELECT
+      COUNT(*)::int AS projects,
+      COUNT(*) FILTER (WHERE status NOT IN ('completed', 'cancelled'))::int AS active_projects
+    FROM projects WHERE client_id = $1::uuid`,
+    [clientId],
+  )
+  const invResult = await pool.query(
+    `SELECT
+      COUNT(*)::int AS invoices,
+      COUNT(*) FILTER (WHERE status = 'paid')::int AS paid_invoices
+    FROM invoices WHERE client_id = $1::uuid`,
+    [clientId],
+  )
+  const filesResult = await pool.query(
+    `SELECT COUNT(*)::int AS files FROM files WHERE client_id = $1::uuid`,
+    [clientId],
+  )
+  const notesResult = await pool.query(
+    `SELECT COUNT(*)::int AS notes FROM client_notes WHERE client_id = $1::uuid`,
+    [clientId],
+  )
+
+  const proj = projResult.rows[0] as Record<string, number>
+  const inv = invResult.rows[0] as Record<string, number>
+  const files = filesResult.rows[0] as Record<string, number>
+  const notes = notesResult.rows[0] as Record<string, number>
+
+  const activeProjects = Number(proj.active_projects ?? 0)
+  const invoices = Number(inv.invoices ?? 0)
+  const paidInvoices = Number(inv.paid_invoices ?? 0)
+  const payments = paidInvoices
+
+  let canDelete = true
+  let blockReason: string | null = null
+
+  if (activeProjects > 0 || invoices > 0 || payments > 0) {
+    canDelete = false
+    const parts: string[] = []
+    if (activeProjects > 0) parts.push('active projects')
+    if (invoices > 0) parts.push('invoices')
+    if (payments > 0) parts.push('payments')
+    blockReason = `This client has financial or delivery records (${parts.join(', ')}) and cannot be permanently deleted. Archive instead.`
+  }
+
+  return {
+    projects: Number(proj.projects ?? 0),
+    active_projects: activeProjects,
+    invoices,
+    paid_invoices: paidInvoices,
+    payments,
+    files: Number(files.files ?? 0),
+    notes: Number(notes.notes ?? 0),
+    can_delete: canDelete,
+    block_reason: blockReason,
+  }
+}
 
 function computeHealthScore(input: {
   outstandingCents: number
@@ -30,10 +118,14 @@ function computeHealthScore(input: {
   return Math.max(0, Math.min(100, Math.round(score)))
 }
 
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const rows = await sql`SELECT * FROM clients ORDER BY "updatedAt" DESC`
-    res.json(rows)
+    const view = String(req.query.view ?? 'active') as ClientView
+    const clause = viewFilterClause(view)
+    const result = await pool.query(
+      `SELECT c.* FROM clients c ${clause} ORDER BY c."updatedAt" DESC`,
+    )
+    res.json(result.rows)
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })
   }
@@ -48,6 +140,188 @@ router.post('/', async (req, res) => {
       RETURNING *
     `)
     res.status(201).json(row!)
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
+router.get('/:id/deletion-preview', async (req, res) => {
+  try {
+    const id = req.params.id
+    const client = firstRow<{ name: string }>(await sql`SELECT id::text, name FROM clients WHERE id = ${id}::uuid`)
+    if (!client) {
+      res.status(404).json({ error: 'Client not found' })
+      return
+    }
+    const counts = await getClientLinkedCounts(id)
+    res.json({ client_name: client.name, ...counts })
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
+router.post('/:id/archive', async (req, res) => {
+  try {
+    const auth = req.auth!
+    const id = req.params.id
+    const existing = firstRow<{ name: string; deleted_at: string | null }>(
+      await sql`SELECT name, deleted_at FROM clients WHERE id = ${id}::uuid`,
+    )
+    if (!existing) {
+      res.status(404).json({ error: 'Client not found' })
+      return
+    }
+    if (existing.deleted_at) {
+      res.status(400).json({ error: 'Deleted clients cannot be archived. Restore first.' })
+      return
+    }
+    await sql`
+      UPDATE clients
+      SET is_archived = true,
+          archived_at = NOW(),
+          archived_by = ${auth.sub},
+          status = 'inactive',
+          "updatedAt" = NOW()
+      WHERE id = ${id}::uuid
+    `
+    await logClientActivity(id, 'client_archived', `Client archived — ${existing.name}`, auth.sub)
+    const row = firstRow(await sql`SELECT * FROM clients WHERE id = ${id}::uuid`)
+    res.json(row)
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
+router.post('/:id/restore', async (req, res) => {
+  try {
+    const auth = req.auth!
+    const id = req.params.id
+    const existing = firstRow<{ name: string; deleted_at: string | null }>(
+      await sql`SELECT name, deleted_at FROM clients WHERE id = ${id}::uuid`,
+    )
+    if (!existing) {
+      res.status(404).json({ error: 'Client not found' })
+      return
+    }
+    const wasDeleted = Boolean(existing.deleted_at)
+    await sql`
+      UPDATE clients
+      SET is_archived = false,
+          archived_at = NULL,
+          archived_by = NULL,
+          deleted_at = NULL,
+          deleted_by = NULL,
+          status = 'active',
+          "updatedAt" = NOW()
+      WHERE id = ${id}::uuid
+    `
+    await logClientActivity(
+      id,
+      wasDeleted ? 'client_restored' : 'client_restored',
+      wasDeleted ? `Client restored from deleted — ${existing.name}` : `Client restored from archive — ${existing.name}`,
+      auth.sub,
+    )
+    const row = firstRow(await sql`SELECT * FROM clients WHERE id = ${id}::uuid`)
+    res.json(row)
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
+router.post('/:id/duplicate', async (req, res) => {
+  try {
+    const id = req.params.id
+    const source = firstRow<Record<string, unknown>>(await sql`SELECT * FROM clients WHERE id = ${id}::uuid`)
+    if (!source) {
+      res.status(404).json({ error: 'Client not found' })
+      return
+    }
+    const copyName = `${String(source.name ?? 'Client')} (Copy)`
+    const row = firstRow(await sql`
+      INSERT INTO clients (
+        name, email, phone, company, industry, website, gst_number, address,
+        contract_value_cents, status, notes, account_manager_id, portal_status,
+        "updatedAt", "createdAt"
+      )
+      VALUES (
+        ${copyName},
+        ${source.email ?? null},
+        ${source.phone ?? null},
+        ${source.company ?? null},
+        ${source.industry ?? null},
+        ${source.website ?? null},
+        ${source.gst_number ?? null},
+        ${source.address ?? null},
+        ${source.contract_value_cents ?? null},
+        'active',
+        ${source.notes ?? null},
+        ${source.account_manager_id ?? null},
+        'not_invited',
+        NOW(),
+        NOW()
+      )
+      RETURNING *
+    `)
+    res.status(201).json(row)
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
+router.get('/:id/export', async (req, res) => {
+  try {
+    const id = req.params.id
+    const client = firstRow(await sql`SELECT * FROM clients WHERE id = ${id}::uuid`)
+    if (!client) {
+      res.status(404).json({ error: 'Client not found' })
+      return
+    }
+    const [projects, invoices, notes, communications] = await Promise.all([
+      pool.query(`SELECT * FROM projects WHERE client_id = $1::uuid ORDER BY "createdAt" DESC`, [id]),
+      pool.query(`SELECT * FROM invoices WHERE client_id = $1::uuid ORDER BY "createdAt" DESC`, [id]),
+      pool.query(`SELECT * FROM client_notes WHERE client_id = $1::uuid ORDER BY "createdAt" DESC`, [id]),
+      pool.query(`SELECT * FROM client_communications WHERE client_id = $1::uuid ORDER BY "createdAt" DESC`, [id]),
+    ])
+    res.json({
+      exported_at: new Date().toISOString(),
+      client,
+      projects: projects.rows,
+      invoices: invoices.rows,
+      notes: notes.rows,
+      communications: communications.rows,
+    })
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message })
+  }
+})
+
+router.delete('/:id', async (req, res) => {
+  try {
+    const auth = req.auth!
+    const id = req.params.id
+    const existing = firstRow<{ name: string }>(await sql`SELECT name FROM clients WHERE id = ${id}::uuid`)
+    if (!existing) {
+      res.status(404).json({ error: 'Client not found' })
+      return
+    }
+    const counts = await getClientLinkedCounts(id)
+    if (!counts.can_delete) {
+      res.status(409).json({ error: counts.block_reason, ...counts })
+      return
+    }
+    await sql`
+      UPDATE clients
+      SET deleted_at = NOW(),
+          deleted_by = ${auth.sub},
+          is_archived = true,
+          archived_at = COALESCE(archived_at, NOW()),
+          archived_by = COALESCE(archived_by, ${auth.sub}),
+          status = 'churned',
+          "updatedAt" = NOW()
+      WHERE id = ${id}::uuid
+    `
+    await logClientActivity(id, 'client_deleted', `Client permanently deleted — ${existing.name}`, auth.sub)
+    res.json({ ok: true, id })
   } catch (e) {
     res.status(500).json({ error: (e as Error).message })
   }
@@ -245,6 +519,23 @@ router.get('/:id/timeline', async (req, res) => {
       }
     }
 
+    const audits = (await sql`
+      SELECT id::text, action, details, "createdAt"
+      FROM activity_logs
+      WHERE entity_type = 'client' AND entity_id = ${id}
+        AND action IN ('client_archived', 'client_restored', 'client_deleted')
+      ORDER BY "createdAt" DESC
+    `) as { id: string; action: string; details: { message?: string }; createdAt: string }[]
+
+    for (const a of audits) {
+      events.push({
+        id: `audit-${a.id}`,
+        type: a.action,
+        message: a.details?.message ?? a.action.replace(/_/g, ' '),
+        created_at: String(a.createdAt),
+      })
+    }
+
     events.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     res.json(events)
   } catch (e) {
@@ -331,6 +622,29 @@ router.post('/:id/communications', async (req, res) => {
     res.status(500).json({ error: (e as Error).message })
   }
 })
+
+router.post(
+  '/:id/payment-reminder',
+  asyncHandler(async (req, res) => {
+    const auth = req.auth!
+    const { invoice_id, message } = req.body as { invoice_id?: string; message?: string }
+    const clientId = String(req.params.id)
+    const result = await sendPaymentReminder({
+      clientId,
+      invoiceId: invoice_id,
+      actorId: auth.sub,
+      actorName: auth.email ?? 'Staff',
+      message,
+    })
+    await logClientActivity(
+      clientId,
+      'payment_reminder_sent',
+      `Reminder sent for ${result.invoice_number}`,
+      auth.sub,
+    )
+    res.status(201).json(result)
+  }),
+)
 
 router.get('/:id', async (req, res) => {
   try {

@@ -1,24 +1,21 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Plus, Trash2 } from "lucide-react";
 import { useAdminApi } from "@/hooks/useAdminApi";
-import { DataTable, PageHeader, type ColumnDef } from "@/components/system";
+import { DataTable, PageHeader, ConfirmDialog, type ColumnDef } from "@/components/system";
 import { BackendErrorAlert } from "@/components/BackendErrorAlert";
 import { ProposalKpiBar, ProposalStatusPipeline } from "../components/ProposalHeader";
+import { NewProposalDialog } from "../components/NewProposalDialog";
 import {
   PROPOSAL_STATUS_LABELS,
   PROPOSAL_STATUS_COLORS,
-  PROPOSAL_TEMPLATES,
   formatInr,
   type ProposalStatus,
 } from "../constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 type Proposal = {
   id: string;
@@ -32,11 +29,11 @@ type Proposal = {
 export default function ProposalsListPage() {
   const navigate = useNavigate();
   const api = useAdminApi();
-  const qc = useQueryClient();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", client_name: "", template_key: "shopify" });
+  const [deleteTarget, setDeleteTarget] = useState<Proposal | null>(null);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin", "proposals"],
     queryFn: () => api.proposals.list(),
   });
@@ -44,18 +41,6 @@ export default function ProposalsListPage() {
   const { data: summary } = useQuery({
     queryKey: ["admin", "proposals", "pipeline-summary"],
     queryFn: () => api.proposals.pipelineSummary(),
-  });
-
-  const create = useMutation({
-    mutationFn: () =>
-      form.template_key
-        ? api.proposals.createFromTemplate({ template_key: form.template_key, client_name: form.client_name, title: form.title })
-        : api.proposals.create(form),
-    onSuccess: (p: Proposal) => {
-      qc.invalidateQueries({ queryKey: ["admin", "proposals"] });
-      setOpen(false);
-      navigate(`/proposals/${p.id}`);
-    },
   });
 
   const list: Proposal[] = Array.isArray(data) ? data : [];
@@ -66,6 +51,18 @@ export default function ProposalsListPage() {
     for (const p of list) c[p.status] = (c[p.status] ?? 0) + 1;
     return c;
   }, [list]);
+
+  const remove = useMutation({
+    mutationFn: (id: string) => api.proposals.remove(id),
+    onSuccess: () => {
+      toast({ title: "Proposal deleted" });
+      setDeleteTarget(null);
+      void refetch();
+    },
+    onError: (e: Error) => {
+      toast({ title: "Delete failed", description: e.message, variant: "destructive" });
+    },
+  });
 
   const columns: ColumnDef<Proposal>[] = [
     { id: "title", header: "Title", sortValue: (r) => r.title, cell: (r) => <span className="font-medium">{r.title}</span> },
@@ -91,10 +88,29 @@ export default function ProposalsListPage() {
       sortValue: (r) => r.updatedAt ?? "",
       cell: (r) => (r.updatedAt ? new Date(r.updatedAt).toLocaleDateString() : "—"),
     },
+    {
+      id: "actions",
+      header: "",
+      sortValue: () => "",
+      cell: (r) => (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600"
+          aria-label={`Delete ${r.title}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setDeleteTarget(r);
+          }}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      ),
+    },
   ];
 
   return (
-    <div className="p-6 lg:p-8 max-w-6xl mx-auto">
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
       <PageHeader
         title="Proposals"
         description="Proposal management — pipeline, sharing, approval, and conversion to projects."
@@ -113,28 +129,28 @@ export default function ProposalsListPage() {
         isLoading={isLoading}
         onRowClick={(r) => navigate(`/proposals/${r.id}`)}
         emptyTitle="No proposals"
+        emptyDescription="Create a proposal from a lead, client, or template — AI will use CRM context to personalize."
       />
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>New proposal</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Template</Label>
-              <Select value={form.template_key} onValueChange={(v) => setForm({ ...form, template_key: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PROPOSAL_TEMPLATES.map((t) => (
-                    <SelectItem key={t.key} value={t.key}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div><Label>Client</Label><Input value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} placeholder="Masako India" /></div>
-            <div><Label>Title (optional)</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Auto from template" /></div>
-            <Button className="w-full" disabled={create.isPending} onClick={() => create.mutate()}>Create from template</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <NewProposalDialog open={open} onOpenChange={setOpen} />
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(v) => !v && setDeleteTarget(null)}
+        title="Delete this proposal?"
+        description={
+          deleteTarget?.status === "converted"
+            ? `"${deleteTarget.title}" was converted to a project. Deleting removes the proposal document only.`
+            : deleteTarget
+              ? `Permanently delete "${deleteTarget.title}"? This cannot be undone.`
+              : undefined
+        }
+        confirmLabel="Delete proposal"
+        variant="destructive"
+        loading={remove.isPending}
+        onConfirm={() => {
+          if (deleteTarget) void remove.mutateAsync(deleteTarget.id);
+        }}
+      />
     </div>
   );
 }

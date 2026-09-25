@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { Search, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { DataTable, ConfirmDialog, type ColumnDef } from "@/components/system";
@@ -13,12 +13,15 @@ import { InvoiceStatusBadge } from "../components/InvoiceStatusBadge";
 import { InvoiceCreateDialog, type CreateInvoicePayload } from "../components/InvoiceCreateDialog";
 import type { InvoiceRecord, InvoiceSummary } from "../invoice-schemas";
 import { formatDueLabel, formatInr, invoiceStatus, invoiceTotal } from "../invoice-schemas";
+import { useToast } from "@/hooks/use-toast";
 
 export default function InvoicesListPage() {
   const api = useAdminApi();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [markPaidId, setMarkPaidId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<InvoiceRecord | null>(null);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -60,6 +63,14 @@ export default function InvoicesListPage() {
 
   const markPaid = useMutation({
     mutationFn: (id: string) => api.invoices.update(id, { status: "paid", paid_at: new Date().toISOString() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "invoices"] });
+      qc.invalidateQueries({ queryKey: ["admin", "invoices", "summary"] });
+    },
+  });
+
+  const removeInvoice = useMutation({
+    mutationFn: (id: string) => api.invoices.remove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "invoices"] });
       qc.invalidateQueries({ queryKey: ["admin", "invoices", "summary"] });
@@ -122,19 +133,34 @@ export default function InvoicesListPage() {
     {
       id: "actions",
       header: "",
-      cell: (r) =>
-        invoiceStatus(r) !== "paid" ? (
+      cell: (r) => (
+        <div className="flex items-center justify-end gap-1">
+          {invoiceStatus(r) !== "paid" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMarkPaidId(r.id);
+              }}
+            >
+              Mark paid
+            </Button>
+          )}
           <Button
-            variant="ghost"
             size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600"
+            aria-label={`Delete ${r.invoice_number ?? "invoice"}`}
             onClick={(e) => {
               e.stopPropagation();
-              setMarkPaidId(r.id);
+              setDeleteTarget(r);
             }}
           >
-            Mark paid
+            <Trash2 className="h-4 w-4" />
           </Button>
-        ) : null,
+        </div>
+      ),
     },
   ];
 
@@ -181,6 +207,34 @@ export default function InvoicesListPage() {
         onConfirm={async () => {
           if (markPaidId) await markPaid.mutateAsync(markPaidId);
           setMarkPaidId(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete this invoice?"
+        description={
+          deleteTarget
+            ? `Permanently delete invoice ${deleteTarget.invoice_number ?? deleteTarget.id.slice(0, 8)}? This cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete invoice"
+        variant="destructive"
+        loading={removeInvoice.isPending}
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          try {
+            const res = await removeInvoice.mutateAsync(deleteTarget.id);
+            if (res && typeof res === "object" && "error" in res) {
+              toast({ title: "Delete failed", description: String((res as { error?: string }).error), variant: "destructive" });
+              return;
+            }
+            toast({ title: "Invoice deleted" });
+            setDeleteTarget(null);
+          } catch (e) {
+            toast({ title: "Delete failed", description: (e as Error).message, variant: "destructive" });
+          }
         }}
       />
     </div>

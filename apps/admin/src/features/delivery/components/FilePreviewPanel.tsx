@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { useAdminApi } from "@/hooks/useAdminApi";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -15,14 +18,61 @@ type Props = {
   onDelete: (id: string) => void;
 };
 
+function previewKind(file: FileRecord): "image" | "pdf" | "none" {
+  const type = file.content_type ?? "";
+  const name = file.name.toLowerCase();
+  if (type.startsWith("image/") || /\.(png|jpe?g|gif|webp|svg)$/i.test(name)) return "image";
+  if (type.includes("pdf") || name.endsWith(".pdf")) return "pdf";
+  return "none";
+}
+
 export function FilePreviewPanel({ file, versions, open, onOpenChange, onDownload, onDelete }: Props) {
+  const api = useAdminApi();
+  const [mediaError, setMediaError] = useState(false);
+
+  const kind = file ? previewKind(file) : "none";
+
+  useEffect(() => {
+    setMediaError(false);
+  }, [file?.id]);
+
+  const { data: previewData, isLoading: previewLoading, isError: previewQueryError } = useQuery({
+    queryKey: ["admin", "files", file?.id, "preview-url"],
+    queryFn: async () => {
+      const res = (await api.files.downloadUrl(file!.id, { inline: true })) as {
+        url?: string;
+        error?: string;
+        message?: string;
+      };
+      if (!res?.url) {
+        throw new Error(res?.message ?? res?.error ?? "Preview unavailable");
+      }
+      return res;
+    },
+    enabled: Boolean(open && file?.id && kind !== "none"),
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+  });
+
   if (!file) return null;
 
+  const previewUrl = previewData?.url;
+  const showUnavailable =
+    kind === "none" ||
+    previewQueryError ||
+    mediaError ||
+    (!previewLoading && !previewUrl);
   const currentVersion = Number(file.version ?? 1);
   const previous = versions.filter((v) => v.version < currentVersion);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) setMediaError(false);
+        onOpenChange(next);
+      }}
+    >
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2 text-left">
@@ -32,9 +82,36 @@ export function FilePreviewPanel({ file, versions, open, onOpenChange, onDownloa
         </SheetHeader>
 
         <div className="mt-6 space-y-4">
-          <div className="rounded-xl border border-dashed border-border bg-muted/30 aspect-video flex items-center justify-center text-muted-foreground text-sm">
-            Preview unavailable — download to view
-          </div>
+          {kind === "image" && previewUrl && !mediaError ? (
+            <div className="rounded-xl border border-border bg-muted/30 overflow-hidden flex items-center justify-center">
+              <img
+                src={previewUrl}
+                alt={file.name}
+                className="max-h-[420px] w-full object-contain"
+                onError={() => setMediaError(true)}
+              />
+            </div>
+          ) : kind === "pdf" && previewUrl && !mediaError ? (
+            <iframe
+              src={previewUrl}
+              title={file.name}
+              className="w-full h-[480px] rounded-xl border border-border bg-white"
+              onError={() => setMediaError(true)}
+            />
+          ) : kind !== "none" && previewLoading ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 aspect-video flex items-center justify-center text-muted-foreground text-sm">
+              Loading preview…
+            </div>
+          ) : showUnavailable ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 aspect-video flex flex-col items-center justify-center gap-1 px-4 text-center text-muted-foreground text-sm">
+              <span>Preview unavailable</span>
+              <span className="text-xs">
+                {previewQueryError
+                  ? "File is missing from storage — re-upload to restore it."
+                  : "Download to view this file."}
+              </span>
+            </div>
+          ) : null}
 
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div>

@@ -1,103 +1,100 @@
-import { Calendar, FileSignature, Sparkles, UserPlus, FolderKanban } from "lucide-react";
-import type { ReactNode } from "react";
-import type { Lead } from "../schemas";
+import { Calendar, FileSignature, UserPlus, FolderKanban, Trash2 } from "lucide-react";
+import type { Lead, LeadAiInsights } from "../schemas";
 import {
-  LEAD_STATUSES,
   LEAD_STATUS_LABELS,
   LEAD_STATUS_COLORS,
   formatInr,
   formatOwnerDisplay,
-  formatRelativeDays,
-  formatShortDate,
-  formatNextFollowUp,
   scoreTier,
   scoreTierColor,
+  scoreTierLabel,
 } from "../constants";
+import {
+  computeDealHealth,
+  lastReplyLabel,
+  renderStars,
+  sourceLabel,
+} from "../lead.utils";
+import { GradientAvatar } from "@/components/crm/GradientAvatar";
+import { AskAiButton } from "@/components/crm/AskAiButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Props = {
   lead: Lead;
   score: number;
   ownerEmail: string | null;
+  aiInsights?: LeadAiInsights | null;
   actionLoading: string;
-  onStatusChange: (status: string) => void;
   onGenerateProposal: () => void;
   onCreateClient: () => void;
   onCreateProject: () => void;
   onScheduleCall: () => void;
   onOpenAi: () => void;
+  onDelete?: () => void;
 };
+
+function CompanyMark({ company }: { company: string }) {
+  const letter = company.charAt(0).toUpperCase();
+  return (
+    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-[10px] font-bold">
+      {letter}
+    </div>
+  );
+}
 
 export function LeadDealHeader({
   lead,
   score,
   ownerEmail,
+  aiInsights,
   actionLoading,
-  onStatusChange,
   onGenerateProposal,
   onCreateClient,
   onCreateProject,
   onScheduleCall,
   onOpenAi,
+  onDelete,
 }: Props) {
   const st = String(lead.status ?? "new") as keyof typeof LEAD_STATUS_LABELS;
-  const tier = scoreTier(score);
   const ownerName = formatOwnerDisplay(ownerEmail);
+  const health = computeDealHealth(lead, score, aiInsights);
+  const displayName = lead.name ?? "Unnamed lead";
+  const company = lead.company ?? "No company";
+  const tier = scoreTier(score);
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-      <div className="p-5 lg:p-6 space-y-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0 space-y-1">
-            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight truncate">
-              {lead.name ?? "Unnamed lead"}
-            </h1>
-            <p className="text-muted-foreground text-base">{lead.company ?? "No company"}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={onOpenAi}>
-              <Sparkles className="h-4 w-4" />
-              AI Assistant
-            </Button>
-            <Select value={String(lead.status ?? "new")} onValueChange={onStatusChange}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LEAD_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {LEAD_STATUS_LABELS[s]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 pt-4 border-t border-border">
-          <MetaItem label="Deal value" value={formatInr(lead.deal_value_cents)} highlight />
-          <MetaItem label="Status">
-            <Badge variant="outline" className={LEAD_STATUS_COLORS[st]}>
-              {LEAD_STATUS_LABELS[st]}
-            </Badge>
-          </MetaItem>
-          <MetaItem label="Score">
-            <span className="font-semibold">
-              {score}/100{" "}
-              <Badge variant="outline" className={`ml-1 ${scoreTierColor(tier)}`}>
-                {tier}
+      <div className="p-5 lg:p-6 space-y-4">
+        <div className="flex gap-4 min-w-0">
+          <GradientAvatar name={displayName} size="lg" className="hidden sm:flex" />
+          <GradientAvatar name={displayName} size="md" className="sm:hidden" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight truncate">{displayName}</h1>
+            <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+              <CompanyMark company={company} />
+              <span className="text-sm sm:text-base truncate">{company}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className={LEAD_STATUS_COLORS[st]}>
+                {LEAD_STATUS_LABELS[st]}
               </Badge>
-            </span>
-          </MetaItem>
-          <MetaItem label="Owner" value={ownerName} />
-          <MetaItem label="Created" value={formatShortDate(lead.createdAt)} />
-          <MetaItem label="Last contact" value={formatRelativeDays(lead.last_contacted_at ?? lead.updatedAt)} />
-          <MetaItem label="Next follow-up" value={formatNextFollowUp(lead.next_follow_up_at)} className="sm:col-span-2 lg:col-span-1" />
+              <Badge variant="outline" className={scoreTierColor(tier)}>
+                {scoreTierLabel(tier)} · {health.healthPct}%
+              </Badge>
+              <span className="text-amber-500 text-sm">{renderStars(health.stars)}</span>
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
+        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 border-t border-border pt-4">
+          <MetaItem label="Owner" value={ownerName} />
+          <MetaItem label="Value" value={formatInr(lead.deal_value_cents)} />
+          <MetaItem label="Last reply" value={lastReplyLabel(lead)} />
+          <MetaItem label="Source" value={sourceLabel(lead)} />
+        </dl>
+
+        <div className="flex flex-wrap gap-2 border-t border-border pt-4">
           <Button size="sm" onClick={onGenerateProposal} disabled={actionLoading === "proposal"}>
             <FileSignature className="h-4 w-4 mr-1.5" />
             Generate proposal
@@ -114,31 +111,29 @@ export function LeadDealHeader({
             <Calendar className="h-4 w-4 mr-1.5" />
             Schedule call
           </Button>
+          <AskAiButton onOpenSummary={onOpenAi} />
+          {onDelete && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-red-600 border-red-200 hover:bg-red-50 ml-auto"
+              onClick={onDelete}
+            >
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              Delete
+            </Button>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function MetaItem({
-  label,
-  value,
-  children,
-  highlight,
-  className,
-}: {
-  label: string;
-  value?: string;
-  children?: ReactNode;
-  highlight?: boolean;
-  className?: string;
-}) {
+function MetaItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className={className}>
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-      <div className={`mt-1 text-sm ${highlight ? "text-lg font-semibold" : "font-medium"}`}>
-        {children ?? value}
-      </div>
+    <div className="min-w-0">
+      <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</dt>
+      <dd className="mt-1 text-sm font-semibold truncate">{value}</dd>
     </div>
   );
 }

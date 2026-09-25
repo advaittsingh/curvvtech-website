@@ -228,7 +228,7 @@ export function buildDemoContext(row: DemoRequestIntelRow): string {
     .join('\n')
 }
 
-const ANALYZE_SYSTEM = `You are a senior sales analyst at CurvvTech, a premium software agency in India.
+const ANALYZE_SYSTEM = `You are a senior sales analyst at Curvvtech, a premium software agency in India.
 
 Analyze this inbound enquiry and return JSON only:
 {
@@ -374,14 +374,14 @@ export async function generateDemoFollowUp(demoId: string, tone = 'professional 
   const context = buildDemoContext(row)
   if (!openai) {
     const intel = row.ai_intelligence ?? heuristicIntelligence(row)
-    return `Subject: Thank you for your interest in CurvvTech\n\nHi ${row.name},\n\nThank you for reaching out to CurvvTech. Based on your requirements, we believe a ${intel.recommended_solution ?? 'custom digital solution'} would best suit your needs.\n\nWe'd love to schedule a discovery call to understand your goals in more detail.\n\nBest regards,\nCurvvTech Team`
+    return `Subject: Thank you for your interest in Curvvtech\n\nHi ${row.name},\n\nThank you for reaching out to Curvvtech. Based on your requirements, we believe a ${intel.recommended_solution ?? 'custom digital solution'} would best suit your needs.\n\nWe'd love to schedule a discovery call to understand your goals in more detail.\n\nBest regards,\nCurvvtech Team`
   }
   const res = await openai.chat.completions.create({
     model: MODEL,
     messages: [
       {
         role: 'system',
-        content: `Write a concise follow-up email for CurvvTech. Tone: ${tone}. Include subject line as first line prefixed with "Subject: ". Reference their specific requirements.`,
+        content: `Write a concise follow-up email for Curvvtech. Tone: ${tone}. Include subject line as first line prefixed with "Subject: ". Reference their specific requirements.`,
       },
       { role: 'user', content: context },
     ],
@@ -406,7 +406,7 @@ export async function runDemoAiAction(
     discovery_questions: 'Generate 6 discovery call questions. Numbered list only.',
     suggest_questions: 'Generate 6 discovery call questions. Numbered list only.',
     upsells: 'Suggest 4 relevant upsell services. Bulleted list with brief rationale.',
-    recommend_services: 'Recommend CurvvTech services for this client. Bulleted list.',
+    recommend_services: 'Recommend Curvvtech services for this client. Bulleted list.',
     risks: 'Identify 3 deal risks and mitigation steps. Bulleted list.',
     proposal_outline: 'Outline a consulting proposal structure. Bulleted sections.',
     generate_proposal: 'Outline a consulting proposal with section summaries tailored to this client.',
@@ -424,7 +424,7 @@ export async function runDemoAiAction(
   const res = await openai.chat.completions.create({
     model: MODEL,
     messages: [
-      { role: 'system', content: `You are CurvvTech sales AI. ${system}` },
+      { role: 'system', content: `You are Curvvtech sales AI. ${system}` },
       { role: 'user', content: context },
     ],
     max_tokens: 900,

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/app/providers";
 
 type Blog = { id: string; title?: string; slug?: string; status?: string; createdAt?: string };
 
@@ -45,6 +46,8 @@ const columns: ColumnDef<Blog>[] = [
 export default function BlogsPage() {
   const api = useAdminApi();
   const qc = useQueryClient();
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission("content.edit");
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<BlogForm>(emptyForm());
@@ -96,17 +99,17 @@ export default function BlogsPage() {
       <PageHeader
         title="Blogs"
         description="Publish articles to your website."
-        action={
+        action={canEdit ? (
           <Button size="sm" className="gap-2" onClick={() => { setEditingId(null); setForm(emptyForm()); setOpen(true); }}>
             <Plus className="h-4 w-4" /> New post
           </Button>
-        }
+        ) : undefined}
       />
       <BackendErrorAlert error={error} />
       <DataTable
         columns={[
           ...columns,
-          {
+          ...(canEdit ? [{
             id: "actions",
             header: "",
             sortValue: () => "",
@@ -120,7 +123,7 @@ export default function BlogsPage() {
                 </Button>
               </div>
             ),
-          },
+          } satisfies ColumnDef<Blog>] : []),
         ]}
         data={list}
         isLoading={isLoading}
@@ -128,7 +131,7 @@ export default function BlogsPage() {
         exportFileName="blogs.csv"
         emptyTitle="No blog posts"
       />
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={canEdit && open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingId ? "Edit blog post" : "New blog post"}</DialogTitle></DialogHeader>
           <div className="space-y-3">

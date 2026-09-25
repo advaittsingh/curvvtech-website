@@ -1,58 +1,34 @@
 'use client'
-import React, { useEffect, useState, Suspense } from 'react'
-import { usePathname, useSearchParams } from 'next/navigation'
+import React, { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 
-const OFFSET = 80 // Adjust this value based on your fixed header height
+const OFFSET = 80
 
-// Hook to manage the active link and apply offset
-const useActiveLink = (setActiveLink: (link: string) => void) => {
+const HeaderLink: React.FC<{ item: any }> = ({ item }) => {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const [hash, setHash] = useState('')
 
   useEffect(() => {
-    const updateActiveLink = () => {
-      const fullPath = window.location.hash
-        ? `${pathname}${window.location.hash}`
-        : pathname
-      setActiveLink(fullPath)
-    }
+    const updateHash = () => setHash(window.location.hash)
+    updateHash()
+    window.addEventListener('hashchange', updateHash)
+    return () => window.removeEventListener('hashchange', updateHash)
+  }, [pathname])
 
-    const handleScrollOffset = () => {
-      if (window.location.hash) {
-        const id = window.location.hash.substring(1)
-        const element = document.getElementById(id)
-        if (element) {
-          setTimeout(() => {
-            const elementPosition =
-              element.getBoundingClientRect().top + window.scrollY
-            window.scrollTo({
-              top: elementPosition - OFFSET,
-              behavior: 'smooth',
-            })
-          }, 0)
-        }
-      }
-    }
+  useEffect(() => {
+    if (!window.location.hash) return
+    const id = window.location.hash.substring(1)
+    const element = document.getElementById(id)
+    if (!element) return
+    const elementPosition = element.getBoundingClientRect().top + window.scrollY
+    window.scrollTo({ top: elementPosition - OFFSET, behavior: 'smooth' })
+  }, [pathname, hash])
 
-    updateActiveLink()
-    handleScrollOffset()
-
-    window.addEventListener('hashchange', updateActiveLink)
-    window.addEventListener('hashchange', handleScrollOffset)
-
-    return () => {
-      window.removeEventListener('hashchange', updateActiveLink)
-      window.removeEventListener('hashchange', handleScrollOffset)
-    }
-  }, [pathname, searchParams, setActiveLink])
-}
-
-// HeaderLink component
-const HeaderLinkContent: React.FC<{ item: any }> = ({ item }) => {
-  const [activeLink, setActiveLink] = useState('')
-
-  useActiveLink(setActiveLink)
+  const activeLink = hash ? `${pathname}${hash}` : pathname
+  const isActive =
+    activeLink === item.href ||
+    (item.href !== '/' && activeLink.startsWith(`${item.href}/`))
 
   return (
     <li>
@@ -60,22 +36,15 @@ const HeaderLinkContent: React.FC<{ item: any }> = ({ item }) => {
         href={item.href}
         className={`px-4 py-2 font-medium hover:text-black dark:hover:text-black hover:bg-white hover:rounded-3xl hover:shadow-header_shadow 
                     ${
-                      activeLink === item.href ||
-                      (item.href !== '/' && activeLink.startsWith(`${item.href}/`))
+                      isActive
                         ? 'bg-white text-black rounded-[90rem] shadow-header_shadow'
                         : 'text-dark_black/60 dark:text-white'
-                    }`}>
+                    }`}
+      >
         {item.label}
       </Link>
     </li>
   )
 }
-
-// Wrap in Suspense
-const HeaderLink: React.FC<{ item: any }> = ({ item }) => (
-  <Suspense fallback={null}>
-    <HeaderLinkContent item={item} />
-  </Suspense>
-)
 
 export default HeaderLink

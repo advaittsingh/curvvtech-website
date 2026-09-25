@@ -5,10 +5,12 @@ import { RequirePermission } from "./RequirePermission";
 import SignIn from "@/pages/auth/sign-in";
 import SignUp from "@/pages/auth/sign-up";
 import NotFound from "@/pages/not-found";
+import StaffInvitePage from "@/pages/auth/staff-invite";
+import { useAuth } from "@/app/providers";
+import { defaultRouteForRole, isRestrictedProjectRole } from "@/lib/permissions";
 
 const DashboardPage = lazy(() => import("@/features/dashboard/pages/DashboardPage"));
 const CeoCommandCenterPage = lazy(() => import("@/features/ceo/pages/CeoCommandCenterPage"));
-const AiCommandCenterPage = lazy(() => import("@/features/ai/pages/AiCommandCenterPage"));
 const LeadsListPage = lazy(() => import("@/features/leads/pages/LeadsListPage"));
 const LeadDetailPage = lazy(() => import("@/features/leads/pages/LeadDetailPage"));
 const ClientsListPage = lazy(() => import("@/features/clients/pages/ClientsListPage"));
@@ -30,19 +32,19 @@ const PaymentsPage = lazy(() => import("@/features/finance/pages/PaymentsPage"))
 const ExpensesPage = lazy(() => import("@/features/finance/pages/ExpensesPage"));
 const PayrollPage = lazy(() => import("@/features/finance/pages/PayrollPage"));
 const TasksPage = lazy(() => import("@/features/delivery/pages/TasksPage"));
+const MyWorkPage = lazy(() => import("@/features/delivery/pages/MyWorkPage"));
 const FilesPage = lazy(() => import("@/features/delivery/pages/FilesPage"));
-const SopsPage = lazy(() => import("@/features/operations/pages/SopsPage"));
-const KnowledgePage = lazy(() => import("@/features/operations/pages/KnowledgePage"));
-const AssetsPage = lazy(() => import("@/features/operations/pages/AssetsPage"));
 const WorkflowsPage = lazy(() => import("@/features/automations/pages/WorkflowsPage"));
 const CompanySettingsPage = lazy(() => import("@/features/settings/pages/CompanySettingsPage"));
 const SecuritySettingsPage = lazy(() => import("@/features/settings/pages/SecuritySettingsPage"));
 const IntegrationsSettingsPage = lazy(() => import("@/features/settings/pages/IntegrationsSettingsPage"));
 const ProfilePage = lazy(() => import("@/features/profile/pages/ProfilePage"));
-const ChatConversationsPage = lazy(() => import("@/features/ai/pages/ChatConversationsPage"));
+const InboxPage = lazy(() => import("@/features/inbox/pages/InboxPage"));
 const DemoRequestsPage = lazy(() => import("@/features/leads/pages/DemoRequestsPage"));
-const AiAgent = lazy(() => import("@/pages/ai-agent"));
 const DocumentationPage = lazy(() => import("@/features/settings/pages/DocumentationPage"));
+const CareersRolesPage = lazy(() => import("@/features/careers/pages/CareersRolesPage"));
+const CareersRolePage = lazy(() => import("@/features/careers/pages/CareersRolePage"));
+const CareersApplicationPage = lazy(() => import("@/features/careers/pages/CareersApplicationPage"));
 
 function PageLoader() {
   return <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>;
@@ -52,19 +54,40 @@ function P({ permission, children }: { permission?: import("@/types/auth").Permi
   return <RequirePermission permission={permission}>{children}</RequirePermission>;
 }
 
+function LandingRoute() {
+  const { role } = useAuth();
+  const target = defaultRouteForRole(role);
+  return target === "/" ? <P permission="dashboard.view"><DashboardPage /></P> : <Navigate to={target} replace />;
+}
+
+function TasksRoute() {
+  const { role } = useAuth();
+  return isRestrictedProjectRole(role)
+    ? <Navigate to="/my-work" replace />
+    : <P permission="projects.view"><TasksPage /></P>;
+}
+
+function ExecutiveRoute() {
+  const { role } = useAuth();
+  return role === "designer" || role === "developer"
+    ? <Navigate to="/my-work" replace />
+    : <P permission="dashboard.view"><CeoCommandCenterPage /></P>;
+}
+
 export function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/auth/sign-in" element={<SignIn />} />
         <Route path="/auth/sign-up" element={<SignUp />} />
+        <Route path="/auth/staff-invite/:token" element={<StaffInvitePage />} />
 
         <Route element={<AdminLayout />}>
-          <Route index element={<P permission="dashboard.view"><DashboardPage /></P>} />
-          <Route path="ceo" element={<P permission="dashboard.view"><CeoCommandCenterPage /></P>} />
-          <Route path="ai" element={<P permission="dashboard.view"><AiCommandCenterPage /></P>} />
-          <Route path="ai/conversations" element={<P permission="leads.view"><ChatConversationsPage /></P>} />
-          <Route path="ai/campaigns" element={<P permission="leads.edit"><AiAgent /></P>} />
+          <Route index element={<LandingRoute />} />
+          <Route path="ceo" element={<ExecutiveRoute />} />
+          <Route path="inbox" element={<P permission="leads.view"><InboxPage /></P>} />
+          <Route path="ai" element={<Navigate to="/inbox" replace />} />
+          <Route path="ai/conversations" element={<Navigate to="/inbox" replace />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="leads" element={<P permission="leads.view"><LeadsListPage /></P>} />
           <Route path="leads/:id" element={<P permission="leads.view"><LeadDetailPage /></P>} />
@@ -74,7 +97,8 @@ export function AppRoutes() {
           <Route path="proposals/:id" element={<P permission="proposals.view"><ProposalBuilderPage /></P>} />
           <Route path="projects" element={<P permission="projects.view"><ProjectsListPage /></P>} />
           <Route path="projects/:id" element={<P permission="projects.view"><ProjectDetailPage /></P>} />
-          <Route path="tasks" element={<P permission="projects.view"><TasksPage /></P>} />
+          <Route path="tasks" element={<TasksRoute />} />
+          <Route path="my-work" element={<P permission="projects.view"><MyWorkPage /></P>} />
           <Route path="files" element={<P permission="projects.view"><FilesPage /></P>} />
           <Route path="invoices" element={<P permission="invoices.view"><InvoicesListPage /></P>} />
           <Route path="invoices/:id" element={<P permission="invoices.view"><InvoiceDetailPage /></P>} />
@@ -88,18 +112,19 @@ export function AppRoutes() {
           <Route path="content/team-page" element={<P permission="content.view"><TeamCmsPage /></P>} />
           <Route path="team" element={<P permission="team.manage"><TeamPage /></P>} />
           <Route path="team/roles" element={<P permission="team.manage"><RolesPage /></P>} />
-          <Route path="operations/sops" element={<P permission="settings.manage"><SopsPage /></P>} />
-          <Route path="operations/knowledge" element={<P permission="settings.manage"><KnowledgePage /></P>} />
-          <Route path="operations/assets" element={<P permission="projects.view"><AssetsPage /></P>} />
+          <Route path="careers" element={<P permission="team.manage"><CareersRolesPage /></P>} />
+          <Route path="careers/:slug" element={<P permission="team.manage"><CareersRolePage /></P>} />
+          <Route path="careers/:slug/:id" element={<P permission="team.manage"><CareersApplicationPage /></P>} />
           <Route path="operations/automations" element={<P permission="settings.manage"><WorkflowsPage /></P>} />
           <Route path="automations" element={<Navigate to="/operations/automations" replace />} />
           <Route path="settings" element={<Navigate to="/settings/company" replace />} />
           <Route path="settings/company" element={<P permission="settings.manage"><CompanySettingsPage /></P>} />
           <Route path="settings/integrations" element={<P permission="settings.manage"><IntegrationsSettingsPage /></P>} />
           <Route path="settings/security" element={<P permission="settings.manage"><SecuritySettingsPage /></P>} />
-          <Route path="chat-dashboard" element={<Navigate to="/ai/conversations" replace />} />
+          <Route path="chat-dashboard" element={<Navigate to="/inbox" replace />} />
           <Route path="demo-requests" element={<P permission="leads.view"><DemoRequestsPage /></P>} />
-          <Route path="dashboard/ai-agent" element={<Navigate to="/ai/campaigns" replace />} />
+          <Route path="dashboard/ai-agent" element={<Navigate to="/inbox" replace />} />
+          <Route path="ai/campaigns" element={<Navigate to="/inbox" replace />} />
           <Route path="documentation" element={<DocumentationPage />} />
         </Route>
 

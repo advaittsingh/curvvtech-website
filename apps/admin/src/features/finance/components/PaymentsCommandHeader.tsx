@@ -7,6 +7,7 @@ import { formatInr } from "../payments-schemas";
 type Props = {
   summary: PaymentsSummary | null | undefined;
   onCreateInvoice: () => void;
+  isLoading?: boolean;
 };
 
 function MetricPill({
@@ -36,7 +37,7 @@ function MetricPill({
   );
 }
 
-export function PaymentsCommandHeader({ summary, onCreateInvoice }: Props) {
+export function PaymentsCommandHeader({ summary, onCreateInvoice, isLoading }: Props) {
   const s = summary;
   return (
     <div className="space-y-4">
@@ -52,11 +53,22 @@ export function PaymentsCommandHeader({ summary, onCreateInvoice }: Props) {
         </Button>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-        <MetricPill label="Collected" value={formatInr(s?.collected_cents)} accent="success" />
-        <MetricPill label="Pending" value={formatInr(s?.pending_cents)} accent="warning" />
-        <MetricPill label="Overdue" value={formatInr(s?.overdue_cents)} accent={s?.overdue_cents ? "danger" : undefined} />
-        <MetricPill label="Expected this month" value={formatInr(s?.expected_this_month_cents)} accent="primary" />
-        <MetricPill label="Collection rate" value={s ? `${s.collection_rate}%` : "—"} />
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-border bg-card px-3 py-2.5 shadow-sm animate-pulse">
+              <div className="h-2.5 w-16 bg-muted rounded" />
+              <div className="h-6 w-20 bg-muted rounded mt-2" />
+            </div>
+          ))
+        ) : (
+          <>
+            <MetricPill label="Collected" value={formatInr(s?.collected_cents)} accent="success" />
+            <MetricPill label="Pending" value={formatInr(s?.pending_cents)} accent="warning" />
+            <MetricPill label="Overdue" value={formatInr(s?.overdue_cents)} accent={s?.overdue_cents ? "danger" : undefined} />
+            <MetricPill label="Expected this month" value={formatInr(s?.expected_this_month_cents)} accent="primary" />
+            <MetricPill label="Collection rate" value={s != null ? `${s.collection_rate}%` : "—"} />
+          </>
+        )}
       </div>
     </div>
   );

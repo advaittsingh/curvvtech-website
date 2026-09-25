@@ -3,10 +3,13 @@ import { DocNavigation } from '@/components/documentation/DocNavigation'
 import { Introduction } from '@/components/documentation/Introduction'
 import { PackageStructure } from '@/components/documentation/PackageStructure'
 import { QuickStart } from '@/components/documentation/QuickStart'
-import { Metadata } from 'next'
-export const metadata: Metadata = {
+import { createPageMetadata } from '@/lib/seo'
+
+export const metadata = createPageMetadata({
   title: 'Documentation | Curvvtech',
-}
+  path: '/documentation',
+  noIndex: true,
+})
 
 export default function Page() {
   return (

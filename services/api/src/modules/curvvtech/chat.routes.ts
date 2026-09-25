@@ -12,7 +12,7 @@ import {
 import { getAIResponse } from "./services/aiService.js";
 import { generateConversationSummary } from "./services/summaryService.js";
 import { getWhatsAppContinueUrl } from "./services/whatsappService.js";
-import { emitNewMessage } from "./chatSocket.js";
+import { emitNewMessage, notifyInboxInbound } from "./chatSocket.js";
 
 const router = Router();
 
@@ -89,6 +89,7 @@ router.post(
 
     const userMsg = await addMessage({ conversation_id: id, sender: "user", message: body });
     emitNewMessage(id, userMsg);
+    notifyInboxInbound({ conversationId: id, clientId: conv.client_id, sender: "user" });
     const history = await getConversationMessages(id);
     const chatHistory = history.map((m) => ({
       role: m.sender === "user" ? ("user" as const) : ("assistant" as const),

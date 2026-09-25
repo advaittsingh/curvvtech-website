@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
-import { FileText, Image, Receipt, FolderOpen, FileCheck } from "lucide-react";
+import { FileText, Image, Receipt, FolderOpen, FileCheck, Upload } from "lucide-react";
 import type { ComponentType } from "react";
 import { FILE_CATEGORIES } from "../constants";
+import { CrmEmptyState } from "@/components/crm/CrmEmptyState";
 import { Button } from "@/components/ui/button";
 
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
@@ -12,7 +13,11 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   projects: FolderOpen,
 };
 
-export function ClientFilesTab() {
+type Props = {
+  onUpload?: () => void;
+};
+
+export function ClientFilesTab({ onUpload }: Props) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">Everything client-specific — contracts, assets, requirements, and deliverables.</p>
@@ -20,7 +25,7 @@ export function ClientFilesTab() {
         {FILE_CATEGORIES.map((cat) => {
           const Icon = ICONS[cat.key] ?? FileText;
           return (
-            <div key={cat.key} className="rounded-xl border border-dashed border-border p-4 space-y-3 hover:border-primary/30 transition-colors">
+            <div key={cat.key} className="rounded-xl border border-dashed border-border p-5 space-y-3 hover:border-primary/30 hover:shadow-sm transition-all">
               <div className="flex items-start gap-3">
                 <div className="rounded-lg bg-muted p-2"><Icon className="h-4 w-4 text-muted-foreground" /></div>
                 <div>
@@ -35,6 +40,14 @@ export function ClientFilesTab() {
           );
         })}
       </div>
+      <CrmEmptyState
+        title="No files uploaded yet"
+        description="Upload contracts, brand assets, and deliverables — they'll appear here and in the file manager."
+        icon={<Upload className="h-6 w-6" />}
+        actionLabel="Upload file"
+        onAction={onUpload}
+        className="mt-2"
+      />
     </div>
   );
 }

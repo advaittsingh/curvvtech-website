@@ -18,8 +18,26 @@ import {
   hasPermission as checkPermission,
   permissionsForUser,
 } from "@/lib/permissions";
-import { getAccessToken, isSessionPresent } from "@/lib/session";
+import { clearSession, getAccessToken, isSessionPresent } from "@/lib/session";
 import type { AdminRole, AuthUser, Permission } from "@/types/auth";
+
+const BOOTSTRAP_TIMEOUT_MS = 10_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Auth bootstrap timed out")), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -27,7 +45,7 @@ type AuthContextValue = {
   permissions: Permission[];
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string; role?: AdminRole | null }>;
   logout: () => Promise<void>;
   refresh: () => Promise<boolean>;
   hasPermission: (required: Permission | Permission[], mode?: "any" | "all") => boolean;
@@ -37,12 +55,22 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 async function loadUser(): Promise<AuthUser | null> {
   if (!isSessionPresent()) return null;
-  let user = await fetchCurrentUser();
-  if (user) return user;
+  try {
+    const user = await fetchCurrentUser();
+    if (user) return user;
 
-  const refreshed = await refreshSession();
-  if (!refreshed) return null;
-  return fetchCurrentUser();
+    const refreshed = await refreshSession();
+    if (!refreshed) {
+      clearSession();
+      return null;
+    }
+    const next = await fetchCurrentUser();
+    if (!next) clearSession();
+    return next;
+  } catch {
+    clearSession();
+    return null;
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -52,12 +80,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const bootstrap = useCallback(async () => {
     setIsLoading(true);
     try {
-      const next = await loadUser();
+      const next = await withTimeout(loadUser(), BOOTSTRAP_TIMEOUT_MS);
       if (next && !canAccessAdminPanel(next.curvvtechRole)) {
+        clearSession();
         setUser(null);
         return;
       }
       setUser(next);
+    } catch {
+      clearSession();
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -79,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: false, error: "You do not have access to the admin panel." };
     }
     setUser(next);
-    return { ok: true };
+    return { ok: true, role: next.role };
   }, []);
 
   const logout = useCallback(async () => {

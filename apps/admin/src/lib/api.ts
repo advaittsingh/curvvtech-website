@@ -33,6 +33,7 @@ async function refreshTokens(): Promise<boolean> {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh_token: rt }),
+          signal: AbortSignal.timeout(8_000),
         });
         if (!res.ok) return false;
         const data = (await res.json()) as {
@@ -62,7 +63,14 @@ export async function authFetch(
   const buildHeaders = (access: string | null) => {
     const headers = new Headers(options.headers);
     if (access) headers.set("Authorization", `Bearer ${access}`);
-    if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+    if (!headers.has("Content-Type")) {
+      const body = options.body;
+      const skipJson =
+        body == null ||
+        (typeof FormData !== "undefined" && body instanceof FormData) ||
+        (typeof Blob !== "undefined" && body instanceof Blob);
+      if (!skipJson) headers.set("Content-Type", "application/json");
+    }
     return headers;
   };
 
@@ -87,6 +95,20 @@ export async function authFetch(
   }
 
   return res;
+}
+
+async function parseJsonResponse<T>(res: Response): Promise<T> {
+  const data = (await res.json()) as T & { error?: string; message?: string };
+  if (!res.ok) {
+    const msg =
+      typeof data.message === "string" && data.message.trim()
+        ? data.message
+        : typeof data.error === "string"
+          ? data.error
+          : `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+  return data as T;
 }
 
 export function adminApi(token: string | null) {
@@ -144,61 +166,35 @@ export function adminApi(token: string | null) {
         authFetch(`/api/admin/leads/${id}/convert-to-client`, { method: "POST", body: "{}" }, token).then((r) => r.json()),
       recalculateScore: (id: string) =>
         authFetch(`/api/admin/leads/${id}/recalculate-score`, { method: "POST", body: "{}" }, token).then((r) => r.json()),
-    },
-    aiCalls: {
-      stats: () => authFetch("/api/admin/ai-calls/stats", {}, token).then((r) => r.json()),
-      campaignStatus: () => authFetch("/api/admin/ai-calls/campaign-status", {}, token).then((r) => r.json()),
-      logs: (params?: {
-        limit?: number;
-        offset?: number;
-        status?: string;
-        outcome?: string;
-        sinceMinutes?: number;
-        onlyHot?: boolean;
-      }) => {
-        const limit = params?.limit ?? 50;
-        const offset = params?.offset ?? 0;
-        const q = new URLSearchParams({
-          limit: String(limit),
-          offset: String(offset),
-        });
-        if (params?.status) q.set("status", params.status);
-        if (params?.outcome) q.set("outcome", params.outcome);
-        if (params?.sinceMinutes) q.set("since_minutes", String(params.sinceMinutes));
-        if (params?.onlyHot) q.set("only_hot", "1");
-        return authFetch(`/api/admin/ai-calls/logs?${q.toString()}`, {}, token).then((r) => r.json());
-      },
-      live: () =>
-        authFetch("/api/admin/ai-calls/live", {}, token).then((r) => r.json()),
-      hot: () =>
-        authFetch(
-          "/api/admin/ai-calls/logs?limit=20&offset=0&since_minutes=10080&only_hot=1",
-          {},
-          token,
-        ).then((r) => r.json()),
-      insights: () => authFetch("/api/admin/ai-calls/insights", {}, token).then((r) => r.json()),
-      callbacks: () => authFetch("/api/admin/ai-calls/callbacks?limit=50", {}, token).then((r) => r.json()),
-      start: (body?: { limit?: number }) =>
-        authFetch("/api/admin/ai-calls/start", { method: "POST", body: JSON.stringify(body ?? {}) }, token).then((r) =>
-          r.json(),
-        ),
-      callLead: (id: string) =>
-        authFetch(`/api/admin/ai-calls/lead/${id}/call`, { method: "POST" }, token).then((r) => r.json()),
-      markBooked: (id: string) =>
-        authFetch(`/api/admin/ai-calls/lead/${id}/booked`, { method: "POST" }, token).then((r) => r.json()),
-      markDnd: (id: string) =>
-        authFetch(`/api/admin/ai-calls/lead/${id}/dnd`, { method: "POST" }, token).then((r) => r.json()),
-      markHot: (id: string) =>
-        authFetch(`/api/admin/ai-calls/lead/${id}/hot`, { method: "POST" }, token).then((r) => r.json()),
+      remove: (id: string) =>
+        authFetch(`/api/admin/leads/${id}`, { method: "DELETE" }, token).then((r) => (r.ok ? null : r.json())),
     },
     clients: {
-      list: () => authFetch("/api/admin/clients", {}, token).then((r) => r.json()),
+      list: (view?: string) => {
+        const q = view && view !== "active" ? `?view=${encodeURIComponent(view)}` : "";
+        return authFetch(`/api/admin/clients${q}`, {}, token).then((r) => r.json());
+      },
       get: (id: string) => authFetch(`/api/admin/clients/${id}`, {}, token).then((r) => r.json()),
       summary: (id: string) => authFetch(`/api/admin/clients/${id}/summary`, {}, token).then((r) => r.json()),
+      deletionPreview: (id: string) =>
+        authFetch(`/api/admin/clients/${id}/deletion-preview`, {}, token).then((r) => r.json()),
       create: (body: object) =>
         authFetch("/api/admin/clients", { method: "POST", body: JSON.stringify(body) }, token).then((r) => r.json()),
       update: (id: string, body: object) =>
         authFetch(`/api/admin/clients/${id}`, { method: "PATCH", body: JSON.stringify(body) }, token).then((r) => r.json()),
+      archive: (id: string) =>
+        authFetch(`/api/admin/clients/${id}/archive`, { method: "POST" }, token).then((r) => r.json()),
+      restore: (id: string) =>
+        authFetch(`/api/admin/clients/${id}/restore`, { method: "POST" }, token).then((r) => r.json()),
+      duplicate: (id: string) =>
+        authFetch(`/api/admin/clients/${id}/duplicate`, { method: "POST" }, token).then((r) => r.json()),
+      export: (id: string) => authFetch(`/api/admin/clients/${id}/export`, {}, token).then((r) => r.json()),
+      remove: (id: string) =>
+        authFetch(`/api/admin/clients/${id}`, { method: "DELETE" }, token).then(async (r) => {
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error ?? "Delete failed");
+          return data;
+        }),
       projects: (id: string) => authFetch(`/api/admin/clients/${id}/projects`, {}, token).then((r) => r.json()),
       invoices: (id: string) => authFetch(`/api/admin/clients/${id}/invoices`, {}, token).then((r) => r.json()),
       payments: (id: string) => authFetch(`/api/admin/clients/${id}/payments`, {}, token).then((r) => r.json()),
@@ -213,12 +209,57 @@ export function adminApi(token: string | null) {
         authFetch(`/api/admin/clients/${id}/communications`, { method: "POST", body: JSON.stringify(body) }, token).then((r) =>
           r.json(),
         ),
+      sendPaymentReminder: async (
+        id: string,
+        body?: { invoice_id?: string; message?: string },
+      ) => {
+        const res = await authFetch(
+          `/api/admin/clients/${id}/payment-reminder`,
+          { method: "POST", body: JSON.stringify(body ?? {}) },
+          token,
+        );
+        return parseJsonResponse<{
+          ok: boolean;
+          invoice_id: string;
+          invoice_number: string;
+          amount_cents: number;
+          email_sent: boolean;
+          notification_sent: boolean;
+          portal_link: string;
+        }>(res);
+      },
+    },
+    portal: {
+      inviteClient: async (
+        clientId: string,
+        body?: { email?: string; name?: string; role?: string },
+      ) => {
+        const res = await authFetch(
+          `/api/admin/portal/clients/${clientId}/invite`,
+          { method: "POST", body: JSON.stringify(body ?? {}) },
+          token,
+        );
+        return parseJsonResponse<{
+          ok: boolean;
+          client_user_id: string;
+          email_sent: boolean;
+          invite_link: string;
+        }>(res);
+      },
     },
     projects: {
-      list: (clientId?: string) =>
-        authFetch(clientId ? `/api/admin/projects?client_id=${clientId}` : "/api/admin/projects", {}, token).then((r) =>
-          r.json(),
-        ),
+      list: (opts?: { clientId?: string; status?: string; archived?: string; search?: string }) => {
+        const q = new URLSearchParams();
+        if (opts?.clientId) q.set("client_id", opts.clientId);
+        if (opts?.status) q.set("status", opts.status);
+        if (opts?.archived) q.set("archived", opts.archived);
+        if (opts?.search) q.set("search", opts.search);
+        const qs = q.toString();
+        return authFetch(`/api/admin/projects${qs ? `?${qs}` : ""}`, {}, token).then((r) => r.json());
+      },
+      stats: () => authFetch("/api/admin/projects/stats", {}, token).then((r) => r.json()),
+      bulk: (body: { action: string; ids: string[] }) =>
+        authFetch("/api/admin/projects/bulk", { method: "POST", body: JSON.stringify(body) }, token).then((r) => r.json()),
       get: (id: string) => authFetch(`/api/admin/projects/${id}`, {}, token).then((r) => r.json()),
       create: (body: object) =>
         authFetch("/api/admin/projects", { method: "POST", body: JSON.stringify(body) }, token).then((r) => r.json()),
@@ -241,11 +282,11 @@ export function adminApi(token: string | null) {
       members: (id: string) => authFetch(`/api/admin/projects/${id}/members`, {}, token).then((r) => r.json()),
       addMember: (id: string, body: { user_id: string; role?: string }) =>
         authFetch(`/api/admin/projects/${id}/members`, { method: "POST", body: JSON.stringify(body) }, token).then((r) =>
-          r.json(),
+          parseJsonResponse(r),
         ),
       removeMember: (id: string, userId: string) =>
         authFetch(`/api/admin/projects/${id}/members/${userId}`, { method: "DELETE" }, token).then((r) =>
-          r.ok ? null : r.json(),
+          r.ok ? null : parseJsonResponse(r),
         ),
       summary: async (id: string) => {
         const r = await authFetch(`/api/admin/projects/${id}/summary`, {}, token);
@@ -253,7 +294,9 @@ export function adminApi(token: string | null) {
         if (!r.ok) throw new Error(String(data.error ?? "Failed to load summary"));
         return data;
       },
-      activity: (id: string) => authFetch(`/api/admin/projects/${id}/activity`, {}, token).then((r) => r.json()),
+      activity: (id: string) =>
+        authFetch(`/api/admin/projects/${id}/activity`, {}, token).then((r) => parseJsonResponse(r)),
+      feed: (id: string) => authFetch(`/api/admin/projects/${id}/feed`, {}, token).then((r) => parseJsonResponse(r)),
       analyze: async (id: string) => {
         const r = await authFetch(`/api/admin/projects/${id}/analyze`, { method: "POST", body: "{}" }, token);
         const data = await r.json();
@@ -265,6 +308,87 @@ export function adminApi(token: string | null) {
         const data = await r.json();
         if (!r.ok) throw new Error(String(data.error ?? "Plan generation failed"));
         return data;
+      },
+      finance: (id: string) => authFetch(`/api/admin/projects/${id}/finance`, {}, token).then((r) => parseJsonResponse(r)),
+      analytics: (id: string) => authFetch(`/api/admin/projects/${id}/analytics`, {}, token).then((r) => parseJsonResponse(r)),
+      richTimeline: (id: string) =>
+        authFetch(`/api/admin/projects/${id}/rich-timeline`, {}, token).then((r) => parseJsonResponse(r)),
+      folders: (id: string) => authFetch(`/api/admin/projects/${id}/folders`, {}, token).then((r) => parseJsonResponse(r)),
+      revisions: (id: string) => authFetch(`/api/admin/projects/${id}/revisions`, {}, token).then((r) => parseJsonResponse(r)),
+      addRevision: (id: string, body: object) =>
+        authFetch(`/api/admin/projects/${id}/revisions`, { method: "POST", body: JSON.stringify(body) }, token).then((r) =>
+          parseJsonResponse(r),
+        ),
+      updateRevision: (id: string, rid: string, body: object) =>
+        authFetch(`/api/admin/projects/${id}/revisions/${rid}`, { method: "PATCH", body: JSON.stringify(body) }, token).then(
+          (r) => parseJsonResponse(r),
+        ),
+      removeRevision: async (id: string, rid: string) => {
+        const r = await authFetch(`/api/admin/projects/${id}/revisions/${rid}`, { method: "DELETE" }, token);
+        if (r.ok) return null;
+        return parseJsonResponse(r);
+      },
+      changeOrders: (id: string) =>
+        authFetch(`/api/admin/projects/${id}/change-orders`, {}, token).then((r) => parseJsonResponse(r)),
+      addChangeOrder: (id: string, body: object) =>
+        authFetch(`/api/admin/projects/${id}/change-orders`, { method: "POST", body: JSON.stringify(body) }, token).then(
+          (r) => parseJsonResponse(r),
+        ),
+      updateChangeOrder: (id: string, cid: string, body: object) =>
+        authFetch(`/api/admin/projects/${id}/change-orders/${cid}`, { method: "PATCH", body: JSON.stringify(body) }, token).then(
+          (r) => parseJsonResponse(r),
+        ),
+      scope: (id: string) => authFetch(`/api/admin/projects/${id}/scope`, {}, token).then((r) => parseJsonResponse(r)),
+      addScopeItem: (id: string, body: object) =>
+        authFetch(`/api/admin/projects/${id}/scope`, { method: "POST", body: JSON.stringify(body) }, token).then((r) =>
+          parseJsonResponse(r),
+        ),
+      updateScopeItem: (id: string, sid: string, body: object) =>
+        authFetch(`/api/admin/projects/${id}/scope/${sid}`, { method: "PATCH", body: JSON.stringify(body) }, token).then(
+          (r) => parseJsonResponse(r),
+        ),
+      removeScopeItem: async (id: string, sid: string) => {
+        const r = await authFetch(`/api/admin/projects/${id}/scope/${sid}`, { method: "DELETE" }, token);
+        if (r.ok) return null;
+        return parseJsonResponse(r);
+      },
+      resources: (id: string) => authFetch(`/api/admin/projects/${id}/resources`, {}, token).then((r) => parseJsonResponse(r)),
+      upsertResource: (id: string, body: object) =>
+        authFetch(`/api/admin/projects/${id}/resources`, { method: "POST", body: JSON.stringify(body) }, token).then((r) =>
+          parseJsonResponse(r),
+        ),
+      removeResource: async (id: string, rid: string) => {
+        const r = await authFetch(`/api/admin/projects/${id}/resources/${rid}`, { method: "DELETE" }, token);
+        if (r.ok) return null;
+        return parseJsonResponse(r);
+      },
+      deployment: (id: string) => authFetch(`/api/admin/projects/${id}/deployment`, {}, token).then((r) => parseJsonResponse(r)),
+      updateDeployment: (id: string, body: object) =>
+        authFetch(`/api/admin/projects/${id}/deployment`, { method: "PATCH", body: JSON.stringify(body) }, token).then((r) =>
+          parseJsonResponse(r),
+        ),
+      deploy: (id: string, body: object) =>
+        authFetch(`/api/admin/projects/${id}/deployment/deploy`, { method: "POST", body: JSON.stringify(body) }, token).then(
+          (r) => parseJsonResponse(r),
+        ),
+      rollbackDeploy: (id: string, body: { history_id: string }) =>
+        authFetch(`/api/admin/projects/${id}/deployment/rollback`, { method: "POST", body: JSON.stringify(body) }, token).then(
+          (r) => parseJsonResponse(r),
+        ),
+      deliverableUrls: (id: string) =>
+        authFetch(`/api/admin/projects/${id}/deliverable-urls`, {}, token).then((r) => parseJsonResponse(r)),
+      addDeliverableUrl: (id: string, body: { label: string; url: string }) =>
+        authFetch(`/api/admin/projects/${id}/deliverable-urls`, { method: "POST", body: JSON.stringify(body) }, token).then(
+          (r) => parseJsonResponse(r),
+        ),
+      updateDeliverableUrl: (id: string, urlId: string, body: object) =>
+        authFetch(`/api/admin/projects/${id}/deliverable-urls/${urlId}`, { method: "PATCH", body: JSON.stringify(body) }, token).then(
+          (r) => parseJsonResponse(r),
+        ),
+      removeDeliverableUrl: async (id: string, urlId: string) => {
+        const r = await authFetch(`/api/admin/projects/${id}/deliverable-urls/${urlId}`, { method: "DELETE" }, token);
+        if (r.ok) return null;
+        return parseJsonResponse(r);
       },
     },
     invoices: {
@@ -313,30 +437,81 @@ export function adminApi(token: string | null) {
       pdfUrl: (id: string) => `/api/admin/invoices/${id}/pdf`,
       paymentLink: (id: string) =>
         authFetch(`/api/admin/invoices/${id}/payment-link`, { method: "POST" }, token).then((r) => r.json()),
+      send: (id: string) =>
+        authFetch(`/api/admin/invoices/${id}/send`, { method: "POST" }, token).then((r) => parseJsonResponse(r)),
+      sendPaymentReminder: async (id: string, body?: { message?: string }) => {
+        const res = await authFetch(
+          `/api/admin/invoices/${id}/payment-reminder`,
+          { method: "POST", body: JSON.stringify(body ?? {}) },
+          token,
+        );
+        return parseJsonResponse<{
+          ok: boolean;
+          invoice_id: string;
+          invoice_number: string;
+          amount_cents: number;
+          email_sent: boolean;
+          notification_sent: boolean;
+          portal_link: string;
+        }>(res);
+      },
+      remove: (id: string) =>
+        authFetch(`/api/admin/invoices/${id}`, { method: "DELETE" }, token).then((r) => (r.ok ? null : r.json())),
     },
     payments: {
       dashboard: () => authFetch("/api/admin/payments/dashboard", {}, token).then((r) => r.json()),
     },
     team: {
       dashboard: () => authFetch("/api/admin/team/dashboard", {}, token).then((r) => r.json()),
-      member: (userId: string) => authFetch(`/api/admin/team/members/${userId}`, {}, token).then((r) => r.json()),
+      member: (userId: string) =>
+        authFetch(`/api/admin/team/members/${userId}`, {}, token).then((r) => parseJsonResponse(r)),
       members: () => authFetch("/api/admin/team/members", {}, token).then((r) => r.json()),
       capacity: () => authFetch("/api/admin/team/capacity", {}, token).then((r) => r.json()),
       roles: () => authFetch("/api/admin/team/roles", {}, token).then((r) => r.json()),
       rolesDashboard: () => authFetch("/api/admin/team/roles/dashboard", {}, token).then((r) => r.json()),
       setMemberRole: (userId: string, curvvtech_role: string | null) =>
-        authFetch(`/api/admin/team/members/${userId}`, { method: "PATCH", body: JSON.stringify({ curvvtech_role }) }, token).then(
-          (r) => r.json(),
-        ),
+        authFetch(
+          `/api/admin/team/members/${userId}`,
+          { method: "PATCH", body: JSON.stringify({ curvvtech_role }) },
+          token,
+        ).then((r) => parseJsonResponse(r)),
       activity: (limit?: number) =>
         authFetch(limit ? `/api/admin/team/activity?limit=${limit}` : "/api/admin/team/activity", {}, token).then((r) =>
           r.json(),
         ),
+      invitations: async () => {
+        const res = await authFetch("/api/admin/team/invitations", {}, token);
+        return parseJsonResponse<import("@/features/team/team-schemas").StaffInvitation[] | {
+          invitations: import("@/features/team/team-schemas").StaffInvitation[];
+        }>(res);
+      },
+      invite: async (body: { email: string; name?: string; role: string }) => {
+        const res = await authFetch(
+          "/api/admin/team/invitations",
+          { method: "POST", body: JSON.stringify(body) },
+          token,
+        );
+        return parseJsonResponse<
+          import("@/features/team/team-schemas").StaffInvitation & {
+            invite_url: string;
+            email_sent?: boolean;
+          }
+        >(res);
+      },
+      revokeInvitation: async (id: string) => {
+        const res = await authFetch(
+          `/api/admin/team/invitations/${encodeURIComponent(id)}`,
+          { method: "DELETE" },
+          token,
+        );
+        if (res.ok) return null;
+        return parseJsonResponse(res);
+      },
     },
     analytics: {
       revenue: () => authFetch("/api/admin/analytics/revenue", {}, token).then((r) => r.json()),
-      overview: () => authFetch("/api/admin/analytics/overview", {}, token).then((r) => r.json()),
-      ceo: () => authFetch("/api/admin/analytics/ceo", {}, token).then((r) => r.json()),
+      overview: () => authFetch("/api/admin/analytics/overview", {}, token).then((r) => parseJsonResponse(r)),
+      ceo: () => authFetch("/api/admin/analytics/ceo", {}, token).then((r) => parseJsonResponse(r)),
     },
     demoRequests: {
       list: () => authFetch("/api/admin/demo-requests", {}, token).then((r) => r.json()),
@@ -417,16 +592,56 @@ export function adminApi(token: string | null) {
       },
     },
     chats: {
-      list: (status?: string) =>
-        authFetch(status ? `/api/admin/chats?status=${status}` : "/api/admin/chats", {}, token).then((r) => r.json()),
+      list: (params?: { status?: string; limit?: number }) => {
+        const q = new URLSearchParams();
+        if (params?.status) q.set("status", params.status);
+        if (params?.limit) q.set("limit", String(params.limit));
+        const qs = q.toString();
+        return authFetch(qs ? `/api/admin/chats?${qs}` : "/api/admin/chats", {}, token).then((r) => r.json());
+      },
       analytics: () => authFetch("/api/admin/chats/analytics", {}, token).then((r) => r.json()),
+      unreadCount: async () => {
+        const res = await authFetch("/api/admin/inbox/unread-count", {}, token);
+        const data = (await res.json()) as {
+          unread_messages?: number;
+          unread_conversations?: number;
+          error?: string;
+        };
+        if (!res.ok) {
+          throw new Error(data.error ?? `unread-count failed (${res.status})`);
+        }
+        return {
+          unread_messages: Number(data.unread_messages ?? 0),
+          unread_conversations: Number(data.unread_conversations ?? 0),
+        };
+      },
       get: (id: string) => authFetch(`/api/admin/chats/${id}`, {}, token).then((r) => r.json()),
-      update: (id: string, body: { status?: string; agent_takeover?: boolean }) =>
+      update: (
+        id: string,
+        body: {
+          status?: string;
+          agent_takeover?: boolean;
+          release_to_ai?: boolean;
+          tags?: string[];
+          priority?: string | null;
+          assignee_id?: string | null;
+          assignee_name?: string | null;
+          notes?: string;
+        },
+      ) =>
         authFetch(`/api/admin/chats/${id}`, { method: "PATCH", body: JSON.stringify(body) }, token).then((r) => r.json()),
       sendMessage: (id: string, message: string) =>
         authFetch(`/api/admin/chats/${id}/messages`, { method: "POST", body: JSON.stringify({ message }) }, token).then(
           (r) => r.json(),
         ),
+      markRead: (id: string) =>
+        authFetch(`/api/admin/chats/${id}/mark-read`, { method: "POST" }, token).then((r) => r.json()),
+      suggestReply: (id: string) =>
+        authFetch(`/api/admin/chats/${id}/suggest-reply`, { method: "POST" }, token).then((r) => r.json()),
+      summarize: (id: string) =>
+        authFetch(`/api/admin/chats/${id}/summarize`, { method: "POST" }, token).then((r) => r.json()),
+      convertToLead: (id: string) =>
+        authFetch(`/api/admin/chats/${id}/convert-to-lead`, { method: "POST" }, token).then((r) => r.json()),
       sendTranscriptWhatsApp: (id: string, phone: string) =>
         authFetch(`/api/admin/chats/${id}/send-transcript-whatsapp`, { method: "POST", body: JSON.stringify({ phone }) }, token).then(
           (r) => r.json(),
@@ -444,6 +659,13 @@ export function adminApi(token: string | null) {
         return authFetch(qs ? `/api/admin/tasks?${qs}` : "/api/admin/tasks", {}, token).then((r) => r.json());
       },
       summary: () => authFetch("/api/admin/tasks/summary", {}, token).then((r) => r.json()),
+      mine: async () => {
+        const res = await authFetch("/api/admin/tasks/mine", {}, token);
+        return parseJsonResponse<
+          import("@/features/delivery/task-schemas").TaskRecord[] |
+          { tasks: import("@/features/delivery/task-schemas").TaskRecord[] }
+        >(res);
+      },
       activity: (limit?: number) =>
         authFetch(limit ? `/api/admin/tasks/activity?limit=${limit}` : "/api/admin/tasks/activity", {}, token).then(
           (r) => r.json(),
@@ -451,7 +673,25 @@ export function adminApi(token: string | null) {
       create: (body: object) =>
         authFetch("/api/admin/tasks", { method: "POST", body: JSON.stringify(body) }, token).then((r) => r.json()),
       update: (id: string, body: object) =>
-        authFetch(`/api/admin/tasks/${id}`, { method: "PATCH", body: JSON.stringify(body) }, token).then((r) => r.json()),
+        authFetch(`/api/admin/tasks/${id}`, { method: "PATCH", body: JSON.stringify(body) }, token).then((r) =>
+          parseJsonResponse(r),
+        ),
+      comments: (id: string) =>
+        authFetch(`/api/admin/tasks/${id}/comments`, {}, token).then((r) =>
+          parseJsonResponse<Array<{
+            id: string;
+            task_id: string;
+            author_user_id: string;
+            author_name: string;
+            body: string;
+            created_at: string;
+          }>>(r),
+        ),
+      addComment: (id: string, body: string) =>
+        authFetch(`/api/admin/tasks/${id}/comments`, {
+          method: "POST",
+          body: JSON.stringify({ body }),
+        }, token).then((r) => parseJsonResponse(r)),
       remove: (id: string) =>
         authFetch(`/api/admin/tasks/${id}`, { method: "DELETE" }, token).then((r) => (r.ok ? null : r.json())),
     },
@@ -464,10 +704,22 @@ export function adminApi(token: string | null) {
         authFetch("/api/admin/proposals", { method: "POST", body: JSON.stringify(body) }, token).then((r) => r.json()),
       createFromTemplate: (body: object) =>
         authFetch("/api/admin/proposals/from-template", { method: "POST", body: JSON.stringify(body) }, token).then((r) => r.json()),
+      contextPreview: (params: { lead_id?: string; client_id?: string }) => {
+        const q = new URLSearchParams();
+        if (params.lead_id) q.set("lead_id", params.lead_id);
+        if (params.client_id) q.set("client_id", params.client_id);
+        return authFetch(`/api/admin/proposals/context-preview?${q}`, {}, token).then((r) => r.json());
+      },
       update: (id: string, body: object) =>
         authFetch(`/api/admin/proposals/${id}`, { method: "PATCH", body: JSON.stringify(body) }, token).then((r) => r.json()),
       remove: (id: string) =>
-        authFetch(`/api/admin/proposals/${id}`, { method: "DELETE" }, token).then((r) => (r.ok ? null : r.json())),
+        authFetch(`/api/admin/proposals/${id}`, { method: "DELETE" }, token).then(async (r) => {
+          if (!r.ok) {
+            const data = await r.json().catch(() => ({}));
+            throw new Error(String((data as { error?: string }).error ?? "Delete failed"));
+          }
+          return null;
+        }),
       share: (id: string) =>
         authFetch(`/api/admin/proposals/${id}/share`, { method: "POST", body: "{}" }, token).then((r) => r.json()),
       duplicate: (id: string) =>
@@ -578,7 +830,10 @@ export function adminApi(token: string | null) {
       versions: (id: string) => authFetch(`/api/admin/files/${id}/versions`, {}, token).then((r) => r.json()),
       remove: (id: string) =>
         authFetch(`/api/admin/files/${id}`, { method: "DELETE" }, token).then((r) => (r.ok ? null : r.json())),
-      downloadUrl: (id: string) => authFetch(`/api/admin/files/${id}/download-url`, {}, token).then((r) => r.json()),
+      downloadUrl: (id: string, opts?: { inline?: boolean }) => {
+        const q = opts?.inline ? "?inline=1" : "";
+        return authFetch(`/api/admin/files/${id}/download-url${q}`, {}, token).then((r) => r.json());
+      },
     },
     workflows: {
       list: () => authFetch("/api/admin/workflows", {}, token).then((r) => r.json()),
@@ -684,23 +939,122 @@ export function adminApi(token: string | null) {
     },
     search: (q: string) =>
       authFetch(`/api/admin/search?q=${encodeURIComponent(q)}`, {}, token).then((r) => r.json()),
-    operations: {
-      sops: {
-        list: () => authFetch("/api/admin/operations/sops", {}, token).then((r) => r.json()),
-        create: (body: { title: string; category?: string; description?: string; project_type?: string; steps?: object[] }) =>
-          authFetch("/api/admin/operations/sops", { method: "POST", body: JSON.stringify(body) }, token).then((r) => r.json()),
-        run: (id: string, body: object) =>
-          authFetch(`/api/admin/operations/sops/${id}/run`, { method: "POST", body: JSON.stringify(body) }, token).then((r) => r.json()),
+    approvals: {
+      list: (params: { project_id?: string; client_id?: string; status?: string }) => {
+        const q = new URLSearchParams();
+        if (params.project_id) q.set("project_id", params.project_id);
+        if (params.client_id) q.set("client_id", params.client_id);
+        if (params.status) q.set("status", params.status);
+        return authFetch(`/api/admin/approvals?${q}`, {}, token).then((r) => parseJsonResponse(r));
       },
-      knowledge: {
-        list: () => authFetch("/api/admin/operations/knowledge", {}, token).then((r) => r.json()),
-        get: (id: string) => authFetch(`/api/admin/operations/knowledge/${id}`, {}, token).then((r) => r.json()),
-        create: (body: object) =>
-          authFetch("/api/admin/operations/knowledge", { method: "POST", body: JSON.stringify(body) }, token).then((r) => r.json()),
-        update: (id: string, body: object) =>
-          authFetch(`/api/admin/operations/knowledge/${id}`, { method: "PATCH", body: JSON.stringify(body) }, token).then((r) => r.json()),
-        remove: (id: string) =>
-          authFetch(`/api/admin/operations/knowledge/${id}`, { method: "DELETE" }, token).then((r) => (r.ok ? null : r.json())),
+      create: (body: {
+        project_id?: string;
+        client_id?: string;
+        entity_type: string;
+        entity_id?: string;
+        title: string;
+        description?: string;
+        review_url?: string;
+      }) =>
+        authFetch("/api/admin/approvals", { method: "POST", body: JSON.stringify(body) }, token).then((r) =>
+          parseJsonResponse(r),
+        ),
+      remove: async (id: string) => {
+        const r = await authFetch(`/api/admin/approvals/${id}`, { method: "DELETE" }, token);
+        if (r.ok) return null;
+        return parseJsonResponse(r);
+      },
+    },
+    notifications: {
+      list: async (opts?: { unreadOnly?: boolean; limit?: number }) => {
+        const q = new URLSearchParams();
+        if (opts?.unreadOnly) q.set("unread", "true");
+        if (opts?.limit) q.set("limit", String(opts.limit));
+        const qs = q.toString();
+        const res = await authFetch(`/api/admin/notifications${qs ? `?${qs}` : ""}`, {}, token);
+        return parseJsonResponse<{
+          notifications: {
+            id: string;
+            title: string;
+            body: string;
+            type: string;
+            href: string | null;
+            created_at: string;
+            read: boolean;
+          }[];
+          unread_count: number;
+        }>(res);
+      },
+      unreadCount: () =>
+        authFetch("/api/admin/notifications/unread-count", {}, token).then((r) =>
+          parseJsonResponse<{ unread_count: number }>(r),
+        ),
+      markRead: (key: string) =>
+        authFetch(`/api/admin/notifications/${encodeURIComponent(key)}/read`, { method: "POST" }, token).then((r) =>
+          parseJsonResponse<{ ok: boolean }>(r),
+        ),
+      markAllRead: () =>
+        authFetch("/api/admin/notifications/mark-read", { method: "POST" }, token).then((r) =>
+          parseJsonResponse<{ ok: boolean }>(r),
+        ),
+    },
+    careers: {
+      roles: () =>
+        authFetch("/api/admin/careers/roles", {}, token).then((r) =>
+          parseJsonResponse<{ roles: import("@/features/careers/careers.types").CareerRoleSummary[] }>(r),
+        ),
+      list: (filters?: { role_slug?: string; status?: "new" | "shortlisted" | "rejected" | "all" }) => {
+        const q = new URLSearchParams();
+        if (filters?.role_slug) q.set("role_slug", filters.role_slug);
+        if (filters?.status) q.set("status", filters.status);
+        const qs = q.toString();
+        return authFetch(qs ? `/api/admin/careers/applications?${qs}` : "/api/admin/careers/applications", {}, token).then(
+          (r) =>
+            parseJsonResponse<{ applications: import("@/features/careers/careers.types").CareerApplication[] }>(r),
+        );
+      },
+      get: (id: string) =>
+        authFetch(`/api/admin/careers/applications/${id}`, {}, token).then((r) =>
+          parseJsonResponse<import("@/features/careers/careers.types").CareerApplication>(r),
+        ),
+      setup: () =>
+        authFetch("/api/admin/careers/setup", {}, token).then((r) =>
+          parseJsonResponse<{
+            email_configured: boolean;
+            calendar_connected: boolean;
+            from_address: string;
+            reply_to: string;
+          }>(r),
+        ),
+      shortlist: (id: string, body: { starts_at: string; duration_min?: number; note?: string }) =>
+        authFetch(`/api/admin/careers/applications/${id}/shortlist`, { method: "POST", body: JSON.stringify(body) }, token).then(
+          (r) =>
+            parseJsonResponse<
+              import("@/features/careers/careers.types").CareerApplication & {
+                meet_created: boolean;
+                calendar_error: string | null;
+              }
+            >(r),
+        ),
+      reject: (id: string, body?: { send_email?: boolean; note?: string }) =>
+        authFetch(`/api/admin/careers/applications/${id}/reject`, { method: "POST", body: JSON.stringify(body ?? {}) }, token).then(
+          (r) =>
+            parseJsonResponse<
+              import("@/features/careers/careers.types").CareerApplication & { email_sent: boolean }
+            >(r),
+        ),
+      updateStatus: (id: string, status: "new") =>
+        authFetch(
+          `/api/admin/careers/applications/${id}`,
+          { method: "PATCH", body: JSON.stringify({ status }) },
+          token,
+        ).then((r) => parseJsonResponse<import("@/features/careers/careers.types").CareerApplication>(r)),
+      resumeBlob: async (id: string) => {
+        const res = await authFetch(`/api/admin/careers/applications/${id}/resume`, {}, token);
+        if (!res.ok) throw new Error("Could not load CV");
+        const ct = res.headers.get("content-type") || "";
+        if (ct.includes("application/json")) throw new Error("Could not load CV");
+        return res.blob();
       },
     },
   };

@@ -1,6 +1,8 @@
 import OpenAI from 'openai'
 import { firstRow, sql } from '../../../lib/sqlPool.js'
 import { logProjectActivity } from './projectActivity.js'
+import { computeHealthBreakdown } from './projectHealth.js'
+import { buildManagerBrief } from './projectManager.js'
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null
 const MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini'
@@ -114,7 +116,7 @@ async function loadProjectContext(projectId: string) {
     WHERE project_id = ${projectId}::uuid ORDER BY due_at ASC NULLS LAST
   `) as MilestoneRow[]
   const tasks = await sql`
-    SELECT title, status, priority FROM tasks WHERE project_id = ${projectId}::uuid LIMIT 30
+    SELECT title, status, priority, due_at::text, completed_at::text FROM tasks WHERE project_id = ${projectId}::uuid LIMIT 50
   `
   const invoices = (await sql`
     SELECT invoice_number, status, total_cents, due_at::text, paid_at::text
@@ -124,17 +126,30 @@ async function loadProjectContext(projectId: string) {
     SELECT u.email, pm.role FROM project_members pm
     JOIN users u ON u.id = pm.user_id WHERE pm.project_id = ${projectId}::uuid
   `
-  return { project, milestones, tasks, invoices, members }
+  const expenseCents = await loadExpenseCents(projectId)
+  return { project, milestones, tasks, invoices, members, expenseCents }
+}
+
+async function loadExpenseCents(projectId: string): Promise<number> {
+  try {
+    const expenseRow = firstRow<{ expense_cents?: string }>(
+      await sql`SELECT COALESCE(SUM(amount_cents), 0)::text AS expense_cents FROM expenses WHERE project_id = ${projectId}::uuid`,
+    )
+    return Number(expenseRow?.expense_cents ?? 0)
+  } catch {
+    return 0
+  }
 }
 
 export async function getProjectSummary(projectId: string) {
   const ctx = await loadProjectContext(projectId)
   if (!ctx) return null
 
-  const { project, milestones, invoices } = ctx
+  const { project, milestones, invoices, expenseCents } = ctx
   const budgetCents = Number(project.budget_cents ?? 0)
   const paidRows = invoices.filter((i) => i.status === 'paid')
   const collectedCents = paidRows.reduce((s, i) => s + Number(i.total_cents ?? 0), 0)
+  const profitCents = collectedCents - expenseCents
   const pendingCents = Math.max(0, budgetCents - collectedCents)
   const collectionPct = budgetCents > 0 ? Math.round((collectedCents / budgetCents) * 100) : 0
 
@@ -178,6 +193,57 @@ export async function getProjectSummary(projectId: string) {
       ? project.delivery_phases
       : intel?.delivery_phases) ?? buildPhasesFromProgress(Number(project.progress_pct ?? 0))
 
+  const taskRows = ctx.tasks as { status?: string; title?: string; priority?: string }[]
+  const tasksDone = taskRows.filter((t) => t.status === 'done' || t.status === 'completed').length
+  const openTasks = taskRows.filter((t) => t.status !== 'done' && t.status !== 'completed')
+
+  const lastContact = await loadLastContactAt(projectId)
+  const daysSinceLastContact = lastContact
+    ? Math.floor((now.getTime() - new Date(lastContact).getTime()) / 86400000)
+    : null
+
+  const healthBreakdown = computeHealthBreakdown({
+    progressPct: Number(project.progress_pct ?? 0),
+    daysElapsed: dayElapsed,
+    totalDays,
+    daysUntilEnd,
+    budgetCents,
+    expenseCents,
+    collectedCents,
+    collectionPct,
+    tasksTotal: taskRows.length,
+    tasksDone,
+    daysSinceLastContact,
+    status: String(project.status ?? 'active'),
+  })
+
+  const recentCompletedMs = milestones
+    .filter((m) => m.completed_at)
+    .sort((a, b) => new Date(String(b.completed_at)).getTime() - new Date(String(a.completed_at)).getTime())
+    .slice(0, 3)
+
+  const recentActivity = await loadRecentActivity(projectId)
+
+  const managerBrief = buildManagerBrief({
+    projectName: String(project.name ?? 'Project'),
+    status: String(project.status ?? 'active'),
+    progressPct: Number(project.progress_pct ?? 0),
+    pendingCents,
+    budgetCents,
+    daysUntilEnd,
+    daysSinceLastContact,
+    openMilestones: openMs,
+    recentCompletedMilestones: recentCompletedMs.map((m) => ({
+      title: m.title,
+      completed_at: m.completed_at ?? undefined,
+    })),
+    openTasks,
+    recentActivity,
+    portalLastLogin: (project.portal_last_login_at as string) ?? null,
+    nextMilestone: nextMilestone?.title ?? null,
+    healthOverall: healthBreakdown.overall,
+  })
+
   return {
     budget_cents: budgetCents,
     collected_cents: collectedCents,
@@ -201,6 +267,14 @@ export async function getProjectSummary(projectId: string) {
     invoice_count: invoices.length,
     task_count: ctx.tasks.length,
     open_milestones: openMs.length,
+    expense_cents: expenseCents,
+    profit_cents: profitCents,
+    health_score: healthBreakdown.overall,
+    health_breakdown: healthBreakdown,
+    manager_brief: managerBrief,
+    tasks_done: tasksDone,
+    tasks_total: taskRows.length,
+    days_since_last_contact: daysSinceLastContact,
   }
 }
 
@@ -421,4 +495,40 @@ export async function generateProjectPlan(projectId: string, actorUserId?: strin
   }
 
   return plan
+}
+
+async function loadLastContactAt(projectId: string): Promise<string | null> {
+  try {
+    const row = firstRow<{ last_at?: string }>(
+      await sql`
+        SELECT MAX(ts)::text AS last_at FROM (
+          SELECT MAX("createdAt") AS ts FROM updates WHERE project_id = ${projectId}::uuid AND note_type IN ('client', 'meeting')
+          UNION ALL
+          SELECT MAX("createdAt") FROM client_communications cc
+          JOIN projects p ON p.client_id = cc.client_id WHERE p.id = ${projectId}::uuid
+        ) sub
+      `,
+    )
+    return row?.last_at ?? null
+  } catch {
+    try {
+      const row = firstRow<{ last_at?: string }>(
+        await sql`SELECT MAX("createdAt")::text AS last_at FROM updates WHERE project_id = ${projectId}::uuid`,
+      )
+      return row?.last_at ?? null
+    } catch {
+      return null
+    }
+  }
+}
+
+async function loadRecentActivity(projectId: string): Promise<{ title: string; event_type: string; created_at: string }[]> {
+  try {
+    return (await sql`
+      SELECT title, event_type, created_at::text FROM project_activity
+      WHERE project_id = ${projectId}::uuid ORDER BY created_at DESC LIMIT 5
+    `) as { title: string; event_type: string; created_at: string }[]
+  } catch {
+    return []
+  }
 }

@@ -1,23 +1,27 @@
-import { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import WorkGrid from "./WorkGrid";
 import { AnimatedHero } from "@/components/ui/animated-hero";
-import { AnimatedSection } from "@/components/ui/animated-section";
 import { fetchCmsPortfolio } from "@/lib/cms-api";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
   title: "Work | Curvvtech",
   description: "Selected projects and case studies from Curvvtech.",
-};
+  path: "/work",
+});
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 const heroGradient =
   "relative w-full pt-44 2xl:pb-20 pb-10 before:absolute before:w-full before:h-full before:bg-linear-to-r before:from-blue_gradient before:via-white before:to-yellow_gradient before:rounded-full before:top-24 before:blur-3xl before:-z-10 dark:before:from-dark_blue_gradient dark:before:via-black dark:before:to-dark_yellow_gradient dark:before:rounded-full dark:before:blur-3xl dark:before:-z-10";
 
-export default async function WorkPage() {
+async function CmsWorkGrid() {
   const cmsPortfolio = await fetchCmsPortfolio();
+  return <WorkGrid cmsPortfolio={cmsPortfolio} />;
+}
 
+export default function WorkPage() {
   return (
     <main>
       <section>
@@ -37,8 +41,10 @@ export default async function WorkPage() {
       <section>
         <div className="2xl:py-20 py-11">
           <div className="container">
-            <AnimatedSection className="flex flex-col gap-12">
-              <WorkGrid cmsPortfolio={cmsPortfolio} />
+            <div className="flex flex-col gap-12">
+              <Suspense fallback={<WorkGrid />}>
+                <CmsWorkGrid />
+              </Suspense>
               <div className="flex flex-col items-center justify-center mt-16 w-full">
                 <Link
                   href="/contact"
@@ -55,7 +61,7 @@ export default async function WorkPage() {
                   </svg>
                 </Link>
               </div>
-            </AnimatedSection>
+            </div>
           </div>
         </div>
       </section>

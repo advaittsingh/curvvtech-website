@@ -5,8 +5,8 @@ const { Pool } = pg;
 
 export const pool = new Pool({
   connectionString: config.databaseUrl,
-  max: Number(process.env.PG_POOL_MAX || 20),
-  idleTimeoutMillis: 30_000,
+  max: Number(process.env.PG_POOL_MAX || (process.env.VERCEL ? 3 : 20)),
+  idleTimeoutMillis: process.env.VERCEL ? 10_000 : 30_000,
   connectionTimeoutMillis: 10_000,
 });
 

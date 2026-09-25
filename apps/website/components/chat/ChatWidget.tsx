@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { io } from 'socket.io-client'
 import { MessageCircle } from 'lucide-react'
 import {
   createConversation,
@@ -89,11 +88,8 @@ export function ChatWidget() {
     const base = getChatSocketUrl()
     if (!base) return
 
-    const socket = io(base, {
-      path: '/socket.io/',
-      transports: ['websocket', 'polling'],
-      query: { conversationId: conversation.id },
-    })
+    let cancelled = false
+    let socket: { on: (event: string, fn: (raw: unknown) => void) => void; off: (event: string, fn: (raw: unknown) => void) => void; disconnect: () => void } | null = null
 
     const onMessage = (raw: unknown) => {
       const msg = parseSocketChatMessage(raw)
@@ -101,10 +97,20 @@ export function ChatWidget() {
       setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]))
     }
 
-    socket.on('chat_message', onMessage)
+    import('socket.io-client').then(({ io }) => {
+      if (cancelled) return
+      socket = io(base, {
+        path: '/socket.io/',
+        transports: ['websocket', 'polling'],
+        query: { conversationId: conversation.id },
+      })
+      socket.on('chat_message', onMessage)
+    })
+
     return () => {
-      socket.off('chat_message', onMessage)
-      socket.disconnect()
+      cancelled = true
+      socket?.off('chat_message', onMessage)
+      socket?.disconnect()
     }
   }, [open, conversation?.id])
 

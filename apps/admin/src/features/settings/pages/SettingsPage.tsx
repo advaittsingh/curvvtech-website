@@ -25,7 +25,7 @@ export default function SettingsPage() {
         <TabsContent value="company" className="space-y-4 rounded-xl border border-border bg-card p-5">
           <div>
             <Label>Company name</Label>
-            <Input defaultValue="CurvvTech" />
+            <Input defaultValue="Curvvtech" />
           </div>
           <div>
             <Label>GST / Tax ID</Label>

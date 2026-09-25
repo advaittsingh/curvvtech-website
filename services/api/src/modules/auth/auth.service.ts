@@ -64,7 +64,7 @@ function rowToInternalUser(row: {
   };
 }
 
-async function issueSession(
+export async function issueSession(
   pool: pg.Pool,
   userId: string,
   email: string | null

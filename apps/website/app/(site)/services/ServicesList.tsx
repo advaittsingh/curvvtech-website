@@ -44,7 +44,7 @@ export default function ServicesList({ cmsServices = [] }: { cmsServices?: CmsSe
       {list.map((item, index) => {
         const content = (
           <>
-            <Image src={item.image} alt="" width={40} height={40} />
+            <Image src={item.image} alt={item.title} width={40} height={40} />
             <h2 className={`text-2xl font-medium ${item.txt_color}`}>
               {item.title.split("\n").map((line, i) => (
                 <React.Fragment key={i}>

@@ -5,7 +5,9 @@ export type BrandId =
   | "paata"
   | "lifeset"
   | "treadtrails"
-  | "youngboyztoyz";
+  | "youngboyztoyz"
+  | "nivan"
+  | "sanveda";
 
 export type BrandItem = {
   id: BrandId;
@@ -111,5 +113,27 @@ export const brandList: BrandItem[] = [
     width: 828,
     height: 726,
     glowColor: "rgba(255, 255, 255, 0.35)",
+  },
+  {
+    id: "nivan",
+    title: "NIVAN FOUNDATION",
+    src: "/images/home/brand/clients/nivan-gold-mark.png",
+    width: 727,
+    height: 845,
+    glowColor: "rgba(196, 165, 116, 0.55)",
+    displayWidth: 62,
+    displayHeight: 72,
+    logoClassName: "client-brand-logo--nivan",
+  },
+  {
+    id: "sanveda",
+    title: "SANVEDA",
+    src: "/images/home/brand/clients/sanveda-mark.png",
+    width: 265,
+    height: 267,
+    glowColor: "rgba(212, 175, 55, 0.5)",
+    displayWidth: 64,
+    displayHeight: 64,
+    logoClassName: "client-brand-logo--sanveda",
   },
 ];

@@ -93,7 +93,7 @@ export function LeadNotesTab({ notes, requirements, memberMap, onAddNote }: Prop
       </div>
 
       <Tabs defaultValue="meeting">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           {NOTE_CATEGORIES.map((c) => (
             <TabsTrigger key={c} value={c}>
               {NOTE_CATEGORY_LABELS[c]}

@@ -20,7 +20,7 @@ router.patch('/', async (req, res) => {
     const existing = firstRow(await sql`SELECT id FROM company_settings LIMIT 1`)
     if (!existing) {
       const row = firstRow(await sql`
-        INSERT INTO company_settings (company_name) VALUES (${b.company_name ?? 'CurvvTech'}) RETURNING *
+        INSERT INTO company_settings (company_name) VALUES (${b.company_name ?? 'Curvvtech'}) RETURNING *
       `)
       res.json(row)
       return
@@ -38,6 +38,16 @@ router.patch('/', async (req, res) => {
     if (b.smtp_port !== undefined) await sql`UPDATE company_settings SET smtp_port = ${b.smtp_port}, "updatedAt" = NOW()`
     if (b.smtp_user !== undefined) await sql`UPDATE company_settings SET smtp_user = ${b.smtp_user}, "updatedAt" = NOW()`
     if (b.smtp_pass !== undefined) await sql`UPDATE company_settings SET smtp_pass = ${b.smtp_pass}, "updatedAt" = NOW()`
+    if (b.pan_number !== undefined) await sql`UPDATE company_settings SET pan_number = ${b.pan_number}, "updatedAt" = NOW()`
+    if (b.bank_account_name !== undefined) await sql`UPDATE company_settings SET bank_account_name = ${b.bank_account_name}, "updatedAt" = NOW()`
+    if (b.bank_account_number !== undefined) await sql`UPDATE company_settings SET bank_account_number = ${b.bank_account_number}, "updatedAt" = NOW()`
+    if (b.bank_ifsc !== undefined) await sql`UPDATE company_settings SET bank_ifsc = ${b.bank_ifsc}, "updatedAt" = NOW()`
+    if (b.bank_name !== undefined) await sql`UPDATE company_settings SET bank_name = ${b.bank_name}, "updatedAt" = NOW()`
+    if (b.bank_account_type !== undefined) await sql`UPDATE company_settings SET bank_account_type = ${b.bank_account_type}, "updatedAt" = NOW()`
+    if (b.upi_id !== undefined) await sql`UPDATE company_settings SET upi_id = ${b.upi_id}, "updatedAt" = NOW()`
+    if (b.upi_qr_url !== undefined) await sql`UPDATE company_settings SET upi_qr_url = ${b.upi_qr_url}, "updatedAt" = NOW()`
+    if (b.signature_url !== undefined) await sql`UPDATE company_settings SET signature_url = ${b.signature_url}, "updatedAt" = NOW()`
+    if (b.default_gst_percent !== undefined) await sql`UPDATE company_settings SET default_gst_percent = ${b.default_gst_percent}, "updatedAt" = NOW()`
     res.json(firstRow(await sql`SELECT * FROM company_settings LIMIT 1`))
   } catch {
     res.status(500).json({ error: 'Internal server error' })

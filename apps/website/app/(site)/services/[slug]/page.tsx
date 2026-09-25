@@ -3,11 +3,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { ProjectImage } from "@/components/ui/ProjectImage";
 import { notFound } from "next/navigation";
+import { fetchCmsServiceBySlug } from "@/lib/cms-api";
 import {
   getServiceBySlug,
   getAllServiceSlugs,
   getProjectsForService,
 } from "@/lib/services-data";
+import { createPageMetadata } from "@/lib/seo";
 import { AnimatedHero } from "@/components/ui/animated-hero";
 import { AnimatedSection } from "@/components/ui/animated-section";
 
@@ -21,10 +23,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const service = getServiceBySlug(slug);
   if (!service) return { title: "Service | Curvvtech" };
-  return {
-    title: `${service.title} | Curvvtech`,
-    description: service.description,
-  };
+
+  const cmsService = await fetchCmsServiceBySlug(slug);
+
+  return createPageMetadata({
+    title: cmsService?.seo_title ?? `${service.title} | Curvvtech`,
+    description: cmsService?.seo_description ?? service.description,
+    path: `/services/${slug}`,
+    image: cmsService?.hero_image_url,
+    imageAlt: service.title,
+  });
 }
 
 export default async function ServiceDetailPage({ params }: Props) {

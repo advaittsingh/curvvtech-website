@@ -23,55 +23,57 @@ export function ProjectTeamTab({ members, tasks, available, onAdd, onRemove }: P
     <div className="space-y-6">
       <div className="grid sm:grid-cols-2 gap-3">
         {TEAM_ROLES.map(({ key, label }) => {
-          const assigned = members.find((m) => (m.role ?? "").includes(key.replace("_", "")) || m.role === key);
-          const openTasks = assigned ? workload(assigned.user_id) : 0;
+          const assignedMembers = members.filter((member) => member.role === key);
           return (
-            <div key={key} className="rounded-lg border border-border p-4">
+            <div key={key} className="rounded-lg border border-border p-4 space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-              <p className="font-medium mt-1">
-                {assigned ? formatOwnerDisplay(assigned.email) : <span className="text-muted-foreground">Unassigned</span>}
-              </p>
-              {assigned && openTasks > 0 && (
-                <Badge variant="secondary" className="mt-2 text-xs">{openTasks} open tasks</Badge>
+              {assignedMembers.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Unassigned</p>
+              ) : (
+                <ul className="space-y-2">
+                  {assignedMembers.map((member) => {
+                    const openTasks = workload(member.user_id);
+                    return (
+                      <li key={member.user_id} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="font-medium truncate">{formatOwnerDisplay(member.email)}</span>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          {openTasks > 0 && (
+                            <Badge variant="secondary" className="text-xs">{openTasks} tasks</Badge>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            aria-label={`Remove ${formatOwnerDisplay(member.email)} from ${label}`}
+                            onClick={() => onRemove(member.user_id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
+              <Select value="" onValueChange={(userId) => onAdd(userId, key)}>
+                <SelectTrigger className="h-8 w-full">
+                  <SelectValue placeholder={`Add ${label.toLowerCase()}…`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {available.length === 0 ? (
+                    <SelectItem value="no-members" disabled>No available team members</SelectItem>
+                  ) : (
+                    available.map((member) => (
+                      <SelectItem key={member.user_id} value={member.user_id}>
+                        {member.email ?? member.user_id}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           );
         })}
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex gap-2 flex-wrap">
-          <Select onValueChange={(v) => onAdd(v, "member")}>
-            <SelectTrigger className="w-[260px]">
-              <SelectValue placeholder="Add team member…" />
-            </SelectTrigger>
-            <SelectContent>
-              {available.map((m) => (
-                <SelectItem key={m.user_id} value={m.user_id}>{m.email ?? m.user_id}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {members.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No team members assigned.</p>
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {members.map((m) => (
-              <li key={m.user_id} className="flex justify-between items-center border-b pb-2">
-                <div>
-                  <span className="font-medium">{formatOwnerDisplay(m.email)}</span>
-                  <span className="text-muted-foreground ml-2">{m.role ?? m.curvvtech_role}</span>
-                  {workload(m.user_id) > 0 && (
-                    <Badge variant="outline" className="ml-2 text-xs">{workload(m.user_id)} tasks</Badge>
-                  )}
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => onRemove(m.user_id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
     </div>
   );

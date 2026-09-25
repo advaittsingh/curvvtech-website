@@ -4,9 +4,9 @@ const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null
 
-const SYSTEM_PROMPT = `You are CurvvTech's AI assistant.
+const SYSTEM_PROMPT = `You are Curvvtech's AI assistant.
 
-CurvvTech is a technology company that provides:
+Curvvtech is a technology company that provides:
 - Website development
 - Mobile app development
 - SaaS development
@@ -53,7 +53,8 @@ export async function getAIResponse(
 
   const escalationTriggers = [
     'human', 'agent', 'person', 'someone', 'representative', 'support',
-    'talk to', 'speak to', 'real person', 'quote', 'pricing', 'budget'
+    'talk to', 'speak to', 'real person', 'quote', 'pricing', 'budget',
+    'call me', 'complaint', 'refund', 'urgent', 'proposal', 'need support',
   ]
   const wantsHuman = escalationTriggers.some(t => lower.includes(t))
 
@@ -90,6 +91,39 @@ export async function getAIResponse(
     }
   } catch (e) {
     console.error('AI service error:', e)
+    return null
+  }
+}
+
+const AGENT_SUGGEST_PROMPT = `You are helping a Curvvtech support/sales agent reply to a customer in a live chat.
+Write ONE concise, warm, professional reply the agent can send as-is (2-4 sentences).
+Do not include a signature, greeting boilerplate, or quotes. Write only the message body.`
+
+/**
+ * Suggest a reply the human agent could send next, based on the conversation so far.
+ * Returns null when OpenAI is not configured.
+ */
+export async function suggestAgentReply(
+  conversationHistory: ChatMessage[]
+): Promise<string | null> {
+  if (!openai) return null
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: 'system', content: AGENT_SUGGEST_PROMPT },
+    ...conversationHistory.slice(-20).map(m => ({
+      role: m.role as 'user' | 'assistant' | 'system',
+      content: sanitize(m.content)
+    }))
+  ]
+  try {
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini',
+      messages,
+      max_tokens: 250,
+      temperature: 0.6
+    })
+    return completion.choices[0]?.message?.content?.trim() || null
+  } catch (e) {
+    console.error('Suggest reply error:', e)
     return null
   }
 }

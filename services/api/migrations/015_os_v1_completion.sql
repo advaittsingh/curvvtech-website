@@ -1,4 +1,4 @@
--- CurvvTech OS V1 completion: RBAC support fields, finance, CMS, team, leads
+-- Curvvtech OS V1 completion: RBAC support fields, finance, CMS, team, leads
 
 ALTER TABLE company_settings
   ADD COLUMN IF NOT EXISTS logo_url TEXT,

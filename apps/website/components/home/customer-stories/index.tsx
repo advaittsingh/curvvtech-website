@@ -27,7 +27,7 @@ function CustomerStories() {
                 <TextGenerateEffect words="What our satisfied customers are saying" />
                 <TextGenerateEffect
                   words="about us"
-                  delay={1}
+                  delay={0.2}
                   className="italic font-normal instrument-font"
                 />
               </h2>
@@ -40,20 +40,21 @@ function CustomerStories() {
                   ref={topLeftRef}
                   initial={{ x: -100, y: -100, opacity: 0 }}
                   animate={topLeftInView ? { x: 0, y: 0, opacity: 1 } : {}}
-                  transition={{ duration: 0.8 }}
-                  className="p-8 gap-64 rounded-2xl flex flex-col relative bg-[url('/images/home/customerStories/customer_bg_img.jpg')] object-cover bg-center h-full w-full bg-cover bg-no-repeat"
+                  transition={{ duration: 0.35 }}
+                  className="relative overflow-hidden p-8 gap-64 rounded-2xl flex flex-col min-h-[320px] h-full w-full bg-[url('/images/home/customerStories/nivan-testimonial-bg.png')] bg-cover bg-center bg-no-repeat"
                 >
-                  <span className="text-white/60 uppercase text-sm font-medium">
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/20" aria-hidden />
+                  <span className="relative z-10 text-white/60 uppercase text-sm font-medium">
                     Customer stories
                   </span>
-                  <div className="flex flex-col gap-6">
+                  <div className="relative z-10 flex flex-col gap-6 mt-auto">
                     <h3 className="text-white">
-                      “Curvvtech’s tech expertise transformed my vision into success!”
+                      “Curvvtech built a platform that feels like the work we do — calm, dignified, and ready for the families we serve.”
                     </h3>
                     <div className="flex flex-col gap-1">
-                      <p className="text-white font-medium">Kabir Shah</p>
+                      <p className="text-white font-medium">Maj Vantesh Bakshi (Retd.)</p>
                       <p className="text-white/60 text-sm font-medium">
-                        Founder of Chipsland
+                        Founder & Chairman, NiVan Foundation
                       </p>
                     </div>
                   </div>
@@ -64,7 +65,7 @@ function CustomerStories() {
                   ref={topRightRef}
                   initial={{ x: 100, y: -100, opacity: 0 }}
                   animate={topRightInView ? { x: 0, y: 0, opacity: 1 } : {}}
-                  transition={{ duration: 0.8 }}
+                  transition={{ duration: 0.35 }}
                   className="flex flex-col justify-between gap-36 xl:max-w-25 bg-pale-yellow rounded-2xl p-8"
                 >
                   <div>
@@ -81,29 +82,29 @@ function CustomerStories() {
                 </motion.div>
               </div>
 
-              <div className="flex flex-col xl:flex xl:flex-row gap-6">
+              <div className="flex flex-col xl:grid xl:grid-cols-12 gap-6">
                 {/* Bottom Left Box */}
                 <motion.div
                   ref={bottomLeftRef}
                   initial={{ x: -100, y: 100, opacity: 0 }}
                   animate={bottomLeftInView ? { x: 0, y: 0, opacity: 1 } : {}}
-                  transition={{ duration: 0.8 }}
-                  className="flex flex-col justify-between bg-dark_black xl:max-w-25 dark:bg-white/10 rounded-2xl p-8"
+                  transition={{ duration: 0.35 }}
+                  className="flex flex-col justify-between bg-dark_black dark:bg-white/10 rounded-2xl p-8 xl:col-span-7"
                 >
                   <div className="flex flex-col gap-6">
                     <span className="text-white/60 uppercase text-sm font-medium">
                       Customer stories
                     </span>
                     <h3 className="text-white text-2xl">
-                      Their creativity and attention to detail transformed our brand completely!
+                      “Icons, armoury, and a showroom without walls — built as a living product, not a brochure.”
                     </h3>
-                    <div>
+                    <div className="overflow-hidden rounded-xl bg-black">
                       <Image
-                        src="/images/home/customerStories/creativity_img.jpg"
-                        alt="image"
-                        width={344}
-                        height={220}
-                        className="w-full h-52"
+                        src="/images/work/TRACKHAUZ/trackhauz-live-desktop.png"
+                        alt="TRACKHAUZ digital showroom"
+                        width={1440}
+                        height={900}
+                        className="w-full h-auto object-contain"
                       />
                     </div>
                   </div>
@@ -114,21 +115,21 @@ function CustomerStories() {
                   ref={bottomRightRef}
                   initial={{ x: 100, y: 100, opacity: 0 }}
                   animate={bottomRightInView ? { x: 0, y: 0, opacity: 1 } : {}}
-                  transition={{ duration: 0.8 }}
-                  className="flex flex-col gap-24 justify-between bg-dark_black/5 dark:bg-white/5 p-8 rounded-2xl"
+                  transition={{ duration: 0.35 }}
+                  className="flex flex-col gap-24 justify-between bg-dark_black/5 dark:bg-white/5 p-8 rounded-2xl xl:col-span-5"
                 >
                   <div className="flex flex-col gap-6">
                     <span className="text-dark_black/60 dark:text-white/60 uppercase text-sm font-medium">
                       Customer stories
                     </span>
                     <h2 className="text-2xl lg:text-5xl">
-                      “Curvvtech brought our ideas to life with exceptional technical execution and precision, exceeding expectations.”
+                      “They turned a private obsession into a digital showroom. The collection, the parts program, the whole Hauz — it looks and moves the way we imagined it on the floor.”
                     </h2>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <p className="font-medium">Kabir Shah</p>
+                    <p className="font-medium">TRACKHAUZ</p>
                     <p className="text-dark_black/60 dark:text-white/60 text-sm font-medium">
-                      Founder of Chipsland
+                      The Digital Showroom
                     </p>
                   </div>
                 </motion.div>

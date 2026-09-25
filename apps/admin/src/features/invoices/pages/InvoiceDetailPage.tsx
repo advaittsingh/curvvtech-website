@@ -1,6 +1,6 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Download, ExternalLink, Link2, Plus, Pencil, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, Link2, Plus, Pencil, Send, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { authFetch } from "@/lib/api";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/system";
 import { useToast } from "@/hooks/use-toast";
 import {
   InvoiceActivityTimeline,
@@ -64,14 +65,17 @@ function lineTotal(item: LineItem) {
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const api = useAdminApi();
   const qc = useQueryClient();
   const { toast } = useToast();
   const [aiLoading, setAiLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [sendLoading, setSendLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<LineItem | null>(null);
   const [form, setForm] = useState<ItemForm>(emptyForm());
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { data: invoice, error } = useQuery({
     queryKey: ["admin", "invoices", id],
@@ -129,6 +133,14 @@ export default function InvoiceDetailPage() {
     onSuccess: () => {
       invalidate();
       toast({ title: "Line item removed" });
+    },
+  });
+
+  const removeInvoice = useMutation({
+    mutationFn: () => api.invoices.remove(id!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "invoices"] });
+      qc.invalidateQueries({ queryKey: ["admin", "invoices", "summary"] });
     },
   });
 
@@ -215,6 +227,22 @@ export default function InvoiceDetailPage() {
     }
   }
 
+  async function handleDeleteInvoice() {
+    try {
+      const res = await removeInvoice.mutateAsync();
+      if (res && typeof res === "object" && "error" in res) {
+        toast({ title: "Delete failed", description: String((res as { error?: string }).error), variant: "destructive" });
+        return;
+      }
+      toast({ title: "Invoice deleted" });
+      navigate("/invoices");
+    } catch {
+      toast({ title: "Delete failed", variant: "destructive" });
+    } finally {
+      setDeleteOpen(false);
+    }
+  }
+
   async function downloadPdf() {
     const res = await authFetch(api.invoices.pdfUrl(id!), {}, getAccessToken());
     if (!res.ok) {
@@ -227,6 +255,30 @@ export default function InvoiceDetailPage() {
       w.document.write(html);
       w.document.close();
       w.print();
+    }
+  }
+
+  async function sendToPortal() {
+    setSendLoading(true);
+    try {
+      const res = await api.invoices.send(id!);
+      if (res.error) {
+        toast({ title: "Could not send", description: res.error, variant: "destructive" });
+        return;
+      }
+      invalidate();
+      toast({
+        title: "Sent to client portal",
+        description: res.email_sent ? "Client notified by email." : "Now visible in the client portal.",
+      });
+    } catch (e) {
+      toast({
+        title: "Could not send to portal",
+        description: e instanceof Error ? e.message : undefined,
+        variant: "destructive",
+      });
+    } finally {
+      setSendLoading(false);
     }
   }
 
@@ -293,8 +345,19 @@ export default function InvoiceDetailPage() {
         <Button variant="outline" size="sm" className="gap-1.5" onClick={downloadPdf}>
           <Download className="h-4 w-4" /> PDF
         </Button>
+        <Button size="sm" className="gap-1.5" onClick={sendToPortal} disabled={sendLoading}>
+          <Send className="h-4 w-4" /> {sendLoading ? "Sending…" : "Send to portal"}
+        </Button>
         <Button variant="outline" size="sm" className="gap-1.5" onClick={createPaymentLink} disabled={paymentLoading}>
           <Link2 className="h-4 w-4" /> Send payment link
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50 ml-auto"
+          onClick={() => setDeleteOpen(true)}
+        >
+          <Trash2 className="h-4 w-4" /> Delete
         </Button>
       </div>
 
@@ -392,6 +455,17 @@ export default function InvoiceDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete this invoice?"
+        description={`Permanently delete invoice ${inv.invoice_number ?? id?.slice(0, 8)}? This cannot be undone.`}
+        confirmLabel="Delete invoice"
+        variant="destructive"
+        loading={removeInvoice.isPending}
+        onConfirm={() => void handleDeleteInvoice()}
+      />
     </div>
   );
 }

@@ -30,7 +30,8 @@ const SingleBrand = ({ brand }: { brand: BrandItem }) => {
           width={brand.width}
           height={brand.height}
           draggable={false}
-          className={`client-brand-logo h-full w-full select-none object-contain object-center ${brand.logoClassName ?? ""}`}
+          unoptimized
+          className={`client-brand-logo h-full w-full select-none bg-transparent object-contain object-center ${brand.logoClassName ?? ""}`}
         />
       </div>
       <span className="sr-only">{brand.title}</span>

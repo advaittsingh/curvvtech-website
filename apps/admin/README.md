@@ -1,6 +1,6 @@
-# CurvvTech Admin Panel
+# Curvvtech Admin Panel
 
-Internal dashboard for CurvvTech (blogs, leads, clients, invoices, team, analytics). Built with React, Vite, Clerk, and the CurvvTech backend API.
+Internal dashboard for Curvvtech (blogs, leads, clients, invoices, team, analytics). Built with React, Vite, Clerk, and the Curvvtech backend API.
 
 ## Deploying to Vercel (admin.curvvtech.com)
 

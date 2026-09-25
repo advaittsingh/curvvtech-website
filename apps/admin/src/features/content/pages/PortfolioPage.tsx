@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/app/providers";
 
 type PortfolioItem = {
   id: string;
@@ -28,6 +29,8 @@ type PortfolioItem = {
 export default function PortfolioPage() {
   const api = useAdminApi();
   const qc = useQueryClient();
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission("content.edit");
   const [editing, setEditing] = useState<PortfolioItem | null>(null);
   const [form, setForm] = useState({
     title: "",
@@ -93,15 +96,15 @@ export default function PortfolioPage() {
       <PageHeader
         title="Portfolio"
         description="Case studies and work samples for the public website."
-        action={
+        action={canEdit ? (
           <Button size="sm" className="gap-2" onClick={() => setEditing({ id: "", title: "" })}>
             <Plus className="h-4 w-4" /> Add case study
           </Button>
-        }
+        ) : undefined}
       />
       <BackendErrorAlert error={error} />
       {items.length === 0 && !editing ? (
-        <EmptyState title="No case studies" cta={<Button onClick={() => setEditing({ id: "", title: "" })}>Add case study</Button>} />
+        <EmptyState title="No case studies" cta={canEdit ? <Button onClick={() => setEditing({ id: "", title: "" })}>Add case study</Button> : undefined} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           {items.map((p) => (
@@ -111,15 +114,15 @@ export default function PortfolioPage() {
                 <Badge variant={p.published ? "default" : "secondary"}>{p.published ? "Live" : "Draft"}</Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{p.description ?? "—"}</p>
-              <div className="flex gap-2 mt-3">
+              {canEdit && <div className="flex gap-2 mt-3">
                 <Button variant="outline" size="sm" onClick={() => startEdit(p)}>Edit</Button>
                 <Button variant="ghost" size="sm" onClick={() => remove.mutate(p.id)}><Trash2 className="h-4 w-4" /></Button>
-              </div>
+              </div>}
             </div>
           ))}
         </div>
       )}
-      {editing && (
+      {canEdit && editing && (
         <div className="rounded-lg border border-border p-4 space-y-3 max-w-xl">
           <div><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
           <div><Label>Slug</Label><Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} /></div>

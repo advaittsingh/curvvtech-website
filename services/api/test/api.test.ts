@@ -200,6 +200,152 @@ describe.skipIf(!hasDb || !hasJwt)("integration: auth + demo + admin", () => {
   });
 });
 
+describe.skipIf(!hasDb || !hasJwt)("integration: restricted staff access", () => {
+  const superEmail = `qa-super-${randomUUID()}@curvvtech.test`;
+  const managerEmail = `qa-manager-${randomUUID()}@curvvtech.test`;
+  const designerEmail = `qa-designer-${randomUUID()}@curvvtech.test`;
+  const password = "QaStaff_Password_9!";
+  let superId = "";
+  let managerId = "";
+  let designerId = "";
+  let superToken = "";
+  let managerToken = "";
+  let designerToken = "";
+  let clientId = "";
+
+  beforeAll(async () => {
+    const superSignup = await request(app).post("/auth/signup").send({ email: superEmail, password }).expect(201);
+    superId = superSignup.body.user.id;
+    superToken = superSignup.body.access_token;
+    await pool.query(`UPDATE users SET curvvtech_role = 'super_admin' WHERE id = $1::uuid`, [superId]);
+  });
+
+  afterAll(async () => {
+    if (clientId) await pool.query(`DELETE FROM clients WHERE id = $1::uuid`, [clientId]);
+    await pool.query(`DELETE FROM staff_invitations WHERE invited_by = $1::uuid`, [superId]).catch(() => undefined);
+    await pool.query(`DELETE FROM users WHERE lower(email) = ANY($1::text[])`, [
+      [superEmail, managerEmail, designerEmail].map((email) => email.toLowerCase()),
+    ]);
+  });
+
+  it("creates, validates, and transactionally accepts a staff invitation", async () => {
+    const created = await request(app)
+      .post("/api/admin/team/invitations")
+      .set("Authorization", `Bearer ${superToken}`)
+      .send({ email: managerEmail, role: "project_manager", expires_in_hours: 24 })
+      .expect(201);
+    expect(created.body.token).toBeTruthy();
+    expect(created.body.invite_url).toContain("/#/auth/staff-invite/");
+
+    const valid = await request(app)
+      .get(`/api/auth/staff-invites/${encodeURIComponent(created.body.token)}`)
+      .expect(200);
+    expect(valid.body.invitation).toMatchObject({
+      email: managerEmail.toLowerCase(),
+      role: "project_manager",
+    });
+
+    const accepted = await request(app)
+      .post(`/api/auth/staff-invites/${encodeURIComponent(created.body.token)}/accept`)
+      .send({ password, display_name: "QA Project Manager" })
+      .expect(201);
+    managerId = accepted.body.user.id;
+    managerToken = accepted.body.access_token;
+    expect(accepted.body.user.curvvtech_role).toBe("project_manager");
+
+    await request(app)
+      .post(`/api/auth/staff-invites/${encodeURIComponent(created.body.token)}/accept`)
+      .send({ password })
+      .expect(410);
+  });
+
+  it("prevents a project manager from escalating any staff role", async () => {
+    if (!managerToken) {
+      const signup = await request(app).post("/auth/signup").send({ email: managerEmail, password }).expect(201);
+      managerId = signup.body.user.id;
+      managerToken = signup.body.access_token;
+      await pool.query(`UPDATE users SET curvvtech_role = 'project_manager' WHERE id = $1::uuid`, [managerId]);
+    }
+    await request(app)
+      .patch(`/api/admin/team/members/${managerId}`)
+      .set("Authorization", `Bearer ${managerToken}`)
+      .send({ curvvtech_role: "super_admin" })
+      .expect(403);
+  });
+
+  it("scopes designer projects and tasks and permits status-only self updates", async () => {
+    const signup = await request(app).post("/auth/signup").send({ email: designerEmail, password }).expect(201);
+    designerId = signup.body.user.id;
+    designerToken = signup.body.access_token;
+    await pool.query(`UPDATE users SET curvvtech_role = 'designer' WHERE id = $1::uuid`, [designerId]);
+
+    const org = await pool.query<{ id: string }>(
+      `SELECT id::text FROM organizations ORDER BY (slug = 'curvvtech') DESC LIMIT 1`,
+    );
+    const organizationId = org.rows[0]!.id;
+    const client = await pool.query<{ id: string }>(
+      `INSERT INTO clients (name, organization_id) VALUES ($1, $2::uuid) RETURNING id::text`,
+      ["QA restricted client", organizationId],
+    );
+    clientId = client.rows[0]!.id;
+    const projects = await pool.query<{ id: string }>(
+      `INSERT INTO projects (client_id, organization_id, name)
+       VALUES ($1::uuid, $2::uuid, 'Assigned project'),
+              ($1::uuid, $2::uuid, 'Hidden project')
+       RETURNING id::text`,
+      [clientId, organizationId],
+    );
+    const assignedProjectId = projects.rows[0]!.id;
+    const hiddenProjectId = projects.rows[1]!.id;
+    await pool.query(
+      `INSERT INTO project_members (project_id, user_id, role) VALUES ($1::uuid, $2::uuid, 'designer')`,
+      [assignedProjectId, designerId],
+    );
+    const tasks = await pool.query<{ id: string }>(
+      `INSERT INTO tasks (organization_id, project_id, title, assignee_user_id)
+       VALUES ($1::uuid, $2::uuid, 'My assigned task', $3),
+              ($1::uuid, $2::uuid, 'Someone else task', NULL)
+       RETURNING id::text`,
+      [organizationId, assignedProjectId, designerId],
+    );
+
+    const projectList = await request(app)
+      .get("/api/admin/projects")
+      .set("Authorization", `Bearer ${designerToken}`)
+      .expect(200);
+    expect(projectList.body.map((p: { id: string }) => p.id)).toContain(assignedProjectId);
+    expect(projectList.body.map((p: { id: string }) => p.id)).not.toContain(hiddenProjectId);
+    await request(app)
+      .get(`/api/admin/projects/${hiddenProjectId}`)
+      .set("Authorization", `Bearer ${designerToken}`)
+      .expect(404);
+
+    const mine = await request(app)
+      .get("/api/admin/tasks/mine")
+      .set("Authorization", `Bearer ${designerToken}`)
+      .expect(200);
+    expect(mine.body).toHaveLength(1);
+    expect(mine.body[0].id).toBe(tasks.rows[0]!.id);
+
+    await request(app)
+      .patch(`/api/admin/tasks/${tasks.rows[0]!.id}`)
+      .set("Authorization", `Bearer ${designerToken}`)
+      .send({ title: "Unauthorized edit" })
+      .expect(403);
+    await request(app)
+      .patch(`/api/admin/tasks/${tasks.rows[1]!.id}`)
+      .set("Authorization", `Bearer ${designerToken}`)
+      .send({ status: "in_progress" })
+      .expect(403);
+    const updated = await request(app)
+      .patch(`/api/admin/tasks/${tasks.rows[0]!.id}`)
+      .set("Authorization", `Bearer ${designerToken}`)
+      .send({ status: "in_progress" })
+      .expect(200);
+    expect(updated.body.status).toBe("in_progress");
+  });
+});
+
 describe.skipIf(!hasDb || !config.landingApiKey)("public waitlist (API key)", () => {
   it("GET /v1/public/waitlist/count without key returns 401", async () => {
     await request(app).get("/v1/public/waitlist/count").expect(401);

@@ -1,8 +1,12 @@
+import type { Metadata } from 'next'
 import { ColorModeScript } from '@chakra-ui/react'
 
 import { initialColorMode } from '../theme/color-mode'
+import { rootMetadata } from '#lib/seo'
 
 import { Provider } from './provider'
+
+export const metadata: Metadata = rootMetadata
 
 export default function Layout(props: { children: React.ReactNode }) {
   const colorMode = initialColorMode

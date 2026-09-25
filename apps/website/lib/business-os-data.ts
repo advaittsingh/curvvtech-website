@@ -1,6 +1,6 @@
 export const businessOsNav = {
   product: 'Business OS',
-  byline: 'by CurvvTech',
+  byline: 'by Curvvtech',
   cta: { label: 'Deploy AI Workforce', href: '/contact?product=Business%20OS' },
 };
 
@@ -291,5 +291,5 @@ export const businessOsFooter = {
     { label: 'Privacy Policy', href: '/privacy-policy' },
     { label: 'LinkedIn', href: 'https://linkedin.com/company/curvvtech' },
   ],
-  copyright: 'Business OS by CurvvTech',
+  copyright: 'Business OS by Curvvtech',
 };

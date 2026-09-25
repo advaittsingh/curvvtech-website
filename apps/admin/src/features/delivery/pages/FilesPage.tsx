@@ -1,7 +1,9 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, Search } from "lucide-react";
+import { useAuth } from "@/app/providers";
 import { useAdminApi } from "@/hooks/useAdminApi";
+import { isRestrictedProjectRole } from "@/lib/permissions";
 import { BackendErrorAlert } from "@/components/BackendErrorAlert";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +45,8 @@ import {
 
 export default function FilesPage() {
   const api = useAdminApi();
+  const { role } = useAuth();
+  const restricted = isRestrictedProjectRole(role);
   const qc = useQueryClient();
   const { toast } = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -97,7 +101,11 @@ export default function FilesPage() {
 
   const createFolder = useMutation({
     mutationFn: () =>
-      api.files.createFolder({ name: folderName, parent_id: currentFolder ?? undefined }),
+      api.files.createFolder({
+        name: folderName,
+        parent_id: currentFolder ?? undefined,
+        project_id: linkProjectId || undefined,
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "files", "folders"] });
       qc.invalidateQueries({ queryKey: ["admin", "files", "summary"] });
@@ -110,6 +118,13 @@ export default function FilesPage() {
   const allFiles: FileRecord[] = Array.isArray(data) ? data : [];
   const folderList: FolderRecord[] = Array.isArray(folders) ? folders : [];
   const projects = Array.isArray(projectsRaw) ? projectsRaw : [];
+
+  useEffect(() => {
+    if (!restricted || projects.length === 0) return;
+    if (!projects.some((project) => project.id === linkProjectId)) {
+      setLinkProjectId(projects[0].id);
+    }
+  }, [linkProjectId, projects, restricted]);
 
   const displayFiles = useMemo(() => {
     const deduped = latestVersionFiles(allFiles);
@@ -128,6 +143,9 @@ export default function FilesPage() {
 
   async function handleUpload(file: File) {
     try {
+      if (restricted && !linkProjectId) {
+        throw new Error("Select an assigned project before uploading files.");
+      }
       const res = await api.files.uploadUrl({
         name: file.name,
         content_type: file.type || "application/octet-stream",
@@ -135,12 +153,16 @@ export default function FilesPage() {
         folder_id: currentFolder ?? undefined,
         project_id: linkProjectId || undefined,
       });
-      if (res.error) throw new Error(res.error);
-      await fetch(res.upload.url, {
+      if (res.error) throw new Error(res.message ?? res.error);
+      const put = await fetch(res.upload.url, {
         method: "PUT",
         body: file,
         headers: { "Content-Type": file.type || "application/octet-stream" },
       });
+      if (!put.ok) {
+        if (res.file?.id) await api.files.remove(res.file.id).catch(() => {});
+        throw new Error(`Storage upload failed (${put.status})`);
+      }
       qc.invalidateQueries({ queryKey: ["admin", "files"] });
       qc.invalidateQueries({ queryKey: ["admin", "files", "summary"] });
       qc.invalidateQueries({ queryKey: ["admin", "files", "activity"] });
@@ -199,10 +221,18 @@ export default function FilesPage() {
     const template = DOC_TEMPLATES.find((t) => t.id === docTemplate);
     if (!template) return;
     try {
-      const rootFolders = (await api.files.folders()) as FolderRecord[];
+      if (restricted && !linkProjectId) {
+        throw new Error("Select an assigned project before creating a document folder.");
+      }
+      const rootFolders = (await api.files.folders(
+        linkProjectId ? { project_id: linkProjectId } : undefined,
+      )) as FolderRecord[];
       let folderId = rootFolders.find((f) => f.name === template.folder)?.id;
       if (!folderId) {
-        const created = (await api.files.createFolder({ name: template.folder })) as FolderRecord;
+        const created = (await api.files.createFolder({
+          name: template.folder,
+          project_id: linkProjectId || undefined,
+        })) as FolderRecord;
         folderId = created.id;
       }
       setCurrentFolder(folderId);
@@ -245,9 +275,34 @@ export default function FilesPage() {
         onUpload={() => fileInput.current?.click()}
         onCreateFolder={() => setFolderOpen(true)}
         onCreateDocument={() => setDocOpen(true)}
-        onOrganize={handleOrganize}
+        onOrganize={restricted ? undefined : handleOrganize}
         organizing={organizing}
+        actionsDisabled={restricted && !linkProjectId}
       />
+
+      {restricted && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <Label>Upload to assigned project</Label>
+          {projects.length > 0 ? (
+            <Select value={linkProjectId} onValueChange={setLinkProjectId}>
+              <SelectTrigger className="mt-2 max-w-md">
+                <SelectValue placeholder="Select a project" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name ?? project.id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">
+              No projects are assigned to you. Ask an administrator to add you as a project member.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -363,7 +418,7 @@ export default function FilesPage() {
             const f = allFiles.find((x) => x.id === id);
             if (f) openFile(f);
           }}
-          onOrganize={handleOrganize}
+          onOrganize={restricted ? undefined : handleOrganize}
           organizing={organizing}
         />
       </div>
@@ -372,6 +427,7 @@ export default function FilesPage() {
         ref={fileInput}
         type="file"
         multiple
+        disabled={restricted && !linkProjectId}
         className="hidden"
         onChange={(e) => e.target.files?.length && handleUploadMany(e.target.files)}
       />

@@ -1,15 +1,15 @@
-import { Metadata } from 'next';
 import Link from 'next/link';
 import { AnimatedHero } from '@/components/ui/animated-hero';
-import { AnimatedSection } from '@/components/ui/animated-section';
 import { getAllProducts } from '@/lib/products-data';
+import { createPageMetadata } from '@/lib/seo';
 import ProductsList from './ProductsList';
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
   title: 'Products | Curvvtech',
   description:
     'Curvvtech SaaS products—tools we build and operate to help teams scale sales, support, and operations.',
-};
+  path: '/products',
+});
 
 const heroGradient =
   'relative w-full pt-44 2xl:pb-20 pb-10 before:absolute before:w-full before:h-full before:bg-linear-to-r before:from-blue_gradient before:via-white before:to-yellow_gradient before:rounded-full before:top-24 before:blur-3xl before:-z-10 dark:before:from-dark_blue_gradient dark:before:via-black dark:before:to-dark_yellow_gradient dark:before:rounded-full dark:before:blur-3xl dark:before:-z-10';
@@ -37,7 +37,7 @@ export default function ProductsPage() {
       <section>
         <div className="2xl:py-20 py-11">
           <div className="container">
-            <AnimatedSection className="flex flex-col gap-12">
+            <div className="flex flex-col gap-12">
               <ProductsList items={list} />
               <div className="flex flex-col items-center justify-center mt-16 w-full">
                 <Link
@@ -78,7 +78,7 @@ export default function ProductsPage() {
                   </svg>
                 </Link>
               </div>
-            </AnimatedSection>
+            </div>
           </div>
         </div>
       </section>

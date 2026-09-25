@@ -73,7 +73,7 @@ function KanbanColumnShell<T extends { id: string }>({
             draggable
             onDragStart={(e) => e.dataTransfer.setData("text/plain", item.id)}
             onClick={() => onCardClick?.(item)}
-            className="cursor-grab rounded-lg border border-border bg-card p-3 shadow-sm active:cursor-grabbing hover:border-foreground/20 hover:shadow-md transition-shadow"
+            className="cursor-grab rounded-lg border border-border bg-card p-3 shadow-sm active:cursor-grabbing hover:border-foreground/20 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
           >
             {renderCard(item)}
           </div>

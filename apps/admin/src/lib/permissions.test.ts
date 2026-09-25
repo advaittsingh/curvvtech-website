@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { hasPermission, normalizeAdminRole, permissionsForRole } from "./permissions";
+import { defaultRouteForRole, hasPermission, normalizeAdminRole, permissionsForRole } from "./permissions";
 
 describe("permissions", () => {
-  it("maps legacy admin role to super_admin", () => {
-    expect(normalizeAdminRole("admin")).toBe("super_admin");
+  it("keeps admin distinct from super_admin", () => {
+    expect(normalizeAdminRole("admin")).toBe("admin");
+    expect(normalizeAdminRole("super_admin")).toBe("super_admin");
   });
 
   it("grants super_admin all permissions", () => {
@@ -16,5 +17,11 @@ describe("permissions", () => {
     const perms = permissionsForRole("accountant");
     expect(hasPermission(perms, "invoices.view")).toBe(true);
     expect(hasPermission(perms, "team.manage")).toBe(false);
+  });
+
+  it("lands delivery contributors in their personal workspace", () => {
+    expect(defaultRouteForRole("designer")).toBe("/my-work");
+    expect(defaultRouteForRole("developer")).toBe("/my-work");
+    expect(defaultRouteForRole("admin")).toBe("/");
   });
 });

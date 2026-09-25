@@ -1,7 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
 import { hasPermission, type Permission } from "../lib/adminPermissions.js";
 
-type RouteRule = { prefix: string; view: Permission; edit?: Permission; manage?: Permission };
+type RouteRule =
+  | { prefix: string; authenticatedOnly: true }
+  | { prefix: string; view: Permission; edit?: Permission; manage?: Permission };
 
 const RULES: RouteRule[] = [
   { prefix: "/analytics", view: "dashboard.view" },
@@ -15,16 +17,23 @@ const RULES: RouteRule[] = [
   { prefix: "/files", view: "projects.view", edit: "projects.edit" },
   { prefix: "/proposals", view: "proposals.view", edit: "proposals.edit" },
   { prefix: "/invoices", view: "invoices.view", edit: "invoices.edit" },
+  { prefix: "/payments", view: "invoices.view", edit: "invoices.edit" },
   { prefix: "/expenses", view: "invoices.view", edit: "invoices.edit" },
   { prefix: "/payroll", view: "invoices.view", edit: "invoices.edit" },
   { prefix: "/blogs", view: "content.view", edit: "content.edit" },
   { prefix: "/content", view: "content.view", edit: "content.edit" },
   { prefix: "/team", view: "team.manage", manage: "team.manage" },
+  { prefix: "/careers", view: "team.manage", edit: "team.manage" },
   { prefix: "/workflows", view: "settings.manage", manage: "settings.manage" },
   { prefix: "/operations", view: "settings.manage", manage: "settings.manage" },
   { prefix: "/integrations", view: "settings.manage", manage: "settings.manage" },
   { prefix: "/company", view: "settings.manage", manage: "settings.manage" },
   { prefix: "/ai", view: "dashboard.view", edit: "dashboard.view" },
+  { prefix: "/inbox", view: "leads.view", edit: "leads.edit" },
+  { prefix: "/search", view: "dashboard.view" },
+  { prefix: "/portal", view: "clients.view", edit: "clients.edit" },
+  { prefix: "/approvals", view: "projects.view", edit: "projects.edit" },
+  { prefix: "/notifications", authenticatedOnly: true },
 ];
 
 function adminRelativePath(req: Request): string {
@@ -44,11 +53,27 @@ export function enforceAdminPermissions(req: Request, res: Response, next: NextF
   const rel = adminRelativePath(req);
   const rule = RULES.find((r) => rel === r.prefix || rel.startsWith(`${r.prefix}/`));
   if (!rule) {
+    res.status(403).json({ error: "FORBIDDEN", message: "Admin route is not permission-mapped" });
+    return;
+  }
+
+  if ("authenticatedOnly" in rule) {
     next();
     return;
   }
 
   const isWrite = ["POST", "PATCH", "PUT", "DELETE"].includes(req.method);
+  if (
+    rel.startsWith("/tasks/") &&
+    (
+      req.method === "PATCH" ||
+      (req.method === "POST" && rel.endsWith("/comments"))
+    ) &&
+    (req.adminRole === "designer" || req.adminRole === "developer")
+  ) {
+    next();
+    return;
+  }
   const required = rule.manage ?? (isWrite ? (rule.edit ?? rule.view) : rule.view);
 
   if (!hasPermission(perms, required)) {

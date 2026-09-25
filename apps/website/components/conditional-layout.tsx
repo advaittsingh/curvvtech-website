@@ -1,10 +1,15 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import Header from './layout/header';
 import Footer from './layout/footer/Footer';
 import ScrollToTop from '@/components/scroll-to-top';
-import { ChatWidget } from './chat/ChatWidget';
+
+const ChatWidget = dynamic(
+  () => import('./chat/ChatWidget').then((m) => ({ default: m.ChatWidget })),
+  { ssr: false }
+);
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
